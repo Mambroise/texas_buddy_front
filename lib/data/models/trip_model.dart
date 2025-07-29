@@ -5,7 +5,6 @@
 // Author : Morice
 //-------------------------------------------------------------------------
 
-import 'package:flutter/foundation.dart';
 
 /// Trip Model
 class TripModel {

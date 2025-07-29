@@ -1,75 +1,76 @@
 //---------------------------------------------------------------------------
 //                           TEXAS BUDDY   ( 2 0 2 5 )
 //---------------------------------------------------------------------------
-// File   :data/datasources/trip_local_datasource.dart
+// File   :data/datasources/local/activity_local_datasource.dart
 // Author : Morice
 //-------------------------------------------------------------------------
 
 
 import 'package:sqflite/sqflite.dart';
 import 'local_db.dart';
-import '../models/trip_model.dart';
+import '../../models/activity_model.dart';
 
 /// A data source for performing CRUD operations on the local
-/// SQLite 'trips' table. Acts as the DAO layer for TripModel.
-class TripLocalDatasource {
+/// SQLite 'activities' table. Acts as the DAO (Data Access Object)
+/// layer of your app’s data tier.
+class ActivityLocalDatasource {
   final LocalDatabase _db = LocalDatabase();
 
-  /// Inserts a new [TripModel] into the 'trips' table.
+  /// Inserts a new [ActivityModel] into the 'activities' table.
   ///
-  /// If a trip with the same primary key already exists,
+  /// If an activity with the same primary key already exists,
   /// it will be replaced (ConflictAlgorithm.replace).
-  Future<void> insertTrip(TripModel trip) async {
+  Future<void> insertActivity(ActivityModel activity) async {
     final db = await _db.database;
     await db.insert(
-      'trips',
-      trip.toMap(),
+      'activities',
+      activity.toMap(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 
-  /// Retrieves a single [TripModel] by its [id].
+  /// Retrieves a single [ActivityModel] by its [id].
   ///
   /// Returns null if no matching row is found.
-  Future<TripModel?> getTripById(int id) async {
+  Future<ActivityModel?> getActivityById(int id) async {
     final db = await _db.database;
     final maps = await db.query(
-      'trips',
+      'activities',
       where: 'id = ?',
       whereArgs: [id],
     );
     if (maps.isNotEmpty) {
-      return TripModel.fromMap(maps.first);
+      return ActivityModel.fromMap(maps.first);
     }
     return null;
   }
 
-  /// Retrieves all [TripModel] rows from the 'trips' table.
+  /// Retrieves all [ActivityModel] rows from the 'activities' table.
   ///
   /// Returns an empty list if the table is empty.
-  Future<List<TripModel>> getAllTrips() async {
+  Future<List<ActivityModel>> getAllActivities() async {
     final db = await _db.database;
-    final result = await db.query('trips');
-    return result.map((map) => TripModel.fromMap(map)).toList();
+    final result = await db.query('activities');
+    return result.map((map) => ActivityModel.fromMap(map)).toList();
   }
 
-  /// Deletes the trip row matching the given [id].
+  /// Deletes the activity row matching the given [id].
   ///
   /// If no row matches, nothing happens.
-  Future<void> deleteTrip(int id) async {
+  Future<void> deleteActivity(int id) async {
     final db = await _db.database;
     await db.delete(
-      'trips',
+      'activities',
       where: 'id = ?',
       whereArgs: [id],
     );
   }
 
-  /// Clears all rows from the 'trips' table.
+  /// Clears all rows from the 'activities' table.
   ///
-  /// Use with care: this will remove all locally cached trips.
+  /// Use with care: this will remove all locally cached activities.
   Future<void> clearAll() async {
     final db = await _db.database;
-    await db.delete('trips');
+    await db.delete('activities');
   }
 }

@@ -1,14 +1,14 @@
 //---------------------------------------------------------------------------
 //                           TEXAS BUDDY   ( 2 0 2 5 )
 //---------------------------------------------------------------------------
-// File   :data/datasources/advertisement_local_datasource.dart
+// File   :data/datasources/local/advertisement_local_datasource.dart
 // Author : Morice
 //-------------------------------------------------------------------------
 
 
 import 'package:sqflite/sqflite.dart';
 import 'local_db.dart';
-import '../models/advertisement_model.dart';
+import '../../models/advertisement_model.dart';
 
 /// A data source for performing CRUD operations on the local
 /// SQLite 'advertisements' table. Acts as the DAO layer
