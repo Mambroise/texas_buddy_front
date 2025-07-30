@@ -15,7 +15,7 @@ class AuthRemoteDatasource {
 
   /// Creates an [AuthRemoteDatasource] using a pre-configured [Dio] instance.
   ///
-  /// The [Dio] should have its base URL set to 'http://127.0.0.1:8001/api/users/'.
+  /// The [Dio] should have its base URL set to 'http://127.0.0.1:8001/api/'.
   AuthRemoteDatasource(this._dio);
 
   /// Verifies the user's registration number and email for first-time signup.
@@ -24,7 +24,6 @@ class AuthRemoteDatasource {
   /// following payload:
   /// ```json
   /// {
-  ///   "last_name": "Doe",
   ///   "email": "john.doe@example.com",
   ///   "sign_up_number": "ABC123"
   /// }
@@ -37,7 +36,7 @@ class AuthRemoteDatasource {
     required String signUpNumber,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      'auth/verify-registration/',
+      'users/auth/verify-registration/',
       data: <String, Object?>{
         'email': email,
         'sign_up_number': signUpNumber,
@@ -52,5 +51,133 @@ class AuthRemoteDatasource {
 
     // Fallback: return entire response body as string
     return response.data.toString();
+  }
+
+
+  /// Resends the registration number to the specified email.
+  ///
+  /// Sends a POST request to 'users/auth/resend-registration-number/'.
+  /// Returns the 'message' field on success.
+  Future<String> resendRegistrationNumber({
+    required String email,
+  }) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      'users/auth/resend-registration-number/',
+      data: <String, Object?>{
+        'email': email,
+      },
+    );
+    final message = response.data?['message'] as String?;
+    if (message != null) {
+      return message;
+    }
+    return response.data?['detail'] as String? ?? response.data.toString();
+  }
+
+
+  /// Verifies the 2FA code sent to the user after registration.
+  ///
+  /// Sends a POST request to 'users/auth/verify-2fa-code/'.
+  /// Returns the 'message' field on success.
+  Future<String> verify2FACode({
+    required String email,
+    required String code,
+  }) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      'users/auth/verify-2fa-code/',
+      data: <String, Object?>{
+        'email': email,
+        'code': code,
+      },
+    );
+    final message = response.data?['message'] as String?;
+    if (message != null) {
+      return message;
+    }
+    return response.data?['detail'] as String? ?? response.data.toString();
+  }
+
+
+  /// Sets a new password for the user after 2FA verification.
+  ///
+  /// Sends a POST request to 'users/auth/set-password/'.
+  /// Returns the 'message' field on success.
+  Future<String> setPassword({
+    required String email,
+    required String password,
+  }) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      'users/auth/set-password/',
+      data: <String, Object?>{
+        'email': email,
+        'password': password,
+      },
+    );
+    final message = response.data?['message'] as String?;
+    if (message != null) {
+      return message;
+    }
+    return response.data?['detail'] as String? ?? response.data.toString();
+  }
+
+
+  /// Performs login and retrieves JWT access & refresh tokens.
+  ///
+  /// POST 'users/auth/login/'
+  /// Body: { "email": ..., "password": ... }
+  /// Returns a map { 'access': String, 'refresh': String }.
+  /// Throws DioException on error; server returns 'detail' on 401/403.
+  Future<Map<String, String>> login({
+    required String email,
+    required String password,
+  }) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      'users/auth/login/',
+      data: <String, Object?>{
+        'email': email,
+        'password': password,
+      },
+    );
+    // On succès 200, réponse : { access: "...", refresh: "..." }
+    final data = response.data!;
+    return {
+      'access': data['access'] as String,
+      'refresh': data['refresh'] as String,
+    };
+  }
+
+
+  /// POST users/password-reset/request/
+  /// Body: { "email": ... }
+  /// Returns { "message": ... } or throws on error.
+  Future<String> requestPasswordReset({ required String email }) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      'users/password-reset/request/',
+      data: <String, Object?>{ 'email': email },
+    );
+    // message on success, detail on failure
+    return res.data?['message'] as String
+        ?? res.data?['detail']  as String
+        ?? res.data.toString();
+  }
+
+
+  /// POST users/auth/verify-restpwd-2fa-code/
+  /// Body: { "email": ..., "code": ... }
+  /// Returns { "message": ... } or throws on error.
+  Future<String> verifyResetPassword2FACode({
+    required String email,
+    required String code,
+  }) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      'users/auth/verify-restpwd-2fa-code/',
+      data: <String, Object?>{
+        'email': email,
+        'code': code,
+      },
+    );
+    return res.data?['message'] as String
+        ?? res.data?['detail']  as String
+        ?? res.data.toString();
   }
 }

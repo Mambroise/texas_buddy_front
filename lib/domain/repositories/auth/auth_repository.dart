@@ -35,4 +35,24 @@ abstract class AuthRepository {
   Future<void> verify2FACode({
     required String code,
   });
+
+  /// Logs in user and stores tokens locally.
+  /// Throws [AuthException] on failure.
+  Future<void> login({
+    required String email,
+    required String password,
+  });
+
+  /// Request a password reset 2FA code for a logged‐in user.
+  /// Returns the server message ("Security code has been sent by email.").
+  Future<String> requestPasswordReset({
+    required String email
+  });
+
+  /// Verify the password‐reset 2FA code.
+  /// Returns the server message ("code valid. You can now set your password").
+  Future<String> verifyResetPassword2FACode({
+    required String email,
+    required String code,
+  });
 }

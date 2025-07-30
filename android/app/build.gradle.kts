@@ -6,8 +6,8 @@ plugins {
 }
 
 android {
+    compileSdk = 35
     namespace = "com.example.texas_buddy"
-    compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -37,6 +37,17 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+
+    ndkVersion = "27.0.12077973"  // ← ajoute cette ligne
+
+    defaultConfig {
+        applicationId = "com.example.texas_buddy"
+        minSdk = 21
+        targetSdk = 35
+        // …
+    }
+    // …
+
 }
 
 flutter {
