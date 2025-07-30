@@ -5,8 +5,6 @@
 // Author : Morice
 //-------------------------------------------------------------------------
 
-import 'package:flutter/foundation.dart';
-
 
 /// Activity Model
 class ActivityModel {

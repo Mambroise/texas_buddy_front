@@ -6,7 +6,6 @@
 //-------------------------------------------------------------------------
 
 
-import 'package:flutter/foundation.dart';
 import 'package:texas_buddy/data/dtos/category_dto.dart';
 
 /// Data Transfer Object for activity data

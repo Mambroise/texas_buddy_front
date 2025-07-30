@@ -6,7 +6,6 @@
 //-------------------------------------------------------------------------
 
 
-import 'package:flutter/foundation.dart';
 
 /// DTO for Advertisement returned in the nearby list
 class AdvertisementDto {
