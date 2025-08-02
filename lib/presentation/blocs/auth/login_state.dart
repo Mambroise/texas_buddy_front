@@ -5,10 +5,9 @@
 // Author : Morice
 //-------------------------------------------------------------------------
 
-
+import '../form_status.dart';
 import 'package:equatable/equatable.dart';
 
-enum FormStatus { pure, valid, invalid, submissionInProgress, submissionSuccess, submissionFailure }
 
 class LoginState extends Equatable {
   final String email;

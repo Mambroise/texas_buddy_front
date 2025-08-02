@@ -7,32 +7,29 @@
 
 
 
-import 'dart:ui'; // pour PlatformDispatcher
 import 'package:get_it/get_it.dart';
 import 'package:dio/dio.dart';
 
-import 'data/datasources/remote/core/dio_client.dart';
 import 'data/datasources/remote/auth/auth_remote_datasource.dart';
 import 'data/datasources/local/token_storage.dart';
-
 import 'data/repositories/auth/auth_repositories_impl.dart';
 import 'domain/repositories/auth/auth_repository.dart';
 
 import 'domain/usecases/auth/login_usecase.dart';
-// (Lorsque tu créeras d’autres use cases, importe‐les ici, par ex.
-//  verify_registration_usecase.dart, set_password_usecase.dart, etc.)
+import 'domain/usecases/auth/verify_registration_usecase.dart';
+import 'domain/usecases/auth/request_password_reset_usecase.dart';
+import 'domain/usecases/auth/resend_registration_number_usecase.dart';
 
 import 'presentation/blocs/auth/login_bloc.dart';
-// (idem pour d’autres blocs : signup_bloc.dart, reset_password_bloc.dart, …)
+import 'presentation/blocs/auth/signup_bloc.dart';
+import 'presentation/blocs/auth/forgot_password_bloc.dart';
+import 'presentation/blocs/auth/resend_registration_bloc.dart';
 
 final getIt = GetIt.instance;
 
-void setupLocator() {
-  // 1) Dio HTTP client (avec Accept-Language)
-  getIt.registerLazySingleton<Dio>(() {
-    final locale = PlatformDispatcher.instance.locale.toLanguageTag();
-    return createDioClient(locale: locale);
-  });
+void setupLocator(Dio dio) {
+  // 1) Dio fourni en paramètre
+  getIt.registerLazySingleton<Dio>(() => dio);
 
   // 2) Remote DataSources
   getIt.registerLazySingleton<AuthRemoteDatasource>(
@@ -54,17 +51,27 @@ void setupLocator() {
   getIt.registerFactory<LoginUseCase>(
         () => LoginUseCase(getIt<AuthRepository>()),
   );
-  // → plus tard, tu ajouteras :
-  // getIt.registerFactory<VerifyRegistrationUseCase>(…);
-  // getIt.registerFactory<SetPasswordUseCase>(…);
-  // etc.
+  getIt.registerFactory<VerifyRegistrationUseCase>(
+        () => VerifyRegistrationUseCase(getIt<AuthRepository>()),
+  );
+  getIt.registerFactory<RequestPasswordResetUseCase>(
+        () => RequestPasswordResetUseCase(getIt<AuthRepository>()),
+  );
+  getIt.registerFactory<ResendRegistrationNumberUseCase>(
+        () => ResendRegistrationNumberUseCase(getIt<AuthRepository>()),
+  );
 
-  // 6) Blocs / Cubits
+  // 6) Blocs
   getIt.registerFactory<LoginBloc>(
         () => LoginBloc(getIt<LoginUseCase>()),
   );
-  // → et plus tard :
-  // getIt.registerFactory<SignupBloc>(…);
-  // getIt.registerFactory<ResetPasswordBloc>(…);
-  // etc.
+  getIt.registerFactory<SignupBloc>(
+        () => SignupBloc(getIt<VerifyRegistrationUseCase>()),
+  );
+  getIt.registerFactory<ForgotPasswordBloc>(
+        () => ForgotPasswordBloc(getIt<RequestPasswordResetUseCase>()),
+  );
+  getIt.registerFactory<ResendRegistrationBloc>(
+        () => ResendRegistrationBloc(getIt<ResendRegistrationNumberUseCase>()),
+  );
 }
