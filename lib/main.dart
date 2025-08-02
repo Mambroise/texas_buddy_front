@@ -6,38 +6,40 @@
 //-------------------------------------------------------------------------
 
 
-import 'dart:ui'; // pour PlatformDispatcher
+import 'dart:ui';
 import 'package:texas_buddy/data/datasources/remote/core/dio_client.dart';
 import 'package:flutter/material.dart';
 import 'package:texas_buddy/presentation/pages/auth/login_page.dart';
-import 'package:texas_buddy/presentation/pages/auth/signup_page.dart';
 import 'package:texas_buddy/service_locator.dart';
+import 'presentation/theme/app_theme.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Récupère la locale courante via PlatformDispatcher
   final deviceLocale = PlatformDispatcher.instance.locale.toLanguageTag(); // ex: "fr-FR"
-
-  // Crée ton Dio en passant la locale
   final dio = createDioClient(locale: deviceLocale);
-  setupLocator(); // GetIt : enregistre AuthRepository, LoginUseCase, etc.
-  runApp(MyApp());
+  setupLocator(dio);
 
+  runApp(TexasBuddyApp(deviceLocale: deviceLocale));
 }
 
-class MyApp extends StatelessWidget {
+class TexasBuddyApp extends StatelessWidget {
+
+  final String deviceLocale;
+
+  const TexasBuddyApp({super.key, required this.deviceLocale});
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Texas Buddy',
-      theme: ThemeData(primarySwatch: Colors.blue),
-      home: LoginPage(),
-      routes: {
-        '/login': (_) => LoginPage(),
-        '/signup': (_) => SignupPage(),  // à créer ensuite
-        //'/home': (_) => HomePage(),      // écran post-login
-      },
+      theme: AppTheme.lightTheme,
+      locale: Locale(deviceLocale.split('-')[0]), // "fr-FR" → "fr"
+      supportedLocales: const [
+        Locale('en'),
+        Locale('fr'),
+        Locale('es'),
+      ],
+      home: const LoginPage(),
     );
   }
 }
