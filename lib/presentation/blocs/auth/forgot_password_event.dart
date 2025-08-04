@@ -23,3 +23,25 @@ class ForgotPasswordEmailChanged extends ForgotPasswordEvent {
 
 /// L’utilisateur a cliqué sur “Send reset code”.
 class ForgotPasswordSubmitted extends ForgotPasswordEvent {}
+
+class ResetPassword2FACodeChanged extends ForgotPasswordEvent {
+  final String code;
+  ResetPassword2FACodeChanged(this.code);
+}
+
+class ResetPassword2FACodeSubmitted extends ForgotPasswordEvent {}
+
+class ForgotPasswordResetStateCleared extends ForgotPasswordEvent {}
+
+/// L’utilisateur a cliqué sur “Send new password”.
+class NewPasswordChanged extends ForgotPasswordEvent {
+  final String password;
+  NewPasswordChanged(this.password);
+}
+
+class ConfirmPasswordChanged extends ForgotPasswordEvent {
+  final String password;
+  ConfirmPasswordChanged(this.password);
+}
+
+class NewPasswordSubmitted extends ForgotPasswordEvent {}

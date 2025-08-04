@@ -156,9 +156,12 @@ class AuthRemoteDatasource {
       data: <String, Object?>{ 'email': email },
     );
     // message on success, detail on failure
-    return res.data?['message'] as String
-        ?? res.data?['detail']  as String
-        ?? res.data.toString();
+    final data = res.data;
+    final message = data?['message'] as String?;
+    final detail = data?['detail'] as String?;
+
+    return message ?? detail ?? data.toString();
+
   }
 
 
@@ -176,8 +179,11 @@ class AuthRemoteDatasource {
         'code': code,
       },
     );
-    return res.data?['message'] as String
-        ?? res.data?['detail']  as String
-        ?? res.data.toString();
+    final data = res.data;
+    final message = data?['message'] as String?;
+    final detail = data?['detail'] as String?;
+
+    return message ?? detail ?? data.toString();
+
   }
 }

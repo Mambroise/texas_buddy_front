@@ -24,6 +24,8 @@ import 'presentation/blocs/auth/login_bloc.dart';
 import 'presentation/blocs/auth/signup_bloc.dart';
 import 'presentation/blocs/auth/forgot_password_bloc.dart';
 import 'presentation/blocs/auth/resend_registration_bloc.dart';
+import 'domain/usecases/auth/verify_reset_pwd_2fa_usecase.dart';
+import 'domain/usecases/auth/set_password_usecase.dart';
 
 final getIt = GetIt.instance;
 
@@ -60,6 +62,12 @@ void setupLocator(Dio dio) {
   getIt.registerFactory<ResendRegistrationNumberUseCase>(
         () => ResendRegistrationNumberUseCase(getIt<AuthRepository>()),
   );
+  getIt.registerFactory<VerifyResetPwd2FACodeUseCase>(
+        () => VerifyResetPwd2FACodeUseCase(getIt<AuthRepository>()),
+  );
+  getIt.registerFactory<SetPasswordUseCase>(
+        () => SetPasswordUseCase(getIt<AuthRepository>()),
+  );
 
   // 6) Blocs
   getIt.registerFactory<LoginBloc>(
@@ -68,10 +76,14 @@ void setupLocator(Dio dio) {
   getIt.registerFactory<SignupBloc>(
         () => SignupBloc(getIt<VerifyRegistrationUseCase>()),
   );
-  getIt.registerFactory<ForgotPasswordBloc>(
-        () => ForgotPasswordBloc(getIt<RequestPasswordResetUseCase>()),
-  );
   getIt.registerFactory<ResendRegistrationBloc>(
         () => ResendRegistrationBloc(getIt<ResendRegistrationNumberUseCase>()),
+  );
+  getIt.registerFactory<ForgotPasswordBloc>(
+        () => ForgotPasswordBloc(
+      getIt<RequestPasswordResetUseCase>(),
+      getIt<VerifyResetPwd2FACodeUseCase>(),
+      getIt<SetPasswordUseCase>(),
+    ),
   );
 }
