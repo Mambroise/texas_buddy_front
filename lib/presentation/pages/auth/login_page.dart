@@ -118,7 +118,7 @@ class _LoginPageState extends State<LoginPage> {
                 builder: (innerCtx) {
                   return Container(
                     width: mq.width * 0.9,
-                    height: mq.height * 0.40,
+                    height: mq.height * 0.43,
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.8),
@@ -164,12 +164,15 @@ class _LoginPageState extends State<LoginPage> {
             if (state.status == FormStatus.submissionInProgress) {
               return const CircularProgressIndicator();
             }
-            return ElevatedButton(
-              onPressed: state.status == FormStatus.valid
-                  ? () => BlocProvider.of<LoginBloc>(ctx)
-                  .add(LoginSubmitted())
-                  : null,
-              child: const Text('Login'),
+            final mq = MediaQuery.of(context).size;
+            return SizedBox(
+              width: mq.width * 0.8,
+              child: ElevatedButton(
+                onPressed: state.status == FormStatus.valid
+                    ? () => BlocProvider.of<LoginBloc>(ctx).add(LoginSubmitted())
+                    : null,
+                child: const Text('Login'),
+              ),
             );
           },
         ),
@@ -225,12 +228,16 @@ class _LoginPageState extends State<LoginPage> {
               if (state.status == FormStatus.submissionInProgress) {
                 return const CircularProgressIndicator();
               }
-              return ElevatedButton(
-                onPressed: state.status == FormStatus.valid
-                    ? () => BlocProvider.of<SignupBloc>(ctx)
-                    .add(RegistrationSubmitted())
-                    : null,
-                child: const Text('Verify & Signup'),
+              final mq = MediaQuery.of(context).size;
+              return SizedBox(
+              width: mq.width * 0.8,
+              child: ElevatedButton(
+              onPressed: state.status == FormStatus.valid
+              ? () => BlocProvider.of<SignupBloc>(ctx)
+                  .add(RegistrationSubmitted())
+                  : null,
+              child: const Text('Verify & Signup'),
+              ),
               );
             },
           ),
@@ -248,54 +255,75 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
-  // ─── FORGOT PASSWORD ──────────────────────────────────────────────────────
+  // ─── RESET PWD REQUEST FORM ──────────────────────────────────────────────────
   Widget _buildForgotPasswordForm(BuildContext ctx) {
-    return BlocListener<ForgotPasswordBloc, ForgotPasswordState>(
-      listenWhen: (p, c) => p.status != c.status,
-      listener: (ctx, state) {
-        final msg = state.message ?? '';
-        if (state.status == FormStatus.submissionFailure) {
-          ScaffoldMessenger.of(ctx)
-              .showSnackBar(SnackBar(content: Text(msg)));
-        } else if (state.status == FormStatus.submissionSuccess) {
-          ScaffoldMessenger.of(ctx)
-              .showSnackBar(SnackBar(content: Text(msg)));
+    return BlocBuilder<ForgotPasswordBloc, ForgotPasswordState>(
+      buildWhen: (p, c) =>
+      p.status != c.status || p.reset2FAStatus != c.reset2FAStatus,
+      builder: (ctx, state) {
+        // Étape 3 : formulaire de nouveau mot de passe
+        if (state.reset2FAStatus == FormStatus.submissionSuccess) {
+          return _buildSetPasswordForm(ctx);
         }
+
+        // Étape 2 : formulaire de code de vérification
+        if (state.status == FormStatus.submissionSuccess) {
+          return _buildVerifyResetCodeForm(ctx);
+        }
+
+        // Étape 1 : formulaire de demande de reset
+        return BlocListener<ForgotPasswordBloc, ForgotPasswordState>(
+          listenWhen: (p, c) => p.status != c.status,
+          listener: (ctx, state) {
+            final msg = state.message ?? '';
+            if (state.status == FormStatus.submissionFailure) {
+              ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(msg)));
+            } else if (state.status == FormStatus.submissionSuccess) {
+              ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(msg)));
+            }
+          },
+          child: Column(
+            children: [
+              TextFormField(
+                controller: _forgotEmailController,
+                decoration: const InputDecoration(labelText: 'Email'),
+                onChanged: (e) => BlocProvider.of<ForgotPasswordBloc>(ctx)
+                    .add(ForgotPasswordEmailChanged(e)),
+              ),
+              const SizedBox(height: 24),
+              BlocBuilder<ForgotPasswordBloc, ForgotPasswordState>(
+                buildWhen: (p, c) => p.status != c.status,
+                builder: (ctx, state) {
+                  if (state.status == FormStatus.submissionInProgress) {
+                    return const CircularProgressIndicator();
+                  }
+                  return SizedBox(
+                    width: MediaQuery.of(context).size.width * 0.8,
+                    child: ElevatedButton(
+                      onPressed: state.status == FormStatus.valid
+                          ? () => BlocProvider.of<ForgotPasswordBloc>(ctx)
+                          .add(ForgotPasswordSubmitted())
+                          : null,
+                      child: const Text('Send reset code'),
+                    ),
+                  );
+                },
+              ),
+              const Spacer(),
+              TextButton(
+                onPressed: () => _toggleForm(AuthFormType.login),
+                child: const Text("Back to Login"),
+              ),
+            ],
+          ),
+        );
       },
-      child: Column(
-        children: [
-          TextFormField(
-            controller: _forgotEmailController,
-            decoration: const InputDecoration(labelText: 'Email'),
-            onChanged: (e) => BlocProvider.of<ForgotPasswordBloc>(ctx)
-                .add(ForgotPasswordEmailChanged(e)),
-          ),
-          const SizedBox(height: 24),
-          BlocBuilder<ForgotPasswordBloc, ForgotPasswordState>(
-            buildWhen: (p, c) => p.status != c.status,
-            builder: (ctx, state) {
-              if (state.status == FormStatus.submissionInProgress) {
-                return const CircularProgressIndicator();
-              }
-              return ElevatedButton(
-                onPressed: state.status == FormStatus.valid
-                    ? () => BlocProvider.of<ForgotPasswordBloc>(ctx)
-                    .add(ForgotPasswordSubmitted())
-                    : null,
-                child: const Text('Send reset code'),
-              );
-            },
-          ),
-          const Spacer(),
-          TextButton(
-            onPressed: () => _toggleForm(AuthFormType.login),
-            child: const Text("Back to Login"),
-          ),
-        ],
-      ),
     );
   }
 
+
+
+  // ─── RESEND REGISTRATION FORM ──────────────────────────────────────────────────────
   Widget _buildForgotRegistrationForm(BuildContext ctx) {
     return BlocListener<ResendRegistrationBloc, ResendRegistrationState>(
       listenWhen: (p, c) => p.status != c.status,
@@ -322,12 +350,16 @@ class _LoginPageState extends State<LoginPage> {
               if (state.status == FormStatus.submissionInProgress) {
                 return const CircularProgressIndicator();
               }
-              return ElevatedButton(
-                onPressed: state.status == FormStatus.valid
-                    ? () => BlocProvider.of<ResendRegistrationBloc>(ctx)
-                    .add(ResendRegistrationSubmitted())
-                    : null,
-                child: const Text('Send registration number'),
+              final mq = MediaQuery.of(context).size;
+              return SizedBox(
+                width: mq.width * 0.8,
+                child: ElevatedButton(
+                  onPressed: state.status == FormStatus.valid
+                      ? () => BlocProvider.of<ResendRegistrationBloc>(ctx)
+                      .add(ResendRegistrationSubmitted())
+                      : null,
+                  child: const Text('Send registration number'),
+                ),
               );
             },
           ),
@@ -339,8 +371,159 @@ class _LoginPageState extends State<LoginPage> {
         ],
       ),
     );
+
   }
 
+  // ─── RESET PWD 2FA FORM ──────────────────────────────────────────────────────
+  Widget _buildVerifyResetCodeForm(BuildContext ctx) {
+    return Column(
+      children: [
+        const Text(
+          "Enter your secret verification code",
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        TextFormField(
+          maxLength: 6,
+          keyboardType: TextInputType.number,
+          decoration: const InputDecoration(labelText: 'Code'),
+          onChanged: (code) =>
+              BlocProvider.of<ForgotPasswordBloc>(ctx).add(ResetPassword2FACodeChanged(code)),
+        ),
+        const SizedBox(height: 24),
+        BlocBuilder<ForgotPasswordBloc, ForgotPasswordState>(
+          buildWhen: (p, c) => p.reset2FAStatus != c.reset2FAStatus,
+          builder: (ctx, state) {
+            if (state.reset2FAStatus == FormStatus.submissionInProgress) {
+              return const CircularProgressIndicator();
+            }
+            final mq = MediaQuery.of(context).size;
+            return SizedBox(
+              width: mq.width * 0.8,
+              child: ElevatedButton(
+                onPressed: () => BlocProvider.of<ForgotPasswordBloc>(ctx)
+                    .add(ResetPassword2FACodeSubmitted()),
+                child: const Text("Send"),
+              ),
+            );
+          },
+        ),
+        const Spacer(),
+        TextButton(
+          onPressed: () {
+            BlocProvider.of<ForgotPasswordBloc>(ctx)
+                .add(ForgotPasswordResetStateCleared());
+            _toggleForm(AuthFormType.login);
+          },
+          child: const Text("Back to login"),
+        ),
+      ],
+    );
+  }
+
+// ─── SET PWD FORM ──────────────────────────────────────────────────────
+  Widget _buildSetPasswordForm(BuildContext ctx) {
+    final mq = MediaQuery.of(context).size;
+
+    return BlocBuilder<ForgotPasswordBloc, ForgotPasswordState>(
+      builder: (ctx, state) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              "Set your new password",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
+
+            // New password field
+            TextFormField(
+              obscureText: true,
+              decoration: const InputDecoration(labelText: "New password"),
+              onChanged: (value) {
+                BlocProvider.of<ForgotPasswordBloc>(ctx)
+                    .add(NewPasswordChanged(value));
+              },
+            ),
+            const SizedBox(height: 12),
+
+            // Confirm password field
+            TextFormField(
+              obscureText: true,
+              decoration: const InputDecoration(labelText: "Confirm password"),
+              onChanged: (value) {
+                BlocProvider.of<ForgotPasswordBloc>(ctx)
+                    .add(ConfirmPasswordChanged(value));
+              },
+            ),
+            const SizedBox(height: 12),
+
+            // Password rules
+            _buildPasswordValidation(state),
+
+            const SizedBox(height: 16),
+
+            // Submit button
+            SizedBox(
+              width: mq.width * 0.8,
+              child: ElevatedButton(
+                onPressed: state.isPasswordValid && state.passwordsMatch
+                    ? () {
+                  BlocProvider.of<ForgotPasswordBloc>(ctx)
+                      .add(NewPasswordSubmitted());
+                }
+                    : null,
+                child: const Text("Submit"),
+              ),
+            ),
+
+            const Spacer(),
+
+            // Back to login
+            TextButton(
+              onPressed: () {
+                BlocProvider.of<ForgotPasswordBloc>(ctx)
+                    .add(ForgotPasswordResetStateCleared());
+                _toggleForm(AuthFormType.login);
+              },
+              child: const Text("Back to login"),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  // ─── PWD VALIDATION FORM ──────────────────────────────────────────────────────
+  Widget _buildPasswordValidation(ForgotPasswordState state) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildRule("At least 8 characters", state.lengthOK),
+        _buildRule("At least one number", state.hasNumber),
+        _buildRule("At least one special character", state.hasSpecial),
+        _buildRule("At least one uppercase letter", state.hasUpper),
+        _buildRule("At least one letter", state.hasLetter),
+      ],
+    );
+  }
+
+  Widget _buildRule(String label, bool satisfied) {
+    return Row(
+      children: [
+        Icon(
+          satisfied ? Icons.check_circle : Icons.cancel,
+          color: satisfied ? Colors.green : Colors.red,
+          size: 18,
+        ),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: TextStyle(color: satisfied ? Colors.green : Colors.red),
+        ),
+      ],
+    );
+  }
 
 }
 
