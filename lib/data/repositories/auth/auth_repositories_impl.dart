@@ -29,6 +29,32 @@ class AuthRepositoryImpl implements AuthRepository {
 
 
   @override
+  Future<bool> checkSession() async {
+    final access = await _tokens .getAccessToken();
+    final refresh = await _tokens .getRefreshToken();
+
+    if (access != null) {
+      final valid = await _remote.checkToken(access);
+      if (valid) return true;
+    }
+
+    if (refresh != null) {
+      final newTokens = await _remote.refreshToken(refresh);
+      if (newTokens != null) {
+        await _tokens .saveTokens(
+          access: newTokens.access,
+          refresh: newTokens.refresh,
+        );
+        return true;
+      }
+    }
+
+    await _tokens .clear();
+    return false;
+  }
+
+
+  @override
   Future<String> verifyRegistration({
     required String email,
     required String signUpNumber,
