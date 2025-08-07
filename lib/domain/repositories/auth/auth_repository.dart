@@ -17,6 +17,12 @@ abstract class AuthRepository {
     required String signUpNumber,
   });
 
+  /// Verifies the 2FA code sent to user registering
+  Future<String> verifyRegistration2FACode({
+    required String email,
+    required String code,
+  });
+
   /// Resends the registration number to the given email.
   /// Throws [AuthException] on failure.
   Future<void> resendRegistrationNumber({
@@ -26,11 +32,18 @@ abstract class AuthRepository {
   /// Sets the user's password after verification.
   /// Throws [AuthException] on failure.
   Future<void> setPassword({
+    required String email,
     required String password,
-    required String confirmPassword,
   });
 
-  /// Verifies the 2FA code sent to user.
+  /// Sets the user's password after registration.
+  /// Throws [AuthException] on failure.
+  Future<String> setInitialPassword({
+    required String email,
+    required String password,
+  });
+
+  /// Verifies the 2FA code sent to user when reseting forgotten pwd .
   /// Throws [AuthException] on failure.
   Future<void> verify2FACode({
     required String code,

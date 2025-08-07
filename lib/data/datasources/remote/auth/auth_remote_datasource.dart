@@ -54,6 +54,28 @@ class AuthRemoteDatasource {
   }
 
 
+  /// POST users/auth/verify-2fa-code/
+  /// Body: { "email": ..., "code": ... }
+  /// Returns { "message": ... } or throws on error.
+  Future<String> verifyRegistration2FACode({
+    required String email,
+    required String code,
+  }) async {
+    final res = await _dio.post<Map<String, dynamic>>(
+      'users/auth/verify-2fa-code/',
+      data: <String, Object?>{
+        'email': email,
+        'code': code,
+      },
+    );
+    final data = res.data;
+    final message = data?['message'] as String?;
+    final detail = data?['detail'] as String?;
+
+    return message ?? detail ?? data.toString();
+  }
+
+
   /// Resends the registration number to the specified email.
   ///
   /// Sends a POST request to 'users/auth/resend-registration-number/'.
@@ -97,17 +119,36 @@ class AuthRemoteDatasource {
     return response.data?['detail'] as String? ?? response.data.toString();
   }
 
+  /// Sets iniatial password for the user after 2FA verification.
+  ///
+  /// Sends a POST request to 'users/auth/set-password/'.
+  /// Returns the 'message' field on success.
+  Future<String> setInitialPassword({
+    required String email,
+    required String password,
+  }) async {
+    final response = await _dio.post<Map<String, dynamic>>(
+      'users/auth/set-password/',
+      data: <String, Object?>{
+        'email': email,
+        'password': password,
+      },
+    );
+
+    final message = response.data?['message'] as String?;
+    return message ?? response.data?['detail'] ?? 'Unexpected error';
+  }
 
   /// Sets a new password for the user after 2FA verification.
   ///
-  /// Sends a POST request to 'users/auth/set-password/'.
+  /// Sends a POST request to 'users/auth/password-reset/confirm'.
   /// Returns the 'message' field on success.
   Future<String> setPassword({
     required String email,
     required String password,
   }) async {
     final response = await _dio.post<Map<String, dynamic>>(
-      'users/auth/set-password/',
+      'users/password-reset/confirm/',
       data: <String, Object?>{
         'email': email,
         'password': password,
