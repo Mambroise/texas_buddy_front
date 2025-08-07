@@ -9,6 +9,10 @@
 
 /// Defines authentication-related operations available to the domain layer.
 abstract class AuthRepository {
+
+  /// Verifies if the user's session is still active
+  Future<bool> checkSession();
+
   /// Verifies the user's registration with last name, email, and sign-up number.
   /// Returns a server message on success.
   /// Throws [AuthException] on failure.

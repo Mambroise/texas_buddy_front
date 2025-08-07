@@ -16,13 +16,13 @@ class AppTheme {
       scaffoldBackgroundColor: Colors.black,
       primaryColor: AppColors.texasBlue,
       appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.texasBlue,
-        foregroundColor: AppColors.white,
+        backgroundColor: AppColors.white,
+        foregroundColor: AppColors.texasBlue,
         elevation: 0,
         centerTitle: true,
         titleTextStyle: TextStyle(
-          color: AppColors.white,
-          fontSize: 18,
+          color: AppColors.texasBlue,
+          fontSize: 26,
           fontWeight: FontWeight.bold,
         ),
       ),

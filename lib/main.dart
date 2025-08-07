@@ -10,6 +10,8 @@ import 'dart:ui';
 import 'package:texas_buddy/data/datasources/remote/core/dio_client.dart';
 import 'package:flutter/material.dart';
 import 'package:texas_buddy/presentation/pages/auth/login_page.dart';
+import 'package:texas_buddy/presentation/pages/main/landing_page.dart';
+import 'package:texas_buddy/presentation/pages/splash/splash_page.dart';
 import 'package:texas_buddy/service_locator.dart';
 import 'presentation/theme/app_theme.dart';
 
@@ -33,13 +35,18 @@ class TexasBuddyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Texas Buddy',
       theme: AppTheme.lightTheme,
-      locale: Locale(deviceLocale.split('-')[0]), // "fr-FR" → "fr"
+      locale: Locale(deviceLocale.split('-')[0]),
       supportedLocales: const [
         Locale('en'),
         Locale('fr'),
         Locale('es'),
       ],
-      home: const LoginPage(),
+      routes: {
+        '/splash': (context) => const SplashPage(),
+        '/': (context) => const LoginPage(),
+        '/landing': (context) => const LandingPage(),
+      },
+      initialRoute: '/splash',
     );
   }
 }
