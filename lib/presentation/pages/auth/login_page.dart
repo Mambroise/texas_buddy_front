@@ -9,8 +9,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:video_player/video_player.dart';
-import 'package:texas_buddy/presentation/theme/app_colors.dart';
 
+import 'package:texas_buddy/presentation/widgets/texas_buddy_loader.dart';
+import 'package:texas_buddy/presentation/theme/app_colors.dart';
 import '../../../service_locator.dart';
 import '../../blocs/form_status.dart';
 import '../../blocs/auth/login_bloc.dart';
@@ -43,6 +44,8 @@ class _LoginPageState extends State<LoginPage> {
   final _forgotEmailController = TextEditingController();
   final _resendRegEmailController = TextEditingController();
   bool _showNewPassword = false;
+  bool _isLoading = true;
+
 
   final _loginEmailController = TextEditingController();
   final _loginPasswordController = TextEditingController();
@@ -55,12 +58,18 @@ class _LoginPageState extends State<LoginPage> {
     super.initState();
     _videoController = VideoPlayerController.asset(
       'assets/videos/t_b_intro_vid.mp4',
-    )..initialize().then((_) {
-      setState(() {});
+    )..initialize().then((_) async {
       _videoController
         ..setLooping(true)
         ..setVolume(0)
         ..play();
+
+      // 🕐 Attendre 2 secondes minimum (simulateur d’intro/splash fluide)
+      await Future.delayed(const Duration(seconds: 2));
+
+      setState(() {
+        _isLoading = false;
+      });
     });
   }
 
@@ -81,7 +90,6 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _prefillLogin(BuildContext ctx,String email, String password) {
-    print("Je suis dans prefill");
     _loginEmailController.text = email;
     _loginPasswordController.text = password;
 
@@ -96,6 +104,15 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final mq = MediaQuery.of(context).size;
+
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: TexasBuddyLoader(message: "Bienvenue sur Texas Buddy..."),
+        ),
+      );
+    }
 
     return MultiBlocProvider(
       providers: [
@@ -164,65 +181,77 @@ class _LoginPageState extends State<LoginPage> {
   }
 
 
+
   // ─── LOGIN ───────────────────────────────────────────────────────────────
   Widget _buildLoginForm(BuildContext ctx) {
-    return Column(
-      children: [
-        TextFormField(
-          controller: _loginEmailController,
-          decoration: const InputDecoration(labelText: 'Email'),
-          onChanged: (e) =>
-              BlocProvider.of<LoginBloc>(ctx).add(LoginEmailChanged(e)),
-        ),
-        const SizedBox(height: 16),
-        TextFormField(
-          controller: _loginPasswordController,
-          decoration: InputDecoration(
-            labelText: 'Password',
-            suffixIcon: IconButton(
-              icon: Icon(
-                _showNewPassword ? Icons.visibility_off : Icons.visibility,
-                color: Colors.grey,
+    return BlocListener<LoginBloc, LoginState>(
+      listenWhen: (prev, curr) =>
+      prev.status != curr.status &&
+          curr.status == FormStatus.submissionSuccess,
+      listener: (ctx, state) {
+        // 🧭 Redirection vers la landing page après succès
+        Navigator.pushReplacementNamed(ctx, '/landing');
+      },
+      child: Column(
+        children: [
+          TextFormField(
+            controller: _loginEmailController,
+            decoration: const InputDecoration(labelText: 'Email'),
+            onChanged: (e) =>
+                ctx.read<LoginBloc>().add(LoginEmailChanged(e)),
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _loginPasswordController,
+            decoration: InputDecoration(
+              labelText: 'Password',
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _showNewPassword ? Icons.visibility_off : Icons.visibility,
+                  color: Colors.grey,
+                ),
+                onPressed: () {
+                  setState(() => _showNewPassword = !_showNewPassword);
+                },
               ),
-              onPressed: () {
-                setState(() => _showNewPassword = !_showNewPassword);
-              },
-            ),),
-          obscureText: !_showNewPassword,
-          onChanged: (p) =>
-              BlocProvider.of<LoginBloc>(ctx).add(LoginPasswordChanged(p)),
-        ),
-        const SizedBox(height: 24),
-        BlocBuilder<LoginBloc, LoginState>(
-          buildWhen: (p, c) => p.status != c.status,
-          builder: (ctx, state) {
-            if (state.status == FormStatus.submissionInProgress) {
-              return const CircularProgressIndicator();
-            }
-            final mq = MediaQuery.of(context).size;
-            return SizedBox(
-              width: mq.width * 0.8,
-              child: ElevatedButton(
-                onPressed: state.status == FormStatus.valid
-                    ? () => BlocProvider.of<LoginBloc>(ctx).add(LoginSubmitted())
-                    : null,
-                child: const Text('Login'),
-              ),
-            );
-          },
-        ),
-        const Spacer(),
-        TextButton(
-          onPressed: () => _toggleForm(AuthFormType.register),
-          child: const Text("First time? Signup now!"),
-        ),
-        TextButton(
-          onPressed: () => _toggleForm(AuthFormType.forgotPassword),
-          child: const Text("Forgot password?"),
-        ),
-      ],
+            ),
+            obscureText: !_showNewPassword,
+            onChanged: (p) =>
+                ctx.read<LoginBloc>().add(LoginPasswordChanged(p)),
+          ),
+          const SizedBox(height: 24),
+          BlocBuilder<LoginBloc, LoginState>(
+            buildWhen: (p, c) => p.status != c.status,
+            builder: (ctx, state) {
+              if (state.status == FormStatus.submissionInProgress) {
+                return const CircularProgressIndicator();
+              }
+              final mq = MediaQuery.of(context).size;
+              return SizedBox(
+                width: mq.width * 0.8,
+                child: ElevatedButton(
+                  onPressed: state.status == FormStatus.valid
+                      ? () => ctx.read<LoginBloc>().add(LoginSubmitted())
+                      : null,
+                  child: const Text('Login'),
+                ),
+              );
+            },
+          ),
+          const Spacer(),
+          TextButton(
+            onPressed: () => _toggleForm(AuthFormType.register),
+            child: const Text("First time? Signup now!"),
+          ),
+          TextButton(
+            onPressed: () => _toggleForm(AuthFormType.forgotPassword),
+            child: const Text("Forgot password?"),
+          ),
+        ],
+      ),
     );
   }
+
 
   // ─── REGISTER ────────────────────────────────────────────────────────────
   Widget _buildRegisterForm(BuildContext ctx) {

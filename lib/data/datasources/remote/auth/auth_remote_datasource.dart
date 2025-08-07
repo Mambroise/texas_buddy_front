@@ -18,6 +18,46 @@ class AuthRemoteDatasource {
   /// The [Dio] should have its base URL set to 'http://127.0.0.1:8001/api/'.
   AuthRemoteDatasource(this._dio);
 
+  /// Checks if the provided access token is still valid by calling the '/users/me/' endpoint.
+  ///
+  /// Sends a GET request with the Authorization header set to 'Bearer {accessToken}'.
+  /// Returns `true` if the token is valid (HTTP 200), otherwise returns `false`.
+  Future<bool> checkToken(String accessToken) async {
+    try {
+      final res = await _dio.get('/users/users/me/', options: Options(
+        headers: {'Authorization': 'Bearer $accessToken'},
+      ));
+      return res.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Attempts to refresh the JWT tokens using the provided refresh token.
+  ///
+  /// Sends a POST request to '/users/auth/token/refresh/' with the refresh token.
+  /// Returns a tuple containing the new access and refresh tokens if successful,
+  /// or `null` if the refresh operation fails or the response is invalid.
+  Future<({String access, String refresh})?> refreshToken(String refreshToken) async {
+    try {
+      final res = await _dio.post('/users/auth/token/refresh/', data: {
+        "refresh": refreshToken,
+      });
+
+      final access = res.data['access'] as String?;
+      final refresh = (res.data['refresh'] ?? refreshToken) as String;
+
+      if (access != null) {
+        return (access: access, refresh: refresh);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+
+
   /// Verifies the user's registration number and email for first-time signup.
   ///
   /// Sends a POST request to '/auth/verify-registration/' with the
