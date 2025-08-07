@@ -28,7 +28,6 @@ class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl(this._remote, this._tokens);
 
 
-
   @override
   Future<String> verifyRegistration({
     required String email,
@@ -46,6 +45,38 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<String> verifyRegistration2FACode({
+    required String email,
+    required String code,
+  }) async {
+    try {
+      return await _remote.verifyRegistration2FACode(
+        email: email,
+        code: code,
+      );
+    } on DioException catch (e) {
+      final detail = e.response?.data['detail'] as String?;
+      throw AuthException(detail ?? e.message ?? 'Verification failed');
+    }
+  }
+
+  @override
+  Future<String> setInitialPassword({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      return await _remote.setInitialPassword(
+        email: email,
+        password: password,
+      );
+    } on DioException catch (e) {
+      final detail = e.response?.data['detail'] as String?;
+      throw AuthException(detail ?? e.message ?? 'Password set failed');
+    }
+  }
+
+  @override
   Future<void> resendRegistrationNumber({required String email}) async {
     try {
       await _remote.resendRegistrationNumber(email: email);
@@ -57,11 +88,15 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> setPassword({
+    required String email,
     required String password,
-    required String confirmPassword,
   }) async {
-    // Implementation will call a corresponding remote method
-    throw UnimplementedError();
+    try {
+      await _remote.setPassword(email: email, password: password);
+    } on DioException catch (e) {
+      final detail = e.response?.data['detail'] as String?;
+      throw AuthException(detail ?? e.message ?? 'Set password failed');
+    }
   }
 
   @override

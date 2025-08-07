@@ -33,7 +33,8 @@ class ResetPassword2FACodeSubmitted extends ForgotPasswordEvent {}
 
 class ForgotPasswordResetStateCleared extends ForgotPasswordEvent {}
 
-/// L’utilisateur a cliqué sur “Send new password”.
+
+/// user clicked on “Send new password”.
 class NewPasswordChanged extends ForgotPasswordEvent {
   final String password;
   NewPasswordChanged(this.password);
