@@ -56,47 +56,49 @@ class _UserPageContent extends StatelessWidget {
         backgroundColor: AppColors.texasBlue,
         foregroundColor: Colors.white,
       ),
-      body: FadeInUp(
-        duration: const Duration(milliseconds: 500),
-        child: Column(
-          children: [
-            const Spacer(),
-            const Icon(Icons.person, size: 120, color: AppColors.texasBlue),
-            const SizedBox(height: 20),
-            const Text(
-              "You're logged in!",
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-            const Spacer(),
+      body: SafeArea( // ✅ Ajout SafeArea
+        child: FadeInUp(
+          duration: const Duration(milliseconds: 500),
+          child: Column(
+            children: [
+              const Spacer(),
+              const Icon(Icons.person, size: 120, color: AppColors.texasBlue),
+              const SizedBox(height: 20),
+              const Text(
+                "You're logged in!",
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+              const Spacer(),
 
-            BlocBuilder<LogoutBloc, LogoutState>(
-              builder: (context, state) {
-                if (state is LogoutInProgress) {
-                  return const CircularProgressIndicator();
-                }
+              BlocBuilder<LogoutBloc, LogoutState>(
+                builder: (context, state) {
+                  if (state is LogoutInProgress) {
+                    return const CircularProgressIndicator();
+                  }
 
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.texasBlue,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.texasBlue,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                        icon: const Icon(Icons.logout),
+                        label: const Text("Logout"),
+                        onPressed: () {
+                          context.read<LogoutBloc>().add(LogoutRequested());
+                        },
                       ),
-                      icon: const Icon(Icons.logout),
-                      label: const Text("Logout"),
-                      onPressed: () {
-                        context.read<LogoutBloc>().add(LogoutRequested());
-                      },
                     ),
-                  ),
-                );
-              },
-            ),
+                  );
+                },
+              ),
 
-            const SizedBox(height: 32),
-          ],
+              const SizedBox(height: 25),
+            ],
+          ),
         ),
       ),
     );
