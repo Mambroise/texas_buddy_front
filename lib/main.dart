@@ -15,7 +15,7 @@ import 'package:texas_buddy/presentation/pages/splash/splash_page.dart';
 import 'package:texas_buddy/service_locator.dart';
 import 'presentation/theme/app_theme.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   final deviceLocale = PlatformDispatcher.instance.locale.toLanguageTag(); // ex: "fr-FR"

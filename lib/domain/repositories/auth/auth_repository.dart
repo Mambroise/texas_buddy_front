@@ -72,4 +72,7 @@ abstract class AuthRepository {
     required String email,
     required String code,
   });
+
+  /// Logs out the current device session using access and refresh tokens.
+  Future<void> logout();
 }

@@ -1,4 +1,3 @@
-
 //---------------------------------------------------------------------------
 //                           TEXAS BUDDY   ( 2 0 2 5 )
 //---------------------------------------------------------------------------
@@ -9,6 +8,8 @@
 
 import 'package:flutter/material.dart';
 import 'package:texas_buddy/presentation/theme/app_colors.dart';
+import 'package:texas_buddy/presentation/pages/main/user_page.dart';
+import 'package:google_maps_flutter/google_maps_flutter.dart';
 
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
@@ -54,7 +55,11 @@ class _LandingPageState extends State<LandingPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.person, color: AppColors.texasBlue),
-            onPressed: () {}, // TODO: profil user
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const UserPage()),
+              );
+            },
           ),
         ],
       ),
@@ -68,7 +73,7 @@ class _LandingPageState extends State<LandingPage> {
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.map),
-            label: 'Carte',
+            label: 'Map',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.calendar_month),
@@ -76,7 +81,7 @@ class _LandingPageState extends State<LandingPage> {
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.group),
-            label: 'Communauté',
+            label: 'Community',
           ),
         ],
       ),
@@ -84,12 +89,22 @@ class _LandingPageState extends State<LandingPage> {
   }
 
   Widget _buildBody() {
-    // Placeholder en attendant d’intégrer la carte
-    return const Center(
-      child: Text(
-        "🗺️ Carte en cours de chargement...",
-        style: TextStyle(fontSize: 18),
+    if (_currentIndex != 0) {
+      return const Center(
+        child: Text("🚧 Coming soon..."),
+      );
+    }
+
+    return const GoogleMap(
+      initialCameraPosition: CameraPosition(
+        target: LatLng(32.7767, -96.7970), // 📍 Dallas
+        zoom: 12,
       ),
+      myLocationEnabled: true,
+      zoomControlsEnabled: false,
+      mapType: MapType.normal,
     );
   }
+
+
 }

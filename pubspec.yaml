@@ -48,6 +48,13 @@ dependencies:
   # Routing & Navigation
   go_router: ^12.1.0
 
+ # amimation page
+  animate_do: ^3.0.2
+
+  google_maps_flutter: ^2.6.0
+  geolocator: ^10.1.0
+
+
   # Logging, utils
   logger: ^2.0.2
   intl: ^0.19.0

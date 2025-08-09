@@ -1,4 +1,10 @@
-// lib/presentation/blocs/auth/resend_registration_bloc.dart
+//---------------------------------------------------------------------------
+//                           TEXAS BUDDY   ( 2 0 2 5 )
+//---------------------------------------------------------------------------
+// File   :presentation/blocs/auth/resend_registration_bloc.dart
+// Author : Morice
+//-------------------------------------------------------------------------
+
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../domain/usecases/auth/resend_registration_number_usecase.dart';

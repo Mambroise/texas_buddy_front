@@ -18,6 +18,7 @@ Dio createDioClient({ required String locale }) {
   final dio = Dio(
     BaseOptions(
       baseUrl: 'http://10.0.2.2:8001/api/',
+      //baseUrl: 'http://192.168.0.2:8001/api/',
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 15),
       headers: <String, Object?>{

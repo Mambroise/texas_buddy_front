@@ -13,12 +13,12 @@ class AppTheme {
   static ThemeData get lightTheme {
     return ThemeData(
       useMaterial3: false,
-      scaffoldBackgroundColor: Colors.black,
+      scaffoldBackgroundColor: Colors.white,
       primaryColor: AppColors.texasBlue,
       appBarTheme: const AppBarTheme(
         backgroundColor: AppColors.white,
         foregroundColor: AppColors.texasBlue,
-        elevation: 0,
+        elevation: 1,
         centerTitle: true,
         titleTextStyle: TextStyle(
           color: AppColors.texasBlue,
