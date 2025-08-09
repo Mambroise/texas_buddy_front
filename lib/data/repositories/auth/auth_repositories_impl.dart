@@ -174,4 +174,17 @@ class AuthRepositoryImpl implements AuthRepository {
       throw AuthException(detail ?? e.message ?? 'Login failed');
     }
   }
+
+  @override
+  Future<void> logout() async {
+    final access = await _tokens.getAccessToken();
+    final refresh = await _tokens.getRefreshToken();
+
+    if (access != null && refresh != null) {
+      await _remote.logout(accessToken: access, refreshToken: refresh);
+    }
+
+    await _tokens.clear();
+  }
+
 }

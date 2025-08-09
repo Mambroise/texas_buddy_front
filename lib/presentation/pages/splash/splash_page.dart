@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:texas_buddy/presentation/widgets/texas_buddy_loader.dart';
-import 'package:texas_buddy/domain/repositories/auth/auth_repository.dart';
+import 'package:texas_buddy/domain/usecases/auth/check_session_usecase.dart';
 import 'package:texas_buddy/service_locator.dart';
 
 class SplashPage extends StatefulWidget {
@@ -11,8 +11,7 @@ class SplashPage extends StatefulWidget {
 }
 
 class _SplashPageState extends State<SplashPage> {
-
-  final AuthRepository _authRepo = getIt<AuthRepository>();
+  final _checkSessionUseCase = getIt<CheckSessionUseCase>();
 
   @override
   void initState() {
@@ -21,7 +20,7 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   Future<void> _initSession() async {
-    final isLoggedIn = await _authRepo.checkSession();
+    final isLoggedIn = await _checkSessionUseCase();
 
     if (!mounted) return;
 

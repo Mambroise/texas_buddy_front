@@ -23,11 +23,15 @@ import 'domain/usecases/auth/verify_reset_pwd_2fa_usecase.dart';
 import 'domain/usecases/auth/set_password_usecase.dart';
 import 'domain/usecases/auth/verify_registration_2fa_usecase.dart';
 import 'domain/usecases/auth/set_password_registration_usecase.dart';
+import 'domain/usecases/auth/check_session_usecase.dart';
+import 'domain/usecases/auth/logout_usecase.dart';
 
-import 'presentation/blocs/auth/login_bloc.dart';
+
+import 'package:texas_buddy/presentation/blocs/auth/login_bloc.dart';
 import 'presentation/blocs/auth/signup_bloc.dart';
 import 'presentation/blocs/auth/forgot_password_bloc.dart';
 import 'presentation/blocs/auth/resend_registration_bloc.dart';
+import 'presentation/blocs/auth/logout/logout_bloc.dart';
 
 
 final getIt = GetIt.instance;
@@ -76,17 +80,21 @@ void setupLocator(Dio dio) {
   getIt.registerFactory<SetPasswordForRegistrationUseCase>(
         () => SetPasswordForRegistrationUseCase(getIt<AuthRepository>()),
   );
+  getIt.registerFactory<CheckSessionUseCase>(
+        () => CheckSessionUseCase(getIt<AuthRepository>()),
+  );
+  getIt.registerFactory(() => LogoutUseCase(getIt<AuthRepository>()));
+
+
 
   // 6) Blocs
-  getIt.registerFactory<LoginBloc>(
-        () => LoginBloc(getIt<LoginUseCase>()),
+  getIt.registerFactory<LoginBloc>(() => LoginBloc(getIt<LoginUseCase>()),
   );
   getIt.registerFactory(() => SignupBloc(
     getIt<VerifyRegistrationUseCase>(),
     getIt<VerifyRegistration2FACodeUseCase>(),
     getIt<SetPasswordForRegistrationUseCase>()//
   ));
-
   getIt.registerFactory<ResendRegistrationBloc>(
         () => ResendRegistrationBloc(getIt<ResendRegistrationNumberUseCase>()),
   );
@@ -97,4 +105,6 @@ void setupLocator(Dio dio) {
       getIt<SetPasswordUseCase>(),
     ),
   );
+  getIt.registerFactory(() => LogoutBloc(getIt<LogoutUseCase>()));
+
 }
