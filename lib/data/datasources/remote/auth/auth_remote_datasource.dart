@@ -267,4 +267,29 @@ class AuthRemoteDatasource {
     return message ?? detail ?? data.toString();
 
   }
+
+
+  /// POST users/auth/logout/
+  /// Body: { "refresh": ...,  }
+  /// header    headers: {
+  //           'Authorization': 'Bearer $accessToken',
+  //         }
+  /// Returns { "message": ... } or throws on error.
+  Future<void> logout({
+    required String accessToken,
+    required String refreshToken,
+  }) async {
+    await _dio.post(
+      'users/logout/',
+      data: {
+        "refresh": refreshToken,
+      },
+      options: Options(
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+        },
+      ),
+    );
+  }
+
 }
