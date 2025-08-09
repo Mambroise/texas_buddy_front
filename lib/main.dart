@@ -14,6 +14,7 @@ import 'package:texas_buddy/presentation/pages/main/landing_page.dart';
 import 'package:texas_buddy/presentation/pages/splash/splash_page.dart';
 import 'package:texas_buddy/service_locator.dart';
 import 'presentation/theme/app_theme.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,6 +41,11 @@ class TexasBuddyApp extends StatelessWidget {
         Locale('en'),
         Locale('fr'),
         Locale('es'),
+      ],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
       ],
       routes: {
         '/splash': (context) => const SplashPage(),

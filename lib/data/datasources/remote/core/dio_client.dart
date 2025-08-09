@@ -17,8 +17,12 @@ import 'auth_interceptor.dart';
 Dio createDioClient({ required String locale }) {
   final dio = Dio(
     BaseOptions(
-      baseUrl: 'http://10.0.2.2:8001/api/',
-      //baseUrl: 'http://192.168.0.2:8001/api/',
+      // POUR TÉLÉPHONE RÉEL SUR WIFI DE DIM (ton PC a l’IP 192.168.0.22 sur ce même wifi)
+      baseUrl: 'http://192.168.0.22:8001/api/',
+
+      // POUR ÉMULATEUR ANDROID :
+      // baseUrl: 'http://10.0.2.2:8001/api/',
+
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 15),
       headers: <String, Object?>{
