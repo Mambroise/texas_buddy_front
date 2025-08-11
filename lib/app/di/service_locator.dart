@@ -14,6 +14,7 @@ import 'package:dio/dio.dart';
 import 'package:texas_buddy/core/storage/token_storage.dart';
 
 // Router / Auth state
+import 'package:texas_buddy/core/network/auth_interceptor.dart';
 import 'package:texas_buddy/app/router/auth_notifier.dart';
 
 // Auth (datasource, repo, usecases, blocs)
@@ -93,6 +94,12 @@ Future<void> setupLocator(Dio dio) async {
   getIt.registerLazySingleton<AuthNotifier>(() => AuthNotifier(getIt<CheckSessionUseCase>()));
   // Tu peux faire l’init ici si tu préfères centraliser :
   // await getIt<AuthNotifier>().init();
+  // 👉 Interceptor
+  getIt.registerLazySingleton<AuthInterceptor>(() =>
+      AuthInterceptor(getIt<TokenStorage>(), getIt<Dio>(), auth: getIt<AuthNotifier>()));
+
+  // Attacher l'interceptor au client (éventuellement après d’autres interceptors comme logs)
+  getIt<Dio>().interceptors.add(getIt<AuthInterceptor>());
 
   // ── Blocs (Presentation) ─────────────────────────────────────────────────
   getIt.registerFactory<LoginBloc>(() => LoginBloc(getIt<LoginUseCase>(), getIt<AuthNotifier>()));

@@ -1,42 +1,49 @@
 //---------------------------------------------------------------------------
 //                           TEXAS BUDDY   ( 2 0 2 5 )
 //---------------------------------------------------------------------------
-// File   :data/datasources/remote/core/dio_client.dart
+// File   :lib/core/network/dio_client.dart
 // Author : Morice
 //-------------------------------------------------------------------------
 
 
-
+// lib/core/network/dio_client.dart
 import 'package:dio/dio.dart';
-import '../storage/token_storage.dart';
-import './auth_interceptor.dart';
+import 'package:texas_buddy/core/storage/token_storage.dart';
+import 'package:texas_buddy/core/network/auth_interceptor.dart';
+// Optionnel: si tu veux notifier le routeur en cas de refresh KO
+import 'package:texas_buddy/app/router/auth_notifier.dart';
 
-/// Factory to create and configure a single Dio client for all API calls.
-/// - Sends 'Accept-Language' header with user locale.
-/// - Attaches authentication interceptor for JWT handling.
-Dio createDioClient({ required String locale }) {
+/// Crée et configure le client Dio pour toute l'appli.
+/// - Définit `Accept-Language`
+/// - Branche l'AuthInterceptor (JWT + refresh + retry)
+/// - Ajoute un LogInterceptor en dernier (debug)
+Dio createDioClient({
+  required String locale,
+  AuthNotifier? authNotifier, // optionnel (si tu veux rediriger au refresh KO)
+}) {
   final dio = Dio(
     BaseOptions(
-      // POUR TÉLÉPHONE RÉEL SUR WIFI DE DIM (ton PC a l’IP 192.168.0.22 sur ce même wifi)
+      // POUR TÉLÉPHONE RÉEL SUR WIFI (ton PC a l’IP 192.168.0.22)
       baseUrl: 'http://192.168.0.22:8001/api/',
-
       // POUR ÉMULATEUR ANDROID :
-      //baseUrl: 'http://10.0.2.2:8001/api/',
+      // baseUrl: 'http://10.0.2.2:8001/api/',
 
       connectTimeout: const Duration(seconds: 15),
       receiveTimeout: const Duration(seconds: 15),
       headers: <String, Object?>{
         'Content-Type': 'application/json',
-        'Accept-Language': locale,
+        'Accept-Language': locale, // ✅ important
       },
     ),
   );
 
-  // Auth interceptor: attaches JWT and handles refresh on 401
+  // Storage pour tokens
   final tokenStorage = TokenStorage();
-  dio.interceptors.add(AuthInterceptor(tokenStorage, dio));
 
-  // Logging interceptor for debugging
+  // Interceptor d'auth (avec verrou de refresh + retry)
+  dio.interceptors.add(AuthInterceptor(tokenStorage, dio, auth: authNotifier));
+
+  // Logging (en dernier pour voir le résultat après retry/refresh)
   dio.interceptors.add(
     LogInterceptor(
       request: true,

@@ -52,28 +52,39 @@ class _LoginPageState extends State<LoginPage> {
   final _loginEmailController = TextEditingController();
   final _loginPasswordController = TextEditingController();
 
+  bool _bgVisible = false;     // vidéo visible
+  bool _cardVisible = false;   // container/formulaire visible
+  static const _fade300 = Duration(milliseconds: 300);
+  static const _fade450 = Duration(milliseconds: 450);
+
 
 
 
   @override
   void initState() {
     super.initState();
-    _videoController = VideoPlayerController.asset(
-      'assets/videos/t_b_intro_vid.mp4',
-    )..initialize().then((_) async {
-      _videoController
-        ..setLooping(true)
-        ..setVolume(0)
-        ..play();
+    _videoController = VideoPlayerController.asset('assets/videos/t_b_intro_vid.mp4')
+      ..initialize().then((_) async {
+        _videoController
+          ..setLooping(true)
+          ..setVolume(0)
+          ..play();
 
-      // 🕐 Attendre 2 secondes minimum (simulateur d’intro/splash fluide)
-      await Future.delayed(const Duration(seconds: 2));
+        // 1) On quitte le loader (le Scaffold principal apparaît)
+        setState(() => _isLoading = false);
 
-      setState(() {
-        _isLoading = false;
+        // 2) Une fois le Scaffold monté, on déclenche les fades
+        WidgetsBinding.instance.addPostFrameCallback((_) async {
+          if (!mounted) return;
+          setState(() => _bgVisible = true);                // fade vidéo
+
+          await Future.delayed(const Duration(milliseconds: 120));
+          if (!mounted) return;
+          setState(() => _cardVisible = true);              // fade card/form
+        });
       });
-    });
   }
+
 
   @override
   void dispose() {
@@ -107,73 +118,66 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     final mq = MediaQuery.of(context).size;
 
-    if (_isLoading) {
-      return const Scaffold(
+    return AnimatedSwitcher(
+      duration: _fade450,
+      switchInCurve: Curves.easeOut,
+      switchOutCurve: Curves.easeIn,
+      child: _isLoading
+          ? const Scaffold(
+        key: ValueKey('loader'),
         backgroundColor: Colors.white,
-        body: Center(
-          child: TexasBuddyLoader(message: "Bienvenue sur Texas Buddy..."),
-        ),
-      );
-    }
+        body: Center(child: TexasBuddyLoader(message: "Bienvenue sur Texas Buddy...")),
+      )
+          : _buildMainScaffold(mq), // extrait le Scaffold principal dans une méthode
+    );
+  }
 
+
+  Widget _buildMainScaffold(Size mq) {
     return MultiBlocProvider(
       providers: [
         BlocProvider<LoginBloc>(create: (_) => getIt<LoginBloc>()),
         BlocProvider<SignupBloc>(create: (_) => getIt<SignupBloc>()),
-        BlocProvider<ForgotPasswordBloc>(
-          create: (_) => getIt<ForgotPasswordBloc>(),
-        ),
-        BlocProvider<ResendRegistrationBloc>(
-            create: (_) => getIt<ResendRegistrationBloc>()),
+        BlocProvider<ForgotPasswordBloc>(create: (_) => getIt<ForgotPasswordBloc>()),
+        BlocProvider<ResendRegistrationBloc>(create: (_) => getIt<ResendRegistrationBloc>()),
       ],
       child: Scaffold(
         appBar: AppBar(
           backgroundColor: AppColors.texasBlue,
           title: const Text('Texas Buddy'),
-          titleTextStyle: const TextStyle(
-            fontSize: 26,
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
+          titleTextStyle: const TextStyle(fontSize: 26, fontWeight: FontWeight.bold, color: Colors.white),
         ),
         backgroundColor: Colors.black,
         body: Stack(
           children: [
-            // Vidéo en fond
+            // (fond vidéo avec AnimatedOpacity)
             Positioned.fill(
               child: _videoController.value.isInitialized
-                  ? FittedBox(
-                fit: BoxFit.cover,
-                child: SizedBox(
-                  width: _videoController.value.size.width,
-                  height: _videoController.value.size.height,
-                  child: VideoPlayer(_videoController),
+                  ? AnimatedOpacity(
+                opacity: _bgVisible ? 1 : 0,
+                duration: _fade450,
+                curve: Curves.easeOut,
+                child: FittedBox(
+                  fit: BoxFit.cover,
+                  child: SizedBox(
+                    width: _videoController.value.size.width,
+                    height: _videoController.value.size.height,
+                    child: VideoPlayer(_videoController),
+                  ),
                 ),
               )
                   : Container(color: Colors.black),
             ),
 
-            // Container semi-transparent
+            // Card + contenu avec fade
             Center(
-              child: Builder(
-                builder: (innerCtx) {
-                  return Container(
-                    width: mq.width * 0.9,
-                    height: mq.height * 0.43,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.8),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: _formType == AuthFormType.login
-                        ? _buildLoginForm(innerCtx)
-                        : _formType == AuthFormType.register
-                        ? _buildRegisterForm(innerCtx)
-                        : _formType == AuthFormType.forgotPassword
-                        ? _buildForgotPasswordForm(innerCtx)
-                        : _buildForgotRegistrationForm(innerCtx),
-                  );
-                },
+              child: AnimatedOpacity(
+                opacity: _cardVisible ? 1 : 0,
+                duration: _fade300,
+                curve: Curves.easeOut,
+                child: Builder(
+                  builder: (innerCtx) => _buildAuthCard(innerCtx, mq),
+                ),
               ),
             ),
           ],
@@ -182,6 +186,37 @@ class _LoginPageState extends State<LoginPage> {
     );
   }
 
+  Widget _buildAuthCard(BuildContext innerCtx, Size mq) {
+    return Container(
+      width: mq.width * 0.9,
+      height: mq.height * 0.43,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.8),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: AnimatedSwitcher(
+        duration: _fade300,
+        switchInCurve: Curves.easeOut,
+        switchOutCurve: Curves.easeIn,
+        transitionBuilder: (child, anim) => FadeTransition(opacity: anim, child: child),
+        child: _buildFormContent(innerCtx, key: ValueKey(_formType)),
+      ),
+    );
+  }
+
+  Widget _buildFormContent(BuildContext ctx,{Key? key}) {
+    switch (_formType) {
+      case AuthFormType.login:
+        return KeyedSubtree(key: key, child: _buildLoginForm(ctx));
+      case AuthFormType.register:
+        return KeyedSubtree(key: key, child: _buildRegisterForm(ctx));
+      case AuthFormType.forgotPassword:
+        return KeyedSubtree(key: key, child: _buildForgotPasswordForm(ctx));
+      case AuthFormType.forgotRegistration:
+        return KeyedSubtree(key: key, child: _buildForgotRegistrationForm(ctx));
+    }
+  }
 
 
 // ─── LOGIN ───────────────────────────────────────────────────────────────
@@ -227,7 +262,7 @@ class _LoginPageState extends State<LoginPage> {
               if (state.status == FormStatus.submissionInProgress) {
                 return const CircularProgressIndicator();
               }
-              final mq = MediaQuery.of(context).size;
+              final mq = MediaQuery.of(ctx).size;
               return SizedBox(
                 width: mq.width * 0.8,
                 child: ElevatedButton(
@@ -371,7 +406,7 @@ class _LoginPageState extends State<LoginPage> {
                     return const CircularProgressIndicator();
                   }
                   return SizedBox(
-                    width: MediaQuery.of(context).size.width * 0.8,
+                    width: MediaQuery.of(ctx).size.width * 0.8,
                     child: ElevatedButton(
                       onPressed: state.status == FormStatus.valid
                           ? () => BlocProvider.of<ForgotPasswordBloc>(ctx)
