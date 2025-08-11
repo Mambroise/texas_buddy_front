@@ -8,7 +8,7 @@
 
 
 import 'package:flutter/material.dart';
-import 'package:texas_buddy/presentation/theme/app_colors.dart';
+import 'package:texas_buddy/core/theme/app_colors.dart';
 
 class TexasBuddyLoader extends StatelessWidget {
   final String message;
