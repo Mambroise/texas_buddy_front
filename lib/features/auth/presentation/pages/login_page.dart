@@ -9,9 +9,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:video_player/video_player.dart';
-import 'package:go_router/go_router.dart';
 
-import 'package:texas_buddy/app/router/app_router.dart';
 import 'package:texas_buddy/presentation/widgets/texas_buddy_loader.dart';
 import 'package:texas_buddy/core/theme/app_colors.dart';
 import 'package:texas_buddy/app/di/service_locator.dart';
