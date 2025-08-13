@@ -13,10 +13,14 @@ import 'package:texas_buddy/features/map/domain/entities/user_position.dart';
 import 'package:texas_buddy/features/map/presentation/blocs/location/location_bloc.dart';
 import 'package:texas_buddy/features/map/presentation/blocs/location/location_event.dart';
 import 'package:texas_buddy/features/map/presentation/blocs/location/location_state.dart';
+import 'package:texas_buddy/features/planning/presentation/cubit/planning_overlay_cubit.dart';
+import 'package:texas_buddy/features/planning/presentation/overlay/planning_overlay.dart';
+import 'package:texas_buddy/features/map/presentation/blocs/nearby/nearby_bloc.dart';
+
+
 
 class MapPage extends StatefulWidget {
   const MapPage({super.key});
-
   @override
   State<MapPage> createState() => _MapPageState();
 }
@@ -46,9 +50,9 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
     _moveCameraToLatLng(LatLng(pos.latitude, pos.longitude), zoom: zoom);
   }
 
+// check wether user is in texas when using the app. if bool = false, it disables auto recenter
+  //when using app
   bool _isInTexas(UserPosition p) {
-    // BBox simple du Texas (approx.)
-    // lat: ~25.5 -> 36.6 ; lon: -106.7 -> -93.5
     final lat = p.latitude;
     final lon = p.longitude;
     return lat >= 25.5 && lat <= 36.6 && lon >= -106.7 && lon <= -93.5;
@@ -59,14 +63,10 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
     super.build(context);
     return BlocConsumer<LocationBloc, LocationState>(
       listenWhen: (prev, curr) =>
-      // 1) On réagit au premier point pour le centrage conditionnel
       (!_didInitialCenter && curr.position != null) ||
-          // 2) Recentrage manuel via FAB
           curr.recenterRequested ||
-          // (tu peux garder ou enlever cette ligne si tu ne veux pas suivre en continu)
           false,
       listener: (context, state) {
-        // Centrage initial conditionnel
         if (!_didInitialCenter && state.position != null) {
           final pos = state.position!;
           if (_isInTexas(pos)) {
@@ -77,7 +77,12 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
           _didInitialCenter = true;
         }
 
-        // Recentrage manuel (on va sur l’utilisateur s’il existe, sinon Dallas)
+        // calling nearby request to get all ads and activities and events list
+        final loc = state.position!;
+        context.read<NearbyBloc>().add(
+          NearbyRequested(latitude: state.position!.latitude, longitude: state.position!.longitude),
+        );
+
         if (state.recenterRequested) {
           if (state.position != null) {
             _moveCamera(state.position!);
@@ -87,36 +92,88 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
         }
       },
       builder: (context, state) {
-        // ✅ Pas de marker custom => on laisse le vrai blue dot
-        const markers = <Marker>{};
+        final nearbyItems = context.select((NearbyBloc b) => b.state.items);
+        final markers = nearbyItems.map((it) {
+          return Marker(
+            markerId: MarkerId('${it.kind.name}_${it.id}'),
+            position: LatLng(it.latitude, it.longitude),
+            infoWindow: InfoWindow(title: it.name),
+          );
+        }).toSet();
 
-        return Stack(
-          children: [
-            GoogleMap(
-              initialCameraPosition: const CameraPosition(
-                target: _dallas, // point de départ si on n’a rien
-                zoom: 12,
-              ),
-              myLocationEnabled: true,        // ✅ blue dot natif
-              myLocationButtonEnabled: false, // on garde ton FAB
-              zoomControlsEnabled: false,
-              mapType: MapType.normal,
-              onMapCreated: (c) => _controller = c,
-              markers: markers,
-            ),
-            Positioned(
-              bottom: 16,
-              right: 16,
-              child: FloatingActionButton(
-                heroTag: 'recenter',
-                mini: true,
-                backgroundColor: Colors.white,
-                child: const Icon(Icons.my_location, color: Colors.black87),
-                onPressed: () =>
-                    context.read<LocationBloc>().add(LocationRecenter()),
-              ),
-            ),
-          ],
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final screenW = constraints.maxWidth;
+            final screenH = constraints.maxHeight;
+
+            // Dimensions/calculs demandés
+            final timelineWidth  = screenW * 0.5;   // 50%
+            final timelineHeight = screenH * 1.5;   // 150%
+            final topOffset      = screenH * 0.20;  // 70% écran
+            final peekLeft       = -(timelineWidth * 0.8); // 20% visibles
+            final fullLeft       = 0.0;
+
+            return Stack(
+              clipBehavior: Clip.none,
+              children: [
+                GoogleMap(
+                  initialCameraPosition: const CameraPosition(
+                    target: _dallas,
+                    zoom: 12,
+                  ),
+                  myLocationEnabled: true,
+                  myLocationButtonEnabled: false,
+                  zoomControlsEnabled: false,
+                  mapType: MapType.normal,
+                  onMapCreated: (c) => _controller = c,
+                  markers: markers,
+                ),
+
+                // -------------------------
+                // Overlay Timeline (animé)
+                // -------------------------
+                BlocBuilder<PlanningOverlayCubit, PlanningOverlayState>(
+                  builder: (context, ovr) {
+                    if (!ovr.visible) return const SizedBox.shrink();
+
+                    final targetLeft = ovr.expanded ? fullLeft : peekLeft;
+
+                    return AnimatedPositioned(
+                      duration: const Duration(milliseconds: 280),
+                      curve: Curves.easeInOutCubic,
+                      top: topOffset,
+                      left: targetLeft,
+                      width: timelineWidth,
+                      height: timelineHeight,
+                      child: PlanningOverlay(
+                      width: timelineWidth,
+                      height: timelineHeight,
+                      onToggleTap: context.read<PlanningOverlayCubit>().toggleExpanded,
+                      // Si tu veux garder ton look "bande noire / texte blanc" :
+                      stripeColor: Colors.black87,
+                      hourTextColor: Colors.white,
+                      slotHeight: 80.0,
+                    ),
+
+                    );
+                  },
+                ),
+
+                Positioned(
+                  bottom: 16,
+                  right: 16,
+                  child: FloatingActionButton(
+                    heroTag: 'recenter',
+                    mini: true,
+                    backgroundColor: Colors.white,
+                    child: const Icon(Icons.my_location, color: Colors.black87),
+                    onPressed: () =>
+                        context.read<LocationBloc>().add(LocationRecenter()),
+                  ),
+                ),
+              ],
+            );
+          },
         );
       },
     );

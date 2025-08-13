@@ -41,10 +41,15 @@ import 'package:texas_buddy/features/auth/presentation/blocs/logout/logout_bloc.
 
 // Map / Location
 import 'package:texas_buddy/features/map/data/datasources/location_datasource.dart';
+import 'package:texas_buddy/features/map/data/datasources/remote/nearby_remote_datasource.dart';
 import 'package:texas_buddy/features/map/data/repositories/location_repository_impl.dart';
+import 'package:texas_buddy/features/map/data/repositories/nearby_repository_impl.dart';
 import 'package:texas_buddy/features/map/domain/repositories/location_repository.dart';
+import 'package:texas_buddy/features/map/domain/repositories/nearby_repository.dart';
 import 'package:texas_buddy/features/map/domain/usecases/get_user_position_stream.dart';
+import 'package:texas_buddy/features/map/domain/usecases/get_nearby.dart';
 import 'package:texas_buddy/features/map/presentation/blocs/location/location_bloc.dart';
+import 'package:texas_buddy/features/map/presentation/blocs/nearby/nearby_bloc.dart';
 
 final getIt = GetIt.instance;
 
@@ -67,6 +72,9 @@ Future<void> setupLocator(Dio dio) async {
         () => AuthRemoteDatasource(getIt<Dio>()),
   );
   getIt.registerLazySingleton<LocationDataSource>(() => LocationDataSourceImpl());
+  getIt.registerLazySingleton<NearbyRemoteDataSource>(
+        () => NearbyRemoteDataSourceImpl(getIt<Dio>()),
+  );
 
   // ── Repositories ─────────────────────────────────────────────────────────
   getIt.registerLazySingleton<AuthRepository>(
@@ -74,6 +82,9 @@ Future<void> setupLocator(Dio dio) async {
   );
   getIt.registerLazySingleton<LocationRepository>(
         () => LocationRepositoryImpl(getIt<LocationDataSource>()),
+  );
+  getIt.registerLazySingleton<NearbyRepository>(
+        () => NearbyRepositoryImpl(getIt<NearbyRemoteDataSource>()),
   );
 
   // ── UseCases ─────────────────────────────────────────────────────────────
@@ -88,6 +99,7 @@ Future<void> setupLocator(Dio dio) async {
   getIt.registerFactory<CheckSessionUseCase>(() => CheckSessionUseCase(getIt<AuthRepository>()));
   getIt.registerLazySingleton<GetUserPositionStream>(() => GetUserPositionStream(getIt<LocationRepository>()));
   getIt.registerFactory<LogoutUseCase>(() => LogoutUseCase(getIt<AuthRepository>()));
+  getIt.registerFactory<GetNearby>(() => GetNearby(getIt<NearbyRepository>()));
 
   // ── App State (router) ───────────────────────────────────────────────────
   // Important: avant les blocs qui en dépendent
@@ -116,4 +128,5 @@ Future<void> setupLocator(Dio dio) async {
   ));
   getIt.registerFactory<LogoutBloc>(() => LogoutBloc(getIt<LogoutUseCase>(), getIt<AuthNotifier>()));
   getIt.registerFactory<LocationBloc>(() => LocationBloc(getIt<GetUserPositionStream>()));
+  getIt.registerFactory<NearbyBloc>(() => NearbyBloc(getNearby: getIt<GetNearby>()));
 }
