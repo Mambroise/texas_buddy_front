@@ -1,7 +1,7 @@
 //---------------------------------------------------------------------------
 //                           TEXAS BUDDY   ( 2 0 2 5 )
 //---------------------------------------------------------------------------
-// File   : features/map/domain/entities/user_position.dart
+// File   : features/map/domain/entities/nearby_item.dart
 // Author : Morice
 //---------------------------------------------------------------------------
 
@@ -15,8 +15,9 @@ class NearbyItem {
   final double latitude;
   final double longitude;
   final bool hasPromotion;
-  final bool isAdvertisement;   // 👈 NEW (ads en tête)
+  final bool isAdvertisement;
   final double? averageRating;
+  final String? primaryCategory;
   final List<String> categories;
   final String? imageUrl;
   final double? distanceKm;
@@ -30,6 +31,7 @@ class NearbyItem {
     required this.hasPromotion,
     this.isAdvertisement = false,
     this.averageRating,
+    this.primaryCategory,
     this.categories = const [],
     this.imageUrl,
     this.distanceKm,
@@ -44,6 +46,7 @@ class NearbyItem {
     bool? hasPromotion,
     bool? isAdvertisement,
     double? averageRating,
+    String? primaryCategory,
     List<String>? categories,
     String? imageUrl,
     double? distanceKm,
@@ -57,6 +60,7 @@ class NearbyItem {
       hasPromotion: hasPromotion ?? this.hasPromotion,
       isAdvertisement: isAdvertisement ?? this.isAdvertisement,
       averageRating: averageRating ?? this.averageRating,
+      primaryCategory: primaryCategory ?? this.primaryCategory,
       categories: categories ?? this.categories,
       imageUrl: imageUrl ?? this.imageUrl,
       distanceKm: distanceKm ?? this.distanceKm,
