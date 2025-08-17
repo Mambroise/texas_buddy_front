@@ -59,9 +59,15 @@ dependencies:
   logger: ^2.0.2
   intl: ^0.19.0
   get_it: ^7.6.4
+
   # Video
   video_player: ^2.5.1
+
+
+
   # UI/UX
+  font_awesome_flutter: ^10.7.0
+
   flutter_localizations:
     sdk: flutter
 

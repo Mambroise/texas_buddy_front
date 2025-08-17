@@ -9,18 +9,34 @@ import 'package:texas_buddy/features/map/domain/entities/nearby_item.dart';
 
 class NearbyItemDto {
   final String id;
-  final String type;                // "activity" | "event"
+  /// "activity" | "event"
+  final String type;
   final String name;
   final double latitude;
   final double longitude;
-  final bool hasPromotion;          // has_promotion
-  final bool isAdvertisement;       // is_advertisement
-  final double? averageRating;      // average_rating (si dispo)
-  final List<String> categories;    // category[].name
-  final String? imageUrl;           // image (si dispo)
-  final double? distanceKm;         // distance
 
-  NearbyItemDto({
+  /// has_promotion
+  final bool hasPromotion;
+
+  /// is_advertisement
+  final bool isAdvertisement;
+
+  /// average_rating (nullable)
+  final double? averageRating;
+
+  /// category[].name
+  final List<String> categories;
+
+  /// image (nullable)
+  final String? imageUrl;
+
+  /// distance (km) (nullable)
+  final double? distanceKm;
+
+  /// primary category for markers
+  final String? primaryCategory;
+
+  const NearbyItemDto({
     required this.id,
     required this.type,
     required this.name,
@@ -29,37 +45,85 @@ class NearbyItemDto {
     required this.hasPromotion,
     required this.isAdvertisement,
     this.averageRating,
-    this.categories = const [],
+    this.categories = const <String>[],
     this.imageUrl,
     this.distanceKm,
+    this.primaryCategory,
   });
 
+  /// Factory tolérante aux alias de clés (latitude/lat, longitude/lng/lon, etc.)
   factory NearbyItemDto.fromJson(Map<String, dynamic> json) {
-    double parseNum(dynamic v) => v is num ? v.toDouble() : double.parse(v.toString());
-    final latRaw = json['latitude'] ?? json['lat'];
-    final lonRaw = json['longitude'] ?? json['lng'] ?? json['lon']; // 👈 backend = lng
+    double _asDouble(dynamic v) {
+      if (v == null) throw const FormatException('null cannot be parsed to double');
+      if (v is num) return v.toDouble();
+      final s = v.toString().trim();
+      if (s.isEmpty) throw const FormatException('empty string');
+      return double.parse(s);
+    }
 
-    // category est une liste d’objets {id, name, icon...}
-    final cats = (json['category'] as List?) ?? const [];
-    final catNames = cats.map((e) => (e as Map)['name'].toString()).toList();
+    bool _asBool(dynamic v) {
+      if (v is bool) return v;
+      if (v == null) return false;
+      final s = v.toString().trim().toLowerCase();
+      return s == '1' || s == 'true' || s == 'yes';
+    }
+
+    String _asString(dynamic v) => (v ?? '').toString();
+
+    final latRaw = json['latitude'] ?? json['lat'];
+    final lonRaw = json['longitude'] ?? json['lng'] ?? json['lon'];
+
+    // Liste de noms de catégories (pour affichages secondaires)
+    final rawCats = (json['category'] as List?) ?? const <dynamic>[];
+    final catNames = <String>[];
+    for (final e in rawCats) {
+      if (e is Map) {
+        final n = e['name']?.toString();
+        if (n != null && n.isNotEmpty) catNames.add(n);
+      } else if (e != null) {
+        final n = e.toString();
+        if (n.isNotEmpty) catNames.add(n);
+      }
+    }
+
+    // 🔑 Clé d’icône pour le marqueur : icon FA prioritaire, sinon name, sinon null
+    String? _primaryCategoryKey(Map<String, dynamic>? pc) {
+      if (pc == null) return null;
+      final icon = pc['icon']?.toString().trim();
+      if (icon != null && icon.isNotEmpty) return icon;     // ex: "fa-utensils"
+      final name = pc['name']?.toString().trim();
+      return (name != null && name.isNotEmpty) ? name : null;
+    }
+
+    final Map<String, dynamic>? pc = json['primary_category'] is Map
+        ? (json['primary_category'] as Map).cast<String, dynamic>()
+        : null;
+    final primaryCatKey = _primaryCategoryKey(pc);
+    print('===========FACTORY=================');
+    print(primaryCatKey);
 
     return NearbyItemDto(
-      id: (json['id'] ?? json['uuid'] ?? json['pk']).toString(),
-      type: (json['type'] ?? 'activity').toString(),
-      name: (json['name'] ?? '').toString(),
-      latitude: parseNum(latRaw),
-      longitude: parseNum(lonRaw),
-      hasPromotion: (json['has_promotion'] ?? false) as bool,
-      isAdvertisement: (json['is_advertisement'] ?? false) as bool,
-      averageRating: (json['average_rating']) == null ? null : parseNum(json['average_rating']),
+      id: _asString(json['id'] ?? json['uuid'] ?? json['pk']),
+      type: _asString(json['type'] ?? 'activity'),
+      name: _asString(json['name']),
+      latitude: _asDouble(latRaw),
+      longitude: _asDouble(lonRaw),
+      hasPromotion: _asBool(json['has_promotion']),
+      isAdvertisement: _asBool(json['is_advertisement']),
+      averageRating: json['average_rating'] == null ? null : _asDouble(json['average_rating']),
       categories: catNames,
       imageUrl: json['image']?.toString(),
-      distanceKm: (json['distance']) == null ? null : parseNum(json['distance']),
+      distanceKm: json['distance'] == null ? null : _asDouble(json['distance']),
+      primaryCategory: primaryCatKey, // <- FA d'abord, sinon name
     );
   }
 
+
   NearbyItem toDomain() {
     final kind = type.toLowerCase() == 'event' ? NearbyKind.event : NearbyKind.activity;
+    print('===========TODOMAIN=================');
+    print(primaryCategory);
+
     return NearbyItem(
       id: id,
       kind: kind,
@@ -69,10 +133,31 @@ class NearbyItemDto {
       hasPromotion: hasPromotion,
       isAdvertisement: isAdvertisement,
       averageRating: averageRating,
+      // on prend la valeur normalisée par fromJson (fa-xxx prioritaire, sinon name)
+      primaryCategory: (primaryCategory != null && primaryCategory!.isNotEmpty)
+          ? primaryCategory
+          : null,
       categories: categories,
       imageUrl: imageUrl,
       distanceKm: distanceKm,
     );
   }
-}
 
+
+  /// Utilitaire : extrait une liste depuis une réponse paginée DRF ({ results: [...] }).
+  static List<NearbyItemDto> listFromPagedJson(Map<String, dynamic> json) {
+    final results = (json['results'] as List?) ?? const <dynamic>[];
+    return results
+        .whereType<Map<String, dynamic>>()
+        .map(NearbyItemDto.fromJson)
+        .toList();
+  }
+
+  /// Utilitaire : extrait une liste directe (si le backend renvoie déjà une liste à la racine).
+  static List<NearbyItemDto> listFromJsonArray(List<dynamic> arr) {
+    return arr
+        .whereType<Map<String, dynamic>>()
+        .map(NearbyItemDto.fromJson)
+        .toList();
+  }
+}
