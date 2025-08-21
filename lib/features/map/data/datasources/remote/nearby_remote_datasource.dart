@@ -5,61 +5,109 @@
 // Author : Morice
 //---------------------------------------------------------------------------
 
+
 import 'package:dio/dio.dart';
 import 'package:texas_buddy/features/map/data/dtos/nearby_dtos.dart';
 
 abstract class NearbyRemoteDataSource {
-  Future<List<NearbyItemDto>> fetchNearby({
+  Future<dynamic> fetchNearby({
     required double latitude,
     required double longitude,
-    String? date,        // "YYYY-MM-DD"
-    String? type,        // "activity" | "event"
-    String? category,    // name contains
-    String? search,      // free text
-    String? ordering,    // price, -price, name, -name, distance, -distance
-    int page = 1,
-    int pageSize = 30,
+    int page,
+    int pageSize,
+  });
+
+  /// Nouveau : interroge le backend avec north/south/east/west/zoom/limit (+ catégories)
+  Future<dynamic> fetchNearbyInBounds({
+    required double north,
+    required double south,
+    required double east,
+    required double west,
+    required int zoom,
+    List<String>? categoryKeys,
+    int limit = 150,
+    double? centerLat,
+    double? centerLng,
   });
 }
 
 class NearbyRemoteDataSourceImpl implements NearbyRemoteDataSource {
-  final Dio _dio;
-  NearbyRemoteDataSourceImpl(this._dio);
+  final Dio dio;
+  NearbyRemoteDataSourceImpl(this.dio);
 
   @override
-  Future<List<NearbyItemDto>> fetchNearby({
+  Future<dynamic> fetchNearby({
     required double latitude,
     required double longitude,
-    String? date,
-    String? type,
-    String? category,
-    String? search,
-    String? ordering,
     int page = 1,
-    int pageSize = 30,
+    int pageSize = 100,
   }) async {
-    final res = await _dio.get(
-      'activities/nearby/', // baseUrl déjà .../api/
+    final res = await dio.get(
+      'activities/nearby/',
       queryParameters: {
         'lat': latitude,
-        'lng': longitude,   // 👈 backend = lng
-        if (date != null) 'date': date,
-        if (type != null) 'type': type,
-        if (category != null) 'category': category,
-        if (search != null) 'search': search,
-        if (ordering != null) 'ordering': ordering,
+        'lng': longitude,
         'page': page,
         'page_size': pageSize,
       },
     );
-
     final data = res.data;
-    final list = (data is Map && data['results'] is List)
-        ? List<Map<String, dynamic>>.from(data['results'] as List)
-        : (data is List)
-        ? List<Map<String, dynamic>>.from(data)
-        : <Map<String, dynamic>>[];
+    // Retour paginé DRF : { count, next, previous, results: [...] }
+    if (data is Map<String, dynamic>) {
+      return NearbyItemDto.listFromPagedJson(data);
+    }
+    return data;
+  }
 
-    return list.map(NearbyItemDto.fromJson).toList();
+  @override
+  Future<dynamic> fetchNearbyInBounds({
+    required double north,
+    required double south,
+    required double east,
+    required double west,
+    required int zoom,
+    List<String>? categoryKeys,
+    int limit = 150,
+    double? centerLat,
+    double? centerLng,
+  }) async {
+    final qp = <String, dynamic>{
+      'north': north,
+      'south': south,
+      'east':  east,
+      'west':  west,
+      'zoom':  zoom,
+      'limit': limit,
+    };
+    if (centerLat != null && centerLng != null) {
+      qp['lat'] = centerLat;
+      qp['lng'] = centerLng;
+    }
+
+    // Répéter ?category=fa-xxx pour chaque clé
+    final options = Options();
+    final uri = Uri(
+      path: 'activities/nearby/',
+      queryParameters: qp.map((k, v) => MapEntry(k, v.toString())),
+    );
+
+    // Petit “hack” pour répéter le paramètre category
+    final extraQuery = StringBuffer(uri.query);
+    if (categoryKeys != null && categoryKeys.isNotEmpty) {
+      for (final c in categoryKeys) {
+        if (extraQuery.isNotEmpty) extraQuery.write('&');
+        extraQuery.write('category=$c');
+      }
+    }
+    final fullUrl = '${uri.path}?${extraQuery.toString()}';
+
+    final res = await dio.get(fullUrl, options: options);
+    final data = res.data;
+
+    // Ici aussi, le backend renvoie un objet paginé
+    if (data is Map<String, dynamic>) {
+      return NearbyItemDto.listFromPagedJson(data);
+    }
+    return data;
   }
 }

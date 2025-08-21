@@ -28,4 +28,33 @@ class NearbyRequested extends NearbyEvent {
 
   @override
   List<Object?> get props => [latitude, longitude, radiusKm, limit];
+
+}
+
+class NearbyRequestedBounds extends NearbyEvent {
+  final double north;
+  final double south;
+  final double east;
+  final double west;
+  final int zoom;
+  final List<String> categoryKeys;
+  final int limit;
+  final double? centerLat;
+  final double? centerLng;
+
+  const NearbyRequestedBounds({
+    required this.north,
+    required this.south,
+    required this.east,
+    required this.west,
+    required this.zoom,
+    this.categoryKeys = const [],
+    this.limit = 150,
+    this.centerLat,
+    this.centerLng,
+  });
+
+  @override
+  List<Object?> get props =>
+      [north, south, east, west, zoom, categoryKeys, limit, centerLat, centerLng];
 }

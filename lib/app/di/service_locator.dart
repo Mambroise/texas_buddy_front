@@ -50,6 +50,7 @@ import 'package:texas_buddy/features/map/domain/usecases/get_user_position_strea
 import 'package:texas_buddy/features/map/domain/usecases/get_nearby.dart';
 import 'package:texas_buddy/features/map/presentation/blocs/location/location_bloc.dart';
 import 'package:texas_buddy/features/map/presentation/blocs/nearby/nearby_bloc.dart';
+import 'package:texas_buddy/features/map/domain/usecases/get_nearby_in_bounds.dart';
 
 final getIt = GetIt.instance;
 
@@ -100,6 +101,7 @@ Future<void> setupLocator(Dio dio) async {
   getIt.registerLazySingleton<GetUserPositionStream>(() => GetUserPositionStream(getIt<LocationRepository>()));
   getIt.registerFactory<LogoutUseCase>(() => LogoutUseCase(getIt<AuthRepository>()));
   getIt.registerFactory<GetNearby>(() => GetNearby(getIt<NearbyRepository>()));
+  getIt.registerFactory<GetNearbyInBounds>(() => GetNearbyInBounds(getIt<NearbyRepository>()));
 
   // ── App State (router) ───────────────────────────────────────────────────
   // Important: avant les blocs qui en dépendent
@@ -128,5 +130,9 @@ Future<void> setupLocator(Dio dio) async {
   ));
   getIt.registerFactory<LogoutBloc>(() => LogoutBloc(getIt<LogoutUseCase>(), getIt<AuthNotifier>()));
   getIt.registerFactory<LocationBloc>(() => LocationBloc(getIt<GetUserPositionStream>()));
-  getIt.registerFactory<NearbyBloc>(() => NearbyBloc(getNearby: getIt<GetNearby>()));
+// Blocs
+  getIt.registerFactory<NearbyBloc>(() => NearbyBloc(
+    getNearby: getIt<GetNearby>(),
+    getNearbyInBounds: getIt<GetNearbyInBounds>(),
+  ));
 }
