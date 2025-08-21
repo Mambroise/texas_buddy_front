@@ -99,8 +99,6 @@ class NearbyItemDto {
         ? (json['primary_category'] as Map).cast<String, dynamic>()
         : null;
     final primaryCatKey = _primaryCategoryKey(pc);
-    print('===========FACTORY=================');
-    print(primaryCatKey);
 
     return NearbyItemDto(
       id: _asString(json['id'] ?? json['uuid'] ?? json['pk']),
@@ -121,8 +119,6 @@ class NearbyItemDto {
 
   NearbyItem toDomain() {
     final kind = type.toLowerCase() == 'event' ? NearbyKind.event : NearbyKind.activity;
-    print('===========TODOMAIN=================');
-    print(primaryCategory);
 
     return NearbyItem(
       id: id,

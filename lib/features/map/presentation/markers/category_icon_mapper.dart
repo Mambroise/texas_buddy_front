@@ -22,7 +22,6 @@ class CategoryIconMapper {
     // 2) Ancien fallback par mots-clés (utile si pas d'icon côté backend)
     if (_containsAny(k, ['restaurant', 'manger', 'food', 'eat'])) return FontAwesomeIcons.utensils;
     if (_containsAny(k, ['musée', 'museum', 'museo', 'culture', 'cultura', 'university', 'monument', 'monumento'])){
-      print(k);
       return FontAwesomeIcons.buildingColumns;}
     if (_containsAny(k, ['hiking', 'randonnée', 'Senderismo'])) return FontAwesomeIcons.personHiking;
     if (_containsAny(k, ['water', 'swimming', 'baignade', 'natación'])) return FontAwesomeIcons.personHiking;
@@ -44,6 +43,7 @@ class CategoryIconMapper {
     if (_containsAny(k, ['musica/concierto', 'musique/concert', 'vida nocturna'])) return FontAwesomeIcons.guitar;
     if (_containsAny(k, ['vie nocturne', 'night life', 'music/concert'])) return FontAwesomeIcons.cloudMoon;
     if (_containsAny(k, ['bar/cocktails', 'bar/cocteles'])) return FontAwesomeIcons.martiniGlassCitrus;
+    if (_containsAny(k, ['juego/fun', 'jeu/fun', 'game/fun'])) return FontAwesomeIcons.gamepad;
 
     // 3) Fallback final
     return Icons.place;
@@ -53,6 +53,7 @@ class CategoryIconMapper {
 
   static const Map<String, IconData> _faByName = {
     // existants ...
+    'fa-gamepad': FontAwesomeIcons.gamepad,
     'fa-museum': FontAwesomeIcons.buildingColumns,
     'fa-university': FontAwesomeIcons.bookOpen,
     'fa-book-open': FontAwesomeIcons.bookOpen,
