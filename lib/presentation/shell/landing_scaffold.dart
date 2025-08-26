@@ -16,6 +16,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:texas_buddy/features/planning/presentation/cubit/planning_overlay_cubit.dart';
 import 'package:texas_buddy/features/map/presentation/blocs/nearby/nearby_bloc.dart';
 import 'package:texas_buddy/app/di/service_locator.dart';
+import 'package:texas_buddy/features/map/presentation/cubits/category_filter_cubit.dart';
 
 
 class LandingScaffold extends StatefulWidget {
@@ -54,6 +55,7 @@ class _LandingScaffoldState extends State<LandingScaffold> {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
+        BlocProvider<CategoryFilterCubit>(create: (_) => CategoryFilterCubit()),
         BlocProvider<PlanningOverlayCubit>(create: (_) => PlanningOverlayCubit()),
         BlocProvider<NearbyBloc>(create: (_) => getIt<NearbyBloc>()),
       ],

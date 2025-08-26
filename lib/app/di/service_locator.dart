@@ -19,8 +19,11 @@ import 'package:texas_buddy/app/router/auth_notifier.dart';
 
 // Auth (datasource, repo, usecases, blocs)
 import 'package:texas_buddy/features/auth/data/datasources/remote/auth_remote_datasource.dart';
+import 'package:texas_buddy/features/map/data/datasources/remote/all_events_remote_datasource.dart';
+import 'package:texas_buddy/features/map/data/repositories/all_events_repository_impl.dart';
 import 'package:texas_buddy/features/auth/data/repositories/auth_repositories_impl.dart';
 import 'package:texas_buddy/features/auth/domain/repositories/auth_repository.dart';
+import 'package:texas_buddy/features/map/domain/repositories/all_events_repository.dart';
 
 import 'package:texas_buddy/features/auth/domain/usecases/login_usecase.dart';
 import 'package:texas_buddy/features/auth/domain/usecases/verify_registration_usecase.dart';
@@ -32,6 +35,12 @@ import 'package:texas_buddy/features/auth/domain/usecases/verify_registration_2f
 import 'package:texas_buddy/features/auth/domain/usecases/set_password_registration_usecase.dart';
 import 'package:texas_buddy/features/auth/domain/usecases/check_session_usecase.dart';
 import 'package:texas_buddy/features/auth/domain/usecases/logout_usecase.dart';
+import 'package:texas_buddy/features/map/domain/usecases/get_cached_nearby_in_bounds.dart';
+import 'package:texas_buddy/features/map/domain/usecases/get_all_events_in_bounds.dart';
+
+//cache
+import 'package:texas_buddy/features/map/data/cache/nearby_memory_cache.dart';
+import 'package:texas_buddy/features/map/data/cache/all_events_cache.dart';
 
 import 'package:texas_buddy/features/auth/presentation/blocs/login/login_bloc.dart';
 import 'package:texas_buddy/features/auth/presentation/blocs/signup/signup_bloc.dart';
@@ -76,6 +85,8 @@ Future<void> setupLocator(Dio dio) async {
   getIt.registerLazySingleton<NearbyRemoteDataSource>(
         () => NearbyRemoteDataSourceImpl(getIt<Dio>()),
   );
+  getIt.registerLazySingleton<AllEventsRemoteDataSource>(() => AllEventsRemoteDataSourceImpl(dio));
+  getIt.registerLazySingleton<AllEventsRepository>(() => AllEventsRepositoryImpl(remote: getIt(), cache: getIt()));
 
   // ── Repositories ─────────────────────────────────────────────────────────
   getIt.registerLazySingleton<AuthRepository>(
@@ -85,7 +96,10 @@ Future<void> setupLocator(Dio dio) async {
         () => LocationRepositoryImpl(getIt<LocationDataSource>()),
   );
   getIt.registerLazySingleton<NearbyRepository>(
-        () => NearbyRepositoryImpl(getIt<NearbyRemoteDataSource>()),
+        () => NearbyRepositoryImpl(
+      getIt<NearbyRemoteDataSource>(),
+      getIt<NearbyMemoryCache>(),
+    ),
   );
 
   // ── UseCases ─────────────────────────────────────────────────────────────
@@ -102,6 +116,8 @@ Future<void> setupLocator(Dio dio) async {
   getIt.registerFactory<LogoutUseCase>(() => LogoutUseCase(getIt<AuthRepository>()));
   getIt.registerFactory<GetNearby>(() => GetNearby(getIt<NearbyRepository>()));
   getIt.registerFactory<GetNearbyInBounds>(() => GetNearbyInBounds(getIt<NearbyRepository>()));
+  getIt.registerFactory(() => GetCachedNearbyInBounds(getIt<NearbyRepository>()));
+  getIt.registerFactory(() => GetAllEventsInBounds(getIt()));
 
   // ── App State (router) ───────────────────────────────────────────────────
   // Important: avant les blocs qui en dépendent
@@ -131,8 +147,13 @@ Future<void> setupLocator(Dio dio) async {
   getIt.registerFactory<LogoutBloc>(() => LogoutBloc(getIt<LogoutUseCase>(), getIt<AuthNotifier>()));
   getIt.registerFactory<LocationBloc>(() => LocationBloc(getIt<GetUserPositionStream>()));
 // Blocs
-  getIt.registerFactory<NearbyBloc>(() => NearbyBloc(
+  getIt.registerFactory(() => NearbyBloc(
     getNearby: getIt<GetNearby>(),
     getNearbyInBounds: getIt<GetNearbyInBounds>(),
+    getCachedInBounds: getIt<GetCachedNearbyInBounds>(), // NEW
   ));
+
+  //cache
+  getIt.registerLazySingleton(() => NearbyMemoryCache(ttl: const Duration(minutes: 2)));
+  getIt.registerLazySingleton<AllEventsCache>(() => AllEventsCache());
 }
