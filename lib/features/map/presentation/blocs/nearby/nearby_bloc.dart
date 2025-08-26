@@ -12,17 +12,23 @@ import 'package:equatable/equatable.dart';
 import 'package:texas_buddy/features/map/domain/entities/nearby_item.dart';
 import 'package:texas_buddy/features/map/domain/usecases/get_nearby.dart';
 import 'package:texas_buddy/features/map/domain/usecases/get_nearby_in_bounds.dart';
+import 'package:texas_buddy/features/map/domain/usecases/get_nearby.dart';
+import 'package:texas_buddy/features/map/domain/usecases/get_nearby_in_bounds.dart';
+import 'package:texas_buddy/features/map/domain/usecases/get_cached_nearby_in_bounds.dart';
 
 part 'nearby_event.dart';
 part 'nearby_state.dart';
 
+
 class NearbyBloc extends Bloc<NearbyEvent, NearbyState> {
-  final GetNearby getNearby;                   // legacy (liste/timeline)
-  final GetNearbyInBounds getNearbyInBounds;   // nouveau pour la carte
+  final GetNearby getNearby;                   // legacy
+  final GetNearbyInBounds getNearbyInBounds;   // network
+  final GetCachedNearbyInBounds getCachedInBounds; // NEW: cache
 
   NearbyBloc({
     required this.getNearby,
     required this.getNearbyInBounds,
+    required this.getCachedInBounds, // NEW
   }) : super(const NearbyState.initial()) {
     on<NearbyRequested>(_onRequested);
     on<NearbyRequestedBounds>(_onRequestedBounds);
@@ -51,35 +57,44 @@ class NearbyBloc extends Bloc<NearbyEvent, NearbyState> {
     }
   }
 
-  Future<void> _onRequestedBounds(
-      NearbyRequestedBounds e,
-      Emitter<NearbyState> emit,
-      ) async {
-    emit(state.copyWith(status: NearbyStatus.loading));
+  Future<void> _onRequestedBounds(NearbyRequestedBounds e, Emitter<NearbyState> emit) async {
+    // center (useful for distance)
+    final centerLat = (e.north + e.south) / 2.0;
+    final centerLng = (e.east + e.west) / 2.0;
+    final cap = (e.limit > 0) ? e.limit : _capForZoom(e.zoom);
+    final cats = e.categoryKeys ?? const <String>[];
+
+    // 1) CACHE d'abord (si dispo) → UI instantanée; sinon on montre loading
+    final cached = getCachedInBounds(
+      north: e.north, south: e.south, east: e.east, west: e.west,
+      zoom: e.zoom, categoryKeys: cats, centerLat: centerLat, centerLng: centerLng,
+    );
+    if (cached != null) {
+      emit(state.copyWith(status: NearbyStatus.loaded, items: cached));
+    } else {
+      emit(state.copyWith(status: NearbyStatus.loading));
+    }
+
+    // 2) Réseau (serveur) → remplace par la liste fraîche
     try {
-      // centre (utile pour tri distance côté serveur ou client)
-      final centerLat = (e.north + e.south) / 2.0;
-      final centerLng = (e.east + e.west) / 2.0;
-
-      // si e.limit <= 0 on calcule un cap par zoom
-      final cap = (e.limit > 0) ? e.limit : _capForZoom(e.zoom);
-
       final items = await getNearbyInBounds(
         north: e.north,
         south: e.south,
         east:  e.east,
         west:  e.west,
         zoom:  e.zoom,
-        categoryKeys: e.categoryKeys,
+        categoryKeys: cats,
         limit: cap,
         centerLat: centerLat,
         centerLng: centerLng,
       );
-
       emit(state.copyWith(status: NearbyStatus.loaded, items: items));
     } catch (err) {
-      emit(state.copyWith(status: NearbyStatus.error, error: err.toString()));
+      // si on avait déjà du cache, on garde les items et on logue l’erreur
+      emit(state.copyWith(
+        status: cached != null ? NearbyStatus.loaded : NearbyStatus.error,
+        error: cached != null ? null : err.toString(),
+      ));
     }
   }
 }
-
