@@ -33,8 +33,12 @@ class NearbyItemDto {
   /// distance (km) (nullable)
   final double? distanceKm;
 
-  /// primary category for markers
+  /// primary category for markers (icon key if provided, else name)
   final String? primaryCategory;
+
+  /// ✅ for events only
+  final DateTime? startDateTime;
+  final DateTime? endDateTime;
 
   const NearbyItemDto({
     required this.id,
@@ -49,6 +53,8 @@ class NearbyItemDto {
     this.imageUrl,
     this.distanceKm,
     this.primaryCategory,
+    this.startDateTime,
+    this.endDateTime,
   });
 
   /// Factory tolérante aux alias de clés (latitude/lat, longitude/lng/lon, etc.)
@@ -69,6 +75,13 @@ class NearbyItemDto {
     }
 
     String _asString(dynamic v) => (v ?? '').toString();
+
+    DateTime? _asDate(dynamic v) {
+      if (v == null) return null;
+      final s = v.toString().trim();
+      if (s.isEmpty) return null;
+      return DateTime.parse(s); // ISO8601 (Django) supporté (avec ou sans timezone)
+    }
 
     final latRaw = json['latitude'] ?? json['lat'];
     final lonRaw = json['longitude'] ?? json['lng'] ?? json['lon'];
@@ -100,6 +113,10 @@ class NearbyItemDto {
         : null;
     final primaryCatKey = _primaryCategoryKey(pc);
 
+    // ✅ alias pour dates d’événements
+    final startRaw = json['start_datetime'] ?? json['startDateTime'] ?? json['start'] ?? json['start_date'];
+    final endRaw   = json['end_datetime']   ?? json['endDateTime']   ?? json['end']   ?? json['end_date'];
+
     return NearbyItemDto(
       id: _asString(json['id'] ?? json['uuid'] ?? json['pk']),
       type: _asString(json['type'] ?? 'activity'),
@@ -113,9 +130,11 @@ class NearbyItemDto {
       imageUrl: json['image']?.toString(),
       distanceKm: json['distance'] == null ? null : _asDouble(json['distance']),
       primaryCategory: primaryCatKey, // <- FA d'abord, sinon name
+      // ✅ ajouts
+      startDateTime: _asDate(startRaw),
+      endDateTime: _asDate(endRaw),
     );
   }
-
 
   NearbyItem toDomain() {
     final kind = type.toLowerCase() == 'event' ? NearbyKind.event : NearbyKind.activity;
@@ -136,9 +155,11 @@ class NearbyItemDto {
       categories: categories,
       imageUrl: imageUrl,
       distanceKm: distanceKm,
+      // ✅ ajouts
+      startDateTime: startDateTime,
+      endDateTime: endDateTime,
     );
   }
-
 
   /// Utilitaire : extrait une liste depuis une réponse paginée DRF ({ results: [...] }).
   static List<NearbyItemDto> listFromPagedJson(Map<String, dynamic> json) {

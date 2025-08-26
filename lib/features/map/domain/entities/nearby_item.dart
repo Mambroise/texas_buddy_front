@@ -21,6 +21,8 @@ class NearbyItem {
   final List<String> categories;
   final String? imageUrl;
   final double? distanceKm;
+  final DateTime? startDateTime;
+  final DateTime? endDateTime;
 
   const NearbyItem({
     required this.id,
@@ -35,6 +37,8 @@ class NearbyItem {
     this.categories = const [],
     this.imageUrl,
     this.distanceKm,
+    this.startDateTime,
+    this.endDateTime,
   });
 
   NearbyItem copyWith({
@@ -50,6 +54,8 @@ class NearbyItem {
     List<String>? categories,
     String? imageUrl,
     double? distanceKm,
+    DateTime? startDateTime,
+    DateTime? endDateTime,
   }) {
     return NearbyItem(
       id: id ?? this.id,
@@ -64,6 +70,8 @@ class NearbyItem {
       categories: categories ?? this.categories,
       imageUrl: imageUrl ?? this.imageUrl,
       distanceKm: distanceKm ?? this.distanceKm,
+      startDateTime: startDateTime ?? this.startDateTime,
+      endDateTime: endDateTime ?? this.endDateTime,
     );
   }
 }

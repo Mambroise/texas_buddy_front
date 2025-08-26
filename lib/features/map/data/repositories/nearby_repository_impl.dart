@@ -6,15 +6,67 @@
 //---------------------------------------------------------------------------
 
 
+//---------------------------------------------------------------------------
+// Data repository impl with in-memory cache TTL
+//---------------------------------------------------------------------------
+
 import 'dart:math' as math;
-import 'package:texas_buddy/features/map/domain/entities/nearby_item.dart';
-import 'package:texas_buddy/features/map/domain/repositories/nearby_repository.dart';
+
+import '../../domain/entities/nearby_item.dart';
+import '../../domain/repositories/nearby_repository.dart';
 import 'package:texas_buddy/features/map/data/datasources/remote/nearby_remote_datasource.dart';
 import 'package:texas_buddy/features/map/data/dtos/nearby_dtos.dart';
 
+import '../cache/nearby_memory_cache.dart';
+
 class NearbyRepositoryImpl implements NearbyRepository {
+  NearbyRepositoryImpl(this.remote, this._cache);
+
   final NearbyRemoteDataSource remote;
-  NearbyRepositoryImpl(this.remote);
+  final NearbyMemoryCache _cache;
+
+  // ----------------- CACHE API -----------------
+
+  @override
+  List<NearbyItem>? getCachedNearby(NearbyQuery q) {
+    final key = _cache.makeKey(
+      north: q.north, east: q.east, south: q.south, west: q.west, zoom: q.zoom,
+    );
+    return _cache.getFresh(key);
+  }
+
+  @override
+  Future<List<NearbyItem>> fetchNearby(NearbyQuery q) async {
+    // ⚠️ corrige: NearbyRemoteDataSource n'a PAS 'fetchBounds' → on utilise 'fetchNearbyInBounds'
+    final raw = await remote.fetchNearbyInBounds(
+      north: q.north,
+      south: q.south,
+      east:  q.east,
+      west:  q.west,
+      zoom:  q.zoom,
+      categoryKeys: q.categoryKeys,
+      limit: 0, // serveur gère cap, ou laisse 0 si ton backend interprète 0 = auto
+      centerLat: q.centerLat,
+      centerLng: q.centerLng,
+    );
+
+    final items = _toDomainList(raw);
+
+    // distance locale si besoin
+    if (q.centerLat != null && q.centerLng != null) {
+      _fillMissingDistances(items, q.centerLat!, q.centerLng!);
+    }
+    _stableSort(items);
+
+    // MAJ cache
+    final key = _cache.makeKey(
+      north: q.north, east: q.east, south: q.south, west: q.west, zoom: q.zoom,
+    );
+    _cache.put(key, items);
+    return items;
+  }
+
+  // ----------------- LEGACY/RADIUS -----------------
 
   @override
   Future<List<NearbyItem>> getNearby({
@@ -33,12 +85,12 @@ class NearbyRepositoryImpl implements NearbyRepository {
     );
 
     final items = _toDomainList(raw);
-
     _fillMissingDistances(items, latitude, longitude);
     _stableSort(items);
-
     return items;
   }
+
+  // ----------------- BOUNDS (carte) -----------------
 
   @override
   Future<List<NearbyItem>> getNearbyInBounds({
@@ -52,15 +104,14 @@ class NearbyRepositoryImpl implements NearbyRepository {
     double? centerLat,
     double? centerLng,
   }) async {
-    // Cap côté client (cohérent avec serveur)
     final cap = limit < 1 ? 1 : (limit > 300 ? 300 : limit);
 
     final raw = await remote.fetchNearbyInBounds(
       north: north,
       south: south,
-      east: east,
-      west: west,
-      zoom: zoom,
+      east:  east,
+      west:  west,
+      zoom:  zoom,
       categoryKeys: categoryKeys,
       limit: cap,
       centerLat: centerLat,
@@ -68,17 +119,14 @@ class NearbyRepositoryImpl implements NearbyRepository {
     );
 
     final items = _toDomainList(raw);
-
-    // Si le serveur n’a pas renvoyé la distance, on la calcule vs center
     if (centerLat != null && centerLng != null) {
       _fillMissingDistances(items, centerLat, centerLng);
     }
-
     _stableSort(items);
     return items;
   }
 
-  // ---------- helpers ----------
+  // ----------------- helpers -----------------
 
   List<NearbyItem> _toDomainList(dynamic raw) {
     if (raw is List<NearbyItemDto>) {
