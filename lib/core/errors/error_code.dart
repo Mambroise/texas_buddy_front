@@ -1,7 +1,21 @@
 //---------------------------------------------------------------------------
 //                           TEXAS BUDDY   ( 2 0 2 5 )
 //---------------------------------------------------------------------------
-// File   : features/map/presentation/markers/marker_style.dart
+// File   : core/errors/error_code.dart
 // Author : Morice
 //---------------------------------------------------------------------------
 
+
+enum AppErrorCode {
+  network,
+  timeout,
+  unauthorized,
+  forbidden,
+  notFound,
+  conflict,
+  rateLimit,
+  validation,
+  server,
+  parse,
+  unknown,
+}

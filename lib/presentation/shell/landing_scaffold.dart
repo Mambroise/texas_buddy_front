@@ -1,4 +1,3 @@
-
 //---------------------------------------------------------------------------
 //                           TEXAS BUDDY   ( 2 0 2 5 )
 //---------------------------------------------------------------------------
@@ -7,17 +6,24 @@
 //---------------------------------------------------------------------------
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:texas_buddy/core/theme/app_colors.dart';
 import 'package:texas_buddy/features/map/presentation/pages/map_page.dart';
 import 'package:texas_buddy/features/planning/presentation/pages/planning_page.dart';
 import 'package:texas_buddy/features/community/presentation/pages/community_page.dart';
 import 'package:texas_buddy/features/user/presentation/pages/user_page.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
+
 import 'package:texas_buddy/features/planning/presentation/cubit/planning_overlay_cubit.dart';
 import 'package:texas_buddy/features/map/presentation/blocs/nearby/nearby_bloc.dart';
-import 'package:texas_buddy/app/di/service_locator.dart';
+import 'package:texas_buddy/features/map/presentation/blocs/all_events/all_events_bloc.dart';
 import 'package:texas_buddy/features/map/presentation/cubits/category_filter_cubit.dart';
+import 'package:texas_buddy/features/map/presentation/cubits/map_mode_cubit.dart';
+import 'package:texas_buddy/features/map/presentation/widgets/map_mode_menu_sheet.dart';
 
+import 'package:texas_buddy/app/di/service_locator.dart';
+
+// <-- L10n extension
+import 'package:texas_buddy/core/l10n/l10n_ext.dart';
 
 class LandingScaffold extends StatefulWidget {
   const LandingScaffold({super.key});
@@ -36,7 +42,6 @@ class _LandingScaffoldState extends State<LandingScaffold> {
 
   late final List<_TabNavigator> _tabs = [
     _TabNavigator(key: _navKeys[0], child: const MapPage()),
-    // L’onglet Planning peut rester (pour plus tard) MAIS on ne l’utilise pas ici.
     _TabNavigator(key: _navKeys[1], child: const PlanningPage()),
     _TabNavigator(key: _navKeys[2], child: const CommunityPage()),
   ];
@@ -50,16 +55,35 @@ class _LandingScaffoldState extends State<LandingScaffold> {
     return true;
   }
 
+  Future<void> _openMapMenu(BuildContext ctx) async {
+    final choice = await showModalBottomSheet<String>(
+      context: ctx,
+      useSafeArea: true,
+      showDragHandle: true,
+      backgroundColor: Colors.white,
+      builder: (_) => const MapModeMenuSheet(),
+    );
+
+    if (choice == 'events') {
+      ctx.read<MapModeCubit>().setEvents();
+    } else if (choice == 'nearby') {
+      ctx.read<MapModeCubit>().setNearby();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
     return MultiBlocProvider(
       providers: [
         BlocProvider<CategoryFilterCubit>(create: (_) => CategoryFilterCubit()),
         BlocProvider<PlanningOverlayCubit>(create: (_) => PlanningOverlayCubit()),
         BlocProvider<NearbyBloc>(create: (_) => getIt<NearbyBloc>()),
+        BlocProvider<AllEventsBloc>(create: (_) => getIt<AllEventsBloc>()),
+        BlocProvider<MapModeCubit>(create: (_) => MapModeCubit()),
       ],
-      child: Builder( // <-- garder le Builder pour disposer d'un context sous les providers
+      child: Builder(
         builder: (ctx) {
           return PopScope(
             canPop: !(() {
@@ -68,34 +92,28 @@ class _LandingScaffoldState extends State<LandingScaffold> {
               return overlayVisible || hasInnerPop;
             }()),
             onPopInvoked: (didPop) {
-              if (didPop) return; // le système a déjà pop (rien à faire)
-
+              if (didPop) return;
               final cubit = ctx.read<PlanningOverlayCubit>();
               final overlayVisible = cubit.state.visible;
               final currentNavigator = _navKeys[_currentIndex].currentState;
 
-              // 1) Si l’overlay Planning est ouvert, on le ferme et on consomme le back.
               if (overlayVisible) {
                 cubit.hide();
                 return;
               }
-
-              // 2) Sinon, si l’onglet courant a une stack interne, on pop la page interne.
               if (currentNavigator?.canPop() ?? false) {
                 currentNavigator!.pop();
                 return;
               }
-
-              // 3) Sinon, rien à gérer : on laissera le prochain back sortir de l’app.
-              // (canPop était true dans ce cas, donc on n’atteindra pas ce bloc)
             },
             child: Scaffold(
               appBar: AppBar(
-                title: const Text('Texas Buddy'),
+                title: Text(l10n.appTitle),
                 centerTitle: true,
                 leading: IconButton(
                   icon: const Icon(Icons.menu, color: AppColors.texasBlue),
-                  onPressed: () {},
+                  onPressed: () => _openMapMenu(ctx),
+                  tooltip: l10n.mapTab, // petit plus d’accessibilité
                 ),
                 actions: [
                   IconButton(
@@ -105,6 +123,7 @@ class _LandingScaffoldState extends State<LandingScaffold> {
                         MaterialPageRoute(builder: (_) => const UserPage()),
                       );
                     },
+                    tooltip: l10n.profile,
                   ),
                 ],
               ),
@@ -127,14 +146,21 @@ class _LandingScaffoldState extends State<LandingScaffold> {
                       setState(() => _currentIndex = i);
                     },
                     items: [
-                      const BottomNavigationBarItem(icon: Icon(Icons.map), label: 'Map'),
                       BottomNavigationBarItem(
-                        icon: Icon(Icons.calendar_month,
+                        icon: const Icon(Icons.map),
+                        label: l10n.mapTab,
+                      ),
+                      BottomNavigationBarItem(
+                        icon: Icon(
+                          Icons.calendar_month,
                           color: isPlanningActive ? Colors.white : Colors.white70,
                         ),
-                        label: 'Planning',
+                        label: l10n.planningTab,
                       ),
-                      const BottomNavigationBarItem(icon: Icon(Icons.group), label: 'Community'),
+                      BottomNavigationBarItem(
+                        icon: const Icon(Icons.group),
+                        label: l10n.communityTab,
+                      ),
                     ],
                   );
                 },
@@ -144,26 +170,20 @@ class _LandingScaffoldState extends State<LandingScaffold> {
         },
       ),
     );
-
   }
 }
 
-
-
-/// Navigator interne à un onglet. Conserve la stack et l'état du tab.
+// (inchangé)
 class _TabNavigator extends StatefulWidget {
   final Widget child;
   const _TabNavigator({super.key, required this.child});
-
   @override
   State<_TabNavigator> createState() => _TabNavigatorState();
 }
-
 class _TabNavigatorState extends State<_TabNavigator>
     with AutomaticKeepAliveClientMixin {
   @override
   bool get wantKeepAlive => true;
-
   @override
   Widget build(BuildContext context) {
     super.build(context);

@@ -1,7 +1,7 @@
 //---------------------------------------------------------------------------
 //                           TEXAS BUDDY   ( 2 0 2 5 )
 //---------------------------------------------------------------------------
-// File   :domain/usecases/auth/resend_registration_number_usecase.dart
+// File   :auth/domain/usecases/resend_registration_number_usecase.dart
 // Author : Morice
 //-------------------------------------------------------------------------
 
