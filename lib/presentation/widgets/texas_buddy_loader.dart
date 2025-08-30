@@ -1,22 +1,26 @@
-
 //---------------------------------------------------------------------------
 //                           TEXAS BUDDY   ( 2 0 2 5 )
 //---------------------------------------------------------------------------
-// File   :presentation/widgets/texas_buddy_loader.dart
+// File   : presentation/widgets/texas_buddy_loader.dart
 // Author : Morice
 //-------------------------------------------------------------------------
-
 
 import 'package:flutter/material.dart';
 import 'package:texas_buddy/core/theme/app_colors.dart';
 
-class TexasBuddyLoader extends StatelessWidget {
-  final String message;
+// L10n
+import 'package:texas_buddy/core/l10n/l10n_ext.dart';
 
-  const TexasBuddyLoader({super.key, this.message = "Loading..."});
+class TexasBuddyLoader extends StatelessWidget {
+  final String? message;
+
+  const TexasBuddyLoader({super.key, this.message});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n;
+    final text = message ?? l10n.loading;
+
     return Container(
       color: Colors.white,
       alignment: Alignment.center,
@@ -24,13 +28,14 @@ class TexasBuddyLoader extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           // loader animé
-          const CircularProgressIndicator(
+          CircularProgressIndicator(
             color: AppColors.texasBlue,
             strokeWidth: 4,
+            semanticsLabel: l10n.loading,
           ),
           const SizedBox(height: 20),
           Text(
-            message,
+            text,
             style: const TextStyle(
               fontSize: 18,
               color: AppColors.texasBlue,

@@ -12,12 +12,14 @@ import 'login_state.dart';
 import 'package:texas_buddy/core/utils/form_status.dart';
 import 'package:texas_buddy/features/auth/domain/usecases/login_usecase.dart';
 import 'package:texas_buddy/app/router/auth_notifier.dart';
+import 'package:texas_buddy/features/user/domain/usecases/fetch_and_cache_me_usecase.dart';
 
 class LoginBloc extends Bloc<LoginEvent, LoginState> {
   final LoginUseCase _loginUseCase;
   final AuthNotifier _auth;
+  final FetchAndCacheMeUseCase _fetchMe;
 
-  LoginBloc(this._loginUseCase,this._auth) : super(const LoginState()) {
+  LoginBloc(this._loginUseCase,this._auth,this._fetchMe) : super(const LoginState()) {
 
     bool _isFormValid(String email, String password) {
       final emailOk = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email);
@@ -48,8 +50,10 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
       emit(state.copyWith(status: FormStatus.submissionInProgress));
       try {
         await _loginUseCase(email: state.email, password: state.password);
-        _auth.setLoggedIn(); // 👈 annonce au routeur
+        await _fetchMe();             // 👈 récupère et sauve en sqlite
+        _auth.setLoggedIn();          // 👈 annonce au routeur
         emit(state.copyWith(status: FormStatus.submissionSuccess));
+
       } catch (e) {
         emit(state.copyWith(
           status: FormStatus.submissionFailure,
