@@ -38,7 +38,7 @@ class AllEventsRemoteDataSourceImpl implements AllEventsRemoteDataSource {
   }) async {
     final res = await dio.get(
       // ⚠️ route 1bis ci-dessous: /events/in-bounds/
-      'events/in-bounds/',
+      'activities/events/in-bounds/',
       queryParameters: {
         'north': north,
         'south': south,

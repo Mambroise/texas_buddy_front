@@ -1,7 +1,7 @@
 //---------------------------------------------------------------------------
 //                           TEXAS BUDDY   ( 2 0 2 5 )
 //---------------------------------------------------------------------------
-// File   :domain/usecases/auth/request_password_reset_usecase.dart
+// File   :auth/domain/usecases/request_password_reset_usecase.dart
 // Author : Morice
 //-------------------------------------------------------------------------
 

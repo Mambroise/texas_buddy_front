@@ -6,6 +6,7 @@
 //---------------------------------------------------------------------------
 
 
+// app/app.dart
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -15,12 +16,14 @@ import 'package:go_router/go_router.dart';
 import 'package:texas_buddy/app/router/app_router.dart';
 import 'package:texas_buddy/app/di/service_locator.dart';
 import 'package:texas_buddy/core/theme/app_theme.dart';
-
-// Blocs globaux (ex: localisation)
 import 'package:texas_buddy/features/map/presentation/blocs/location/location_bloc.dart';
 
+// 👇 import du code généré par gen-l10n
+import 'package:texas_buddy/core/l10n/generated/l10n.dart';
+
+
 class TexasBuddyApp extends StatefulWidget {
-  final String deviceLocale;
+  final String deviceLocale; // ex: "fr-FR"
   const TexasBuddyApp({super.key, required this.deviceLocale});
 
   @override
@@ -38,23 +41,55 @@ class _TexasBuddyAppState extends State<TexasBuddyApp> {
 
   @override
   Widget build(BuildContext context) {
-    final languageCode = widget.deviceLocale.split('-').first;
     return MultiBlocProvider(
       providers: [
         BlocProvider<LocationBloc>(create: (_) => getIt<LocationBloc>()),
-        // Ajoute d’autres blocs globaux ici si besoin
       ],
       child: MaterialApp.router(
-        title: 'Texas Buddy',
+        // 🔤 Titre localisé
+        onGenerateTitle: (ctx) => L10n.of(ctx).appTitle,
+
         theme: AppTheme.lightTheme,
-        locale: Locale(languageCode),
-        supportedLocales: const [Locale('en'), Locale('fr'), Locale('es')],
-        localizationsDelegates: const [
-          GlobalMaterialLocalizations.delegate,
-          GlobalWidgetsLocalizations.delegate,
-          GlobalCupertinoLocalizations.delegate,
+
+        // ❌ Retire ceci pour laisser Flutter choisir la locale avec la callback
+        // locale: Locale(widget.deviceLocale.split('-').first),
+
+        // ✅ Locales supportées
+        supportedLocales: const [
+          Locale('en'),
+          Locale('fr'),
+          Locale('es', 'MX'),
         ],
-        routerConfig: _router, // 👈 GoRouter branché ici
+
+        // ✅ Delegates (d’abord le tien)
+        localizationsDelegates: const [
+          L10n.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+        ],
+
+        // ✅ Résolution: es -> es_MX, sinon fr/en, sinon fallback en
+        localeListResolutionCallback: (locales, supported) {
+          if (locales == null || locales.isEmpty) return const Locale('en');
+
+          for (final device in locales) {
+            // correspondance exacte (fr, es_MX, en)
+            for (final sup in supported) {
+              final sameLang = device.languageCode == sup.languageCode;
+              final countryOk = sup.countryCode == null || device.countryCode == sup.countryCode;
+              if (sameLang && countryOk) return sup;
+            }
+            // espagnol générique -> es_MX
+            if (device.languageCode == 'es') return const Locale('es', 'MX');
+            // fallback fr / en si générique
+            if (device.languageCode == 'fr') return const Locale('fr');
+            if (device.languageCode == 'en') return const Locale('en');
+          }
+          return const Locale('en');
+        },
+
+        routerConfig: _router,
       ),
     );
   }

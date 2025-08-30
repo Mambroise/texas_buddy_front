@@ -67,6 +67,7 @@ class CategoryIconMapper {
     'fa-binoculars': FontAwesomeIcons.binoculars,
     'fa-pepper-hot': FontAwesomeIcons.pepperHot,
     'fa-plate-wheat': FontAwesomeIcons.bowlFood,
+    'fa-drumstick-bite' : FontAwesomeIcons.drumstickBite,
     'fa-hotel': FontAwesomeIcons.bed,
     'fa-bed': FontAwesomeIcons.bed,
     'fa-tree': FontAwesomeIcons.tree,

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:texas_buddy/core/theme/app_colors.dart';
 import '../cubits/category_filter_cubit.dart';
+// L10n
+import 'package:texas_buddy/core/l10n/l10n_ext.dart';
 
 class CategoryChipsBar extends StatelessWidget {
   const CategoryChipsBar({super.key, required this.onChanged});
@@ -9,46 +11,50 @@ class CategoryChipsBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String locKey = _localeKey(Localizations.localeOf(context));
+    final l10n = context.l10n;
     final Color blue = AppColors.texasBlue;
 
-    const chips = <ChipSpec>[
+    // Labels 100% localisés via ARB
+    final chips = <ChipSpec>[
       ChipSpec(
         id: '*',
-        labels: {'en': 'All', 'fr': 'Tous', 'es_MX': 'Todos'},
-        categories: <String>{},
+        label: l10n.categoryAll,
+        categories: const <String>{},
       ),
-      // Nouveau chip "Events"
       ChipSpec(
         id: 'events',
-        labels: {'en': 'Events', 'fr': 'Évènements', 'es_MX': 'Eventos'},
-        categories: <String>{},
-        typeOnly: 'event', // <<< important
+        label: l10n.categoryEvents,
+        categories: const <String>{},
+        typeOnly: 'event', // important
       ),
       ChipSpec(
         id: 'eat',
-        labels: {'en': 'Eat', 'fr': 'Manger', 'es_MX': 'Comer'},
-        categories: <String>{'fa-utensils','fa-burger','fa-hot-pepper','fa-pizza-slice','fa-ice-cream'},
+        label: l10n.categoryEat,
+        categories: const <String>{
+          'fa-utensils','fa-burger','fa-hot-pepper','fa-pizza-slice','fa-ice-cream'
+        },
       ),
       ChipSpec(
         id: 'drink',
-        labels: {'en': 'Drink', 'fr': 'Boire', 'es_MX': 'Beber'},
-        categories: <String>{'fa-beer-mug','fa-wine-glass','fa-cocktail','fa-coffee','fa-glass-cheers'},
+        label: l10n.categoryDrink,
+        categories: const <String>{
+          'fa-beer-mug','fa-wine-glass','fa-cocktail','fa-coffee','fa-glass-cheers'
+        },
       ),
       ChipSpec(
         id: 'night',
-        labels: {'en': 'Go out', 'fr': 'Sortir', 'es_MX': 'Salir'},
-        categories: <String>{'fa-nightlife','fa-music','fa-dance','fa-theater-masks'},
+        label: l10n.categoryGoOut,
+        categories: const <String>{'fa-nightlife','fa-music','fa-dance','fa-theater-masks'},
       ),
       ChipSpec(
         id: 'fun',
-        labels: {'en': 'Have fun', 'fr': 'S’amuser', 'es_MX': 'Divertirse'},
-        categories: <String>{'fa-fun','fa-gamepad','fa-bowling','fa-film','fa-park'},
+        label: l10n.categoryHaveFun,
+        categories: const <String>{'fa-fun','fa-gamepad','fa-bowling','fa-film','fa-park'},
       ),
       ChipSpec(
         id: 'free',
-        labels: {'en': 'Free', 'fr': 'Gratuit', 'es_MX': 'Gratis'},
-        categories: <String>{'fa-gift'},
+        label: l10n.categoryFree,
+        categories: const <String>{'fa-gift'},
       ),
     ];
 
@@ -69,7 +75,6 @@ class CategoryChipsBar extends StatelessWidget {
                 final spec = chips[i];
                 final isAll = spec.id == '*';
                 final isTypeOnly = spec.typeOnly != null;
-                final label = spec.labels[locKey] ?? spec.labels['en']!;
 
                 final bool active = isAll
                     ? (!eventsOnly && selected.isEmpty)
@@ -78,7 +83,10 @@ class CategoryChipsBar extends StatelessWidget {
                     : spec.categories.any(selected.contains);
 
                 return FilterChip(
-                  label: Text(label, style: TextStyle(color: blue, fontWeight: FontWeight.w600)),
+                  label: Text(
+                    spec.label,
+                    style: TextStyle(color: blue, fontWeight: FontWeight.w600),
+                  ),
                   showCheckmark: false,
                   backgroundColor: Colors.white,
                   selectedColor: Colors.white,
@@ -96,14 +104,14 @@ class CategoryChipsBar extends StatelessWidget {
                   onSelected: (_) {
                     final cubit = context.read<CategoryFilterCubit>();
                     if (isAll) {
-                      cubit.clear();                // all: reset (no categories, no event mode)
+                      cubit.clear(); // reset
                     } else if (isTypeOnly) {
                       cubit.setEventsOnly(!eventsOnly); // toggle events-only
                     } else {
-                      cubit.setEventsOnly(false);   // leave type mode
+                      cubit.setEventsOnly(false);
                       cubit.toggleMany(spec.categories);
                     }
-                    onChanged(); // MapPage will: local render + server fetch
+                    onChanged(); // MapPage: local render + server fetch
                   },
                 );
               },
@@ -117,19 +125,13 @@ class CategoryChipsBar extends StatelessWidget {
 
 class ChipSpec {
   final String id;
-  final Map<String, String> labels; // {'en':..., 'fr':..., 'es_MX':...}
+  final String label;       // <— string localisé
   final Set<String> categories;
-  final String? typeOnly; // 'event' for the Events chip, null otherwise
+  final String? typeOnly;   // 'event' pour le chip Events, sinon null
   const ChipSpec({
     required this.id,
-    required this.labels,
+    required this.label,
     required this.categories,
     this.typeOnly,
   });
-}
-
-String _localeKey(Locale l) {
-  if (l.languageCode == 'fr') return 'fr';
-  if (l.languageCode == 'es' && (l.countryCode?.toUpperCase() == 'MX')) return 'es_MX';
-  return 'en';
 }

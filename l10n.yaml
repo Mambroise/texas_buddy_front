@@ -1,0 +1,8 @@
+arb-dir: lib/core/l10n
+template-arb-file: app_en.arb
+output-class: L10n
+output-localization-file: l10n.dart
+synthetic-package: false              # <- passe à false (plus de flutter_gen)
+output-dir: lib/core/l10n/generated  # <- DOIT être sous lib/
+nullable-getter: false
+untranslated-messages-file: build/l10n_untranslated.txt
