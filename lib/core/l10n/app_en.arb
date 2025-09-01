@@ -3,6 +3,13 @@
   "appTitle": "Texas Buddy",
   "splashWelcome": "Welcome to Texas Buddy",
 
+  "settings": "Settings",
+  "settingsTitle": "Settings",
+  "settingsLanguage": "Language",
+  "languageEnglish": "English",
+  "languageFrench": "French",
+  "languageSpanish": "Spanish",
+
   "loginLoading": "Welcome to Texas Buddy...",
   "loginFailed": "Login failed",
   "email": "Email",

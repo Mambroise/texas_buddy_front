@@ -15,6 +15,24 @@ class L10nFr extends L10n {
   String get splashWelcome => 'Bienvenue dans Texas Buddy';
 
   @override
+  String get settings => 'Paramètres';
+
+  @override
+  String get settingsTitle => 'Paramètres';
+
+  @override
+  String get settingsLanguage => 'Langue';
+
+  @override
+  String get languageEnglish => 'Anglais';
+
+  @override
+  String get languageFrench => 'Français';
+
+  @override
+  String get languageSpanish => 'Espagnol';
+
+  @override
   String get loginLoading => 'Bienvenue sur Texas Buddy...';
 
   @override

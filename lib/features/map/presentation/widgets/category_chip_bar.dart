@@ -1,7 +1,16 @@
+//---------------------------------------------------------------------------
+//                           TEXAS BUDDY   ( 2 0 2 5 )
+//---------------------------------------------------------------------------
+// File   : features/map/presentation/widgets/category_chip_bar.dart
+// Author : Morice
+//---------------------------------------------------------------------------
+
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:texas_buddy/core/theme/app_colors.dart';
 import '../cubits/category_filter_cubit.dart';
+
 // L10n
 import 'package:texas_buddy/core/l10n/l10n_ext.dart';
 
