@@ -20,6 +20,10 @@ import 'package:texas_buddy/features/map/presentation/cubits/category_filter_cub
 import 'package:texas_buddy/features/map/presentation/cubits/map_mode_cubit.dart';
 import 'package:texas_buddy/features/map/presentation/widgets/map_mode_menu_sheet.dart';
 
+import 'package:texas_buddy/features/map/presentation/blocs/detail/detail_panel_bloc.dart';
+import 'package:texas_buddy/features/map/domain/usecases/get_activity_detail.dart';
+import 'package:texas_buddy/features/map/domain/usecases/get_event_detail.dart';
+
 import 'package:texas_buddy/app/di/service_locator.dart';
 
 // <-- L10n extension
@@ -82,6 +86,12 @@ class _LandingScaffoldState extends State<LandingScaffold> {
         BlocProvider<NearbyBloc>(create: (_) => getIt<NearbyBloc>()),
         BlocProvider<AllEventsBloc>(create: (_) => getIt<AllEventsBloc>()),
         BlocProvider<MapModeCubit>(create: (_) => MapModeCubit()),
+        BlocProvider<DetailPanelBloc>(
+          create: (_) => DetailPanelBloc(
+            getActivity: getIt<GetActivityDetail>(),
+            getEvent:    getIt<GetEventDetail>(),
+          ),
+        ),
       ],
       child: Builder(
         builder: (ctx) {

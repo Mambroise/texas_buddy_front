@@ -5,6 +5,7 @@
 // Author : Morice
 //---------------------------------------------------------------------------
 
+
 import 'package:texas_buddy/features/map/domain/entities/nearby_item.dart';
 
 class NearbyItemDto {
@@ -24,7 +25,7 @@ class NearbyItemDto {
   /// average_rating (nullable)
   final double? averageRating;
 
-  /// category[].name
+  /// Catégories normalisées (clé d’icône "fa-xxx" si dispo, sinon nom)
   final List<String> categories;
 
   /// image (nullable)
@@ -86,18 +87,38 @@ class NearbyItemDto {
     final latRaw = json['latitude'] ?? json['lat'];
     final lonRaw = json['longitude'] ?? json['lng'] ?? json['lon'];
 
-    // Liste de noms de catégories (pour affichages secondaires)
-    final rawCats = (json['category'] as List?) ?? const <dynamic>[];
-    final catNames = <String>[];
+    // --------- NORMALISATION DES CATÉGORIES ---------
+    // Accepte 'category' OU 'categories' en entrée
+    final rawCats = (json['category'] as List?)
+        ?? (json['categories'] as List?)
+        ?? const <dynamic>[];
+
+    // On préfère la clé d’icône (fa-xxx). Fallback sur name.
+    // Déduplication en conservant l'ordre.
+    final catKeys = <String>[];
+    final seen = <String>{};
+
+    void _addCat(String? v) {
+      final key = v?.trim();
+      if (key == null || key.isEmpty) return;
+      if (seen.add(key)) catKeys.add(key);
+    }
+
     for (final e in rawCats) {
       if (e is Map) {
-        final n = e['name']?.toString();
-        if (n != null && n.isNotEmpty) catNames.add(n);
+        final icon = e['icon']?.toString();
+        final name = e['name']?.toString();
+        if (icon != null && icon.trim().isNotEmpty) {
+          _addCat(icon);
+        } else {
+          _addCat(name);
+        }
       } else if (e != null) {
-        final n = e.toString();
-        if (n.isNotEmpty) catNames.add(n);
+        // parfois l’API renvoie directement une chaîne
+        _addCat(e.toString());
       }
     }
+    // -----------------------------------------------
 
     // 🔑 Clé d’icône pour le marqueur : icon FA prioritaire, sinon name, sinon null
     String? _primaryCategoryKey(Map<String, dynamic>? pc) {
@@ -126,11 +147,10 @@ class NearbyItemDto {
       hasPromotion: _asBool(json['has_promotion']),
       isAdvertisement: _asBool(json['is_advertisement']),
       averageRating: json['average_rating'] == null ? null : _asDouble(json['average_rating']),
-      categories: catNames,
+      categories: catKeys,                    // ✅ clés normalisées (fa-xxx si dispo)
       imageUrl: json['image']?.toString(),
       distanceKm: json['distance'] == null ? null : _asDouble(json['distance']),
-      primaryCategory: primaryCatKey, // <- FA d'abord, sinon name
-      // ✅ ajouts
+      primaryCategory: primaryCatKey,         // ✅ clé normalisée aussi
       startDateTime: _asDate(startRaw),
       endDateTime: _asDate(endRaw),
     );
@@ -152,10 +172,9 @@ class NearbyItemDto {
       primaryCategory: (primaryCategory != null && primaryCategory!.isNotEmpty)
           ? primaryCategory
           : null,
-      categories: categories,
+      categories: categories, // ✅ on passe les clés normalisées
       imageUrl: imageUrl,
       distanceKm: distanceKm,
-      // ✅ ajouts
       startDateTime: startDateTime,
       endDateTime: endDateTime,
     );

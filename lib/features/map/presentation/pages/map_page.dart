@@ -19,6 +19,10 @@ import 'package:texas_buddy/features/map/presentation/blocs/location/location_st
 
 import 'package:texas_buddy/features/planning/presentation/widgets/planning_overlay_dock.dart';
 
+//detail activity and event
+import 'package:texas_buddy/features/map/presentation/blocs/detail/detail_panel_bloc.dart';
+import 'package:texas_buddy/features/map/presentation/widgets/detail_panel.dart';
+
 import 'package:texas_buddy/features/map/presentation/blocs/nearby/nearby_bloc.dart';
 import 'package:texas_buddy/features/map/presentation/blocs/all_events/all_events_bloc.dart';
 import 'package:texas_buddy/features/map/domain/entities/nearby_item.dart';
@@ -58,14 +62,32 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
   // Last server items (used for recalc + local filter)
   List<NearbyItem> _lastItems = [];
 
+
+  // DETAIL FOR ACTIVITY AND EVENT PART
+  String? _lastTappedMarkerId;
+  DateTime? _lastTapTime;
+  final _doubleTapWindow = const Duration(milliseconds: 280);
+
+
+
   static const LatLng _dallas = LatLng(32.7767, -96.7970);
 
   @override
   void initState() {
     super.initState();
-    _labels = LabelsLayer(context);
+    _labels = LabelsLayer(
+      context,
+      onLabelTap: (NearbyItem it) {
+        _onLabelTap(
+          id: it.id,
+          isEvent: it.kind == NearbyKind.event,
+          //placeId: it.id, pas utilisé pour l'instant
+        );
+      },
+    );
     context.read<LocationBloc>().add(LocationStarted());
   }
+
 
   @override
   void dispose() {
@@ -75,13 +97,68 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
 
   // --- Helpers -------------------------------------------------------------
 
+
+  //---------------DETAIL ACTIVITY AND EVENT--------------------
+
+  NearbyItem? _findItemById(String id) {
+    for (final it in _lastItems) {
+      if ('${it.kind.name}_${it.id}' == id || it.id == id) return it;
+    }
+    return null;
+  }
+
+  /// Ouvre/actualise le label au-dessus du pin.
+  Future<void> _showMarkerLabel(String id) async {
+    if (_controller == null) return;
+    final it = _findItemById(id);
+    if (it == null) return;
+
+    await _labels.toggleExpand(
+      it,
+      items: _lastItems,
+      controller: _controller!,
+      onPatch: _applyLabelPatch,
+    );
+  }
+
+  void _onMarkerTap(String id, {required bool isEvent, String? placeId}) {
+    final now = DateTime.now();
+    final isSame = _lastTappedMarkerId == id && _lastTapTime != null && now.difference(_lastTapTime!) <= _doubleTapWindow;
+    _lastTappedMarkerId = id;
+    _lastTapTime = now;
+
+
+    if (isSame) {
+// DOUBLE TAP → open detail panel
+      final bloc = context.read<DetailPanelBloc>();
+      bloc.add(DetailOpenRequested(
+        type: isEvent ? DetailType.event : DetailType.activity,
+        idOrPlaceId: placeId ?? id,
+        byPlaceId: placeId != null,
+      ));
+    } else {
+// SINGLE TAP → your existing logic to show the name label
+      _showMarkerLabel(id);
+    }
+  }
+
+  void _onLabelTap({required String id, required bool isEvent, String? placeId}) {
+    context.read<DetailPanelBloc>().add(DetailOpenRequested(
+      type: isEvent ? DetailType.event : DetailType.activity,
+      idOrPlaceId: placeId ?? id,
+      byPlaceId: placeId != null,
+    ));
+  }
+//-----------------------------------------------------------------------
+
   MapListingMode _mode() => context.read<MapModeCubit>().state.mode;
 
+// On ne retourne que les clés d'icônes de catégorie (pas les tokens spéciaux).
   List<String> _categoryKeysOnly() {
     final sel = context.read<CategoryFilterCubit>().state;
-    // keep only category icon keys (skip special tokens)
     return sel.where((k) => !k.startsWith('__TYPE:')).toList();
   }
+
 
   void _moveCameraToLatLng(LatLng target, {double zoom = 14}) {
     _controller?.animateCamera(
@@ -150,13 +227,27 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
     });
   }
 
+  /// Match si la catégorie principale OU l'une des catégories secondaires est sélectionnée.
+  bool _itemMatchesCategories(NearbyItem it, Set<String> selectedCats) {
+    if (selectedCats.isEmpty) return true;
+
+    final pc = it.primaryCategory;
+    if (pc != null && selectedCats.contains(pc)) return true;
+
+    for (final c in it.categories) {
+      if (selectedCats.contains(c)) return true;
+    }
+    return false;
+  }
+
+
   // Instant local render with current filters (no server call)
   void _applyFiltersAndRender() {
     final selected = context.read<CategoryFilterCubit>().state;
 
     List<NearbyItem> filtered;
     if (_mode() == MapListingMode.events) {
-      // in Events mode, _lastItems contains events only — apply categories if any
+      // En mode Events, _lastItems ne contient QUE des events.
       if (selected.isEmpty) {
         filtered = _lastItems;
       } else {
@@ -164,13 +255,15 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
         if (cats.isEmpty) {
           filtered = _lastItems;
         } else {
-          filtered = _lastItems.where((it) => it.primaryCategory != null && cats.contains(it.primaryCategory!)).toList();
+          final sel = Set<String>.from(cats);
+          filtered = _lastItems.where((it) => _itemMatchesCategories(it, sel)).toList();
         }
       }
     } else {
-      // Nearby mode (mix of activities/events) — support existing event-only token
+      // Mode Nearby (mix activités + events)
       final eventsOnly = selected.contains(CategoryFilterCubit.typeEventToken);
       if (eventsOnly) {
+        // On conserve le comportement existant : "Events" est un mode exclusif.
         filtered = _lastItems.where((it) => it.kind == NearbyKind.event).toList();
       } else if (selected.isEmpty) {
         filtered = _lastItems;
@@ -179,13 +272,15 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
         if (cats.isEmpty) {
           filtered = _lastItems;
         } else {
-          filtered = _lastItems.where((it) => it.primaryCategory != null && cats.contains(it.primaryCategory!)).toList();
+          final sel = Set<String>.from(cats);
+          filtered = _lastItems.where((it) => _itemMatchesCategories(it, sel)).toList();
         }
       }
     }
 
     _buildOrUpdateMarkers(filtered);
   }
+
 
   // Server refetch with current bounds + filters (by mode)
   Future<void> _fetchWithCurrentBounds() async {
@@ -243,13 +338,10 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
     final nextPins = buildGooglePins(
       items: items,
       onTap: (it) async {
-        if (_controller == null) return;
-        // open/close the label above this pin
-        await _labels.toggleExpand(
-          it,
-          items: _lastItems,
-          controller: _controller!,
-          onPatch: _applyLabelPatch, // do NOT use full here
+        _onMarkerTap(
+          it.id,
+          isEvent: it.kind == NearbyKind.event,
+          //placeId: it.placeId, not used by now
         );
       },
     );
@@ -386,6 +478,7 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
                   },
                 ),
               ),
+              DetailPanel(onClose: () => context.read<DetailPanelBloc>().add(const DetailCloseRequested())),
 
               // Planning overlay
               const PlanningOverlayDock(
