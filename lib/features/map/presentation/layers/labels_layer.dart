@@ -28,10 +28,10 @@ import '../markers/category_icon_mapper.dart';
 ///   _labels.recalcPositions(items: _lastItems, controller: _controller!, onChanged: _applyLabels);
 ///   _labels.toggleExpand(it, items: _lastItems, controller: _controller!, onChanged: _applyLabels);
 class LabelsLayer {
-  LabelsLayer(this._context);
+  LabelsLayer(this._context,{this.onLabelTap});
 
   final BuildContext _context;
-
+  final void Function(NearbyItem it)? onLabelTap;
   // ── caches / état interne
   final Map<String, BitmapDescriptor> _bmpCache = {};
   final Map<String, double> _widthCache = {};
@@ -45,7 +45,17 @@ class LabelsLayer {
   static const double _iconSize = 25;
   static const double _maxTextWidth = 200; // largeur max avant wrap
   static const double _anchorShiftPx = 12; // décale l'ancre vers la droite
-  static const int _dyAbovePx = 1;         // hauteur du badge au-dessus du pin
+  static const int _dyAbovePx = 1;
+// ── z-index (int) pour un ordre stable
+  static const int _zClosedInt = 10;     // label replié
+  static const int _zOpenInt   = 10010;  // label ouvert (au-dessus des pins)
+
+
+  // ── performance/animation knobs ──────────────────────────────────────────
+  static const bool _animateOpen = false;   // ⬅️ par défaut: pas d'anim (ultra-rapide)
+  static const int  _openSteps   = 3;       // si _animateOpen=true → 3 frames
+  static const int  _frameDelayMs = 8;      // délai entre frames
+  static const double _renderScale = 1.0;   // < 1.0 = plus flou mais + rapide
 
   // ── ids/keys helpers
   String baseIdFor(NearbyItem it) => '${it.kind.name}_${it.id}';
@@ -67,16 +77,18 @@ class LabelsLayer {
   Future<BitmapDescriptor> _buildLabelBadge(
       NearbyItem it, {
         required bool expanded,
-        double opacity = 1.0, // ANIME seulement bg+texte (icône reste opaque)
+        double opacity = 1.0,
       }) async {
+
     final key = _cacheKey(it, expanded);
-    // Ne met en cache que l’état final
+
     if (opacity == 1.0) {
       final cached = _bmpCache[key];
       if (cached != null) return cached;
     }
 
-    final dpr = MediaQuery.of(_context).devicePixelRatio;
+    final dpr = MediaQuery.of(_context).devicePixelRatio * _renderScale;
+
     final icon = CategoryIconMapper.map(it.primaryCategory ?? '');
     final name = it.name;
 
@@ -186,8 +198,17 @@ class LabelsLayer {
       position: labelPos,
       icon: bmp,
       anchor: Offset(anchorX, anchorY),
+      zIndexInt: expanded ? _zOpenInt : _zClosedInt,  // ✅ ici
       consumeTapEvents: true,
-      onTap: () => onToggle(it),
+      onTap: () {
+        // 👉 si le label est déjà ouvert, on déclenche l'ouverture du panneau de détails
+        if (expanded && onLabelTap != null) {
+          onLabelTap!(it);
+        } else {
+          // sinon, on garde le toggle (ouvre le label avec fade-in)
+          onToggle(it);
+        }
+      },
     );
   }
 
@@ -195,53 +216,39 @@ class LabelsLayer {
   Future<void> updateForItems({
     required List<NearbyItem> items,
     required GoogleMapController controller,
-    required void Function(Map<MarkerId, Marker> labels) onBulk,   // full refresh
-    required void Function(Map<MarkerId, Marker> labels) onPatch,  // patch
+    required void Function(Map<MarkerId, Marker> labels) onBulk,
+    required void Function(Map<MarkerId, Marker> labels) onPatch,
   }) async {
     _expandedIds.retainWhere((id) => items.any((it) => baseIdFor(it) == id));
 
-    final labels = <MarkerId, Marker>{};
-    for (final it in items) {
-      final m = await _buildOneLabelMarker(
-        it,
-        controller: controller,
-        opacity: 1.0,
-        // ⬅️ tap label => PATCH (pas full)
-        onToggle: (x) => toggleExpand(
-          x,
-          items: items,
-          controller: controller,
-          onPatch: onPatch,
-        ),
-      );
-      labels[m.markerId] = m;
-    }
-    onBulk(labels); // ⬅️ build initial = FULL
+    final futures = items.map((it) => _buildOneLabelMarker(
+      it,
+      controller: controller,
+      opacity: 1.0,
+      onToggle: (x) => toggleExpand(x, items: items, controller: controller, onPatch: onPatch),
+    )).toList();
+
+    final ms = await Future.wait(futures);            // ⬅️ parallèle
+    final labels = { for (final m in ms) m.markerId : m };
+    onBulk(labels);
   }
 
-  // ── recalcule la position des labels à la fin d’un pan/zoom
   Future<void> recalcPositions({
     required List<NearbyItem> items,
     required GoogleMapController controller,
-    required void Function(Map<MarkerId, Marker> labels) onBulk,   // full
-    required void Function(Map<MarkerId, Marker> labels) onPatch,  // patch
+    required void Function(Map<MarkerId, Marker> labels) onBulk,
+    required void Function(Map<MarkerId, Marker> labels) onPatch,
   }) async {
-    final labels = <MarkerId, Marker>{};
-    for (final it in items) {
-      final m = await _buildOneLabelMarker(
-        it,
-        controller: controller,
-        opacity: 1.0,
-        onToggle: (x) => toggleExpand(
-          x,
-          items: items,
-          controller: controller,
-          onPatch: onPatch, // ⬅️ tap = PATCH
-        ),
-      );
-      labels[m.markerId] = m;
-    }
-    onBulk(labels); // ⬅️ recalc = FULL
+    final futures = items.map((it) => _buildOneLabelMarker(
+      it,
+      controller: controller,
+      opacity: 1.0,
+      onToggle: (x) => toggleExpand(x, items: items, controller: controller, onPatch: onPatch),
+    )).toList();
+
+    final ms = await Future.wait(futures);            // ⬅️ parallèle
+    final labels = { for (final m in ms) m.markerId : m };
+    onBulk(labels);
   }
 
   // ── ouvre/ferme un label avec anim (open) / fermeture sèche (close)
@@ -257,43 +264,69 @@ class LabelsLayer {
     final selId = baseIdFor(it);
     final isOpen = _expandedIds.contains(selId);
 
-    // Fermer ce qui est ouvert (fermeture sèche) → PATCH (peut contenir plusieurs entrées)
+    // Ferme tous les ouverts (fermeture sèche) en parallèle
     if (!isOpen && _expandedIds.isNotEmpty) {
       final toClose = List<String>.from(_expandedIds);
       _expandedIds.clear();
-      final labels = <MarkerId, Marker>{};
-      for (final id in toClose) {
+
+      final futures = toClose.map((id) {
         final item = items.firstWhere((x) => baseIdFor(x) == id, orElse: () => it);
-        final m = await _buildOneLabelMarker(item, controller: controller, opacity: 1.0,
+        return _buildOneLabelMarker(
+          item,
+          controller: controller,
+          opacity: 1.0,
           onToggle: (x) => toggleExpand(x, items: items, controller: controller, onPatch: onPatch),
         );
-        labels[m.markerId] = m;
-      }
-      onPatch(labels);
+      }).toList();
+
+      final ms = await Future.wait(futures);
+      onPatch({ for (final m in ms) m.markerId : m });
     }
 
-    // Ouvrir avec fade-in → PATCH (seulement l’item)
+    // Ouvrir
     if (!isOpen) {
       _expandedIds.add(selId);
-      const steps = 8;
-      for (int i = 1; i <= steps; i++) {
-        final t = i / steps;
-        final m = await _buildOneLabelMarker(it, controller: controller, opacity: t,
+
+      if (!_animateOpen) {
+        // 🔥 mode ultra-rapide: une seule frame (état final)
+        final m = await _buildOneLabelMarker(
+          it,
+          controller: controller,
+          opacity: 1.0,
           onToggle: (x) => toggleExpand(x, items: items, controller: controller, onPatch: onPatch),
         );
         onPatch({m.markerId: m});
-        await Future.delayed(const Duration(milliseconds: 10));
+        _animBusy = false;
+        return;
+      }
+
+      // (Optionnel) mini-fade en 3 steps
+      for (int i = 1; i <= _openSteps; i++) {
+        final t = i / _openSteps;
+        final m = await _buildOneLabelMarker(
+          it,
+          controller: controller,
+          opacity: t,
+          onToggle: (x) => toggleExpand(x, items: items, controller: controller, onPatch: onPatch),
+        );
+        onPatch({m.markerId: m});
+        // petit délai
+        await Future.delayed(Duration(milliseconds: _frameDelayMs));
       }
       _animBusy = false;
       return;
     }
 
-    // Fermer (sèche) → PATCH
+    // Fermer (sèche)
     _expandedIds.remove(selId);
-    final m = await _buildOneLabelMarker(it, controller: controller, opacity: 1.0,
+    final m = await _buildOneLabelMarker(
+      it,
+      controller: controller,
+      opacity: 1.0,
       onToggle: (x) => toggleExpand(x, items: items, controller: controller, onPatch: onPatch),
     );
     onPatch({m.markerId: m});
     _animBusy = false;
   }
+
 }

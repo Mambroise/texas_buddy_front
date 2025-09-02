@@ -1,4 +1,11 @@
-// lib/features/events/data/repositories/all_events_repository_impl.dart
+//---------------------------------------------------------------------------
+//                           TEXAS BUDDY   ( 2 0 2 5 )
+//---------------------------------------------------------------------------
+// File   : features/map/data/repositories/all_events_repository_impl.dart
+// Author : Morice
+//---------------------------------------------------------------------------
+
+
 import 'package:texas_buddy/features/map/domain/repositories/all_events_repository.dart';
 import 'package:texas_buddy/features/map/domain/entities/nearby_item.dart';
 import '../datasources/remote/all_events_remote_datasource.dart';

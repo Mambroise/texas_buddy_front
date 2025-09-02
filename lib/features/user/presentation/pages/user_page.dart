@@ -13,6 +13,7 @@ import 'package:texas_buddy/core/theme/app_colors.dart';
 import 'package:texas_buddy/features/auth/presentation/blocs/logout/logout_bloc.dart';
 import 'package:texas_buddy/features/user/presentation/cubits/user_overview_cubit.dart';
 import 'package:texas_buddy/features/user/domain/entities/user_profile.dart';
+import 'package:texas_buddy/presentation/pages/settings/settings_page.dart';
 
 // L10n
 import 'package:texas_buddy/core/l10n/l10n_ext.dart';
@@ -85,6 +86,15 @@ class _UserPageContent extends StatelessWidget {
             tooltip: l10n.refresh,
             icon: const Icon(Icons.refresh),
             onPressed: () => context.read<UserOverviewCubit>().refresh(),
+          ),
+          IconButton(
+            tooltip: l10n.settings,
+            icon: const Icon(Icons.settings),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const SettingsPage()),
+              );
+            },
           ),
         ],
       ),

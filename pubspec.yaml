@@ -48,6 +48,8 @@ dependencies:
   # Routing & Navigation
   go_router: ^12.1.0
 
+  dartz: ^0.10.1
+
  # amimation page
   animate_do: ^3.0.2
 
@@ -60,6 +62,7 @@ dependencies:
   logger: ^2.0.2
   intl: ^0.19.0
   get_it: ^7.6.4
+  shared_preferences: ^2.3.2
 
   # Video
   video_player: ^2.5.1

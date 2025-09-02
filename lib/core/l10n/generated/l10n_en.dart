@@ -15,6 +15,24 @@ class L10nEn extends L10n {
   String get splashWelcome => 'Welcome to Texas Buddy';
 
   @override
+  String get settings => 'Settings';
+
+  @override
+  String get settingsTitle => 'Settings';
+
+  @override
+  String get settingsLanguage => 'Language';
+
+  @override
+  String get languageEnglish => 'English';
+
+  @override
+  String get languageFrench => 'French';
+
+  @override
+  String get languageSpanish => 'Spanish';
+
+  @override
   String get loginLoading => 'Welcome to Texas Buddy...';
 
   @override

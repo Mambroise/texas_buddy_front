@@ -62,7 +62,7 @@ class NearbyBloc extends Bloc<NearbyEvent, NearbyState> {
     final centerLat = (e.north + e.south) / 2.0;
     final centerLng = (e.east + e.west) / 2.0;
     final cap = (e.limit > 0) ? e.limit : _capForZoom(e.zoom);
-    final cats = e.categoryKeys ?? const <String>[];
+    final cats = e.categoryKeys;
 
     // 1) CACHE d'abord (si dispo) → UI instantanée; sinon on montre loading
     final cached = getCachedInBounds(
