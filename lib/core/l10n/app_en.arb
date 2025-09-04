@@ -93,6 +93,22 @@
   "conflictError": "Conflict. Please retry.",
   "rateLimitError": "Too many requests. Please wait.",
   "validationError": "Some fields are invalid.",
-  "parseError": "Data error."
+  "parseError": "Data error.",
+
+  "tripCreateTitle": "New trip",
+  "tripCreateNameLabel": "Trip title",
+  "tripCreateNameHint": "e.g. Austin Roadtrip",
+  "tripCreateDatesLabel": "Dates",
+  "tripCreateDatesPick": "Select dates",
+  "tripCreateSave": "Save",
+  "tripCreateCancel": "Cancel",
+  "tripCreateCreate": "Create",
+  "tripCreateValidationNameRequired": "Title is required",
+  "tripCreateValidationNameMax": "Max {max} characters",
+  "tripCreateValidationDatesRequired": "Please select a date range",
+  "tripCreateTodoPersist": "TODO: persist the trip in DB",
+
+  "tripCreateAdults": "Adults",
+  "tripCreateChildren": "Children"
 
 }

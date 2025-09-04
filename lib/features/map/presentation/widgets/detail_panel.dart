@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../blocs/detail/detail_panel_bloc.dart';
+import 'package:texas_buddy/features/map/presentation/widgets/expandable_text.dart';
 
 
 class DetailPanel extends StatelessWidget {
@@ -70,18 +71,20 @@ String _capFirst(String? s) {
 
 String _formatDuration(dynamic duration) {
   if (duration == null) return '—';
-  if (duration is String) return duration; // déjà formaté côté API
+  if (duration is String) return duration; // si l’API t’envoie déjà un libellé
   if (duration is num) {
     final totalMin = duration.round();
     final h = totalMin ~/ 60;
     final m = totalMin % 60;
     if (h > 0) {
-      return m > 0 ? '$h h $m' : '$h h';
+      final mm = m.toString().padLeft(2, '0'); // <-- force 2 chiffres
+      return '$h h $mm';
     }
     return '$totalMin min';
   }
   return duration.toString();
 }
+
 
 String _formatPrice(BuildContext context, dynamic price) {
   if (price == null) return '—';
@@ -176,7 +179,11 @@ class _ActivityDetailView extends StatelessWidget {
 
         // Description
         if (entity.description != null && entity.description!.isNotEmpty)
-          Text(entity.description!, maxLines: 3, overflow: TextOverflow.ellipsis),
+          ExpandableText(
+            entity.description!,
+            trimLines: 3,
+            style: theme.textTheme.bodyMedium,
+          ),
 
         const SizedBox(height: 10),
 
@@ -355,7 +362,11 @@ class _EventDetailView extends StatelessWidget {
 
         // Description
         if (entity.description != null && entity.description!.isNotEmpty)
-          Text(entity.description!, maxLines: 3, overflow: TextOverflow.ellipsis),
+          ExpandableText(
+            entity.description!,
+            trimLines: 3,
+            style: theme.textTheme.bodyMedium,
+          ),
 
         const SizedBox(height: 10),
 
