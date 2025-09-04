@@ -258,4 +258,48 @@ class L10nFr extends L10n {
 
   @override
   String get parseError => 'Erreur de données.';
+
+  @override
+  String get tripCreateTitle => 'Nouveau voyage';
+
+  @override
+  String get tripCreateNameLabel => 'Titre du voyage';
+
+  @override
+  String get tripCreateNameHint => 'Ex. Roadtrip Austin';
+
+  @override
+  String get tripCreateDatesLabel => 'Dates';
+
+  @override
+  String get tripCreateDatesPick => 'Sélectionner les dates';
+
+  @override
+  String get tripCreateSave => 'OK';
+
+  @override
+  String get tripCreateCancel => 'Annuler';
+
+  @override
+  String get tripCreateCreate => 'Créer';
+
+  @override
+  String get tripCreateValidationNameRequired => 'Le titre est requis';
+
+  @override
+  String tripCreateValidationNameMax(Object max) {
+    return 'Maximum $max caractères';
+  }
+
+  @override
+  String get tripCreateValidationDatesRequired => 'Veuillez choisir une période';
+
+  @override
+  String get tripCreateTodoPersist => 'TODO : enregistrer le voyage en BDD';
+
+  @override
+  String get tripCreateAdults => 'Adultes';
+
+  @override
+  String get tripCreateChildren => 'Enfants';
 }

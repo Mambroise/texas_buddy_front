@@ -1,0 +1,38 @@
+//---------------------------------------------------------------------------
+//                           TEXAS BUDDY   ( 2 0 2 5 )
+//---------------------------------------------------------------------------
+// File   : features/planning/presentation/blocs/trips/trips_state.dart
+// Author : Morice
+//---------------------------------------------------------------------------
+
+
+import 'package:equatable/equatable.dart';
+import '../../../domain/entities/trip.dart';
+
+enum TripCreateStatus { idle, submitting, success, failure }
+
+class TripsState extends Equatable {
+  final List<Trip> trips;
+  final TripCreateStatus createStatus;
+  final String? error;
+
+  const TripsState({
+    this.trips = const [],
+    this.createStatus = TripCreateStatus.idle,
+    this.error,
+  });
+
+  TripsState copyWith({
+    List<Trip>? trips,
+    TripCreateStatus? createStatus,
+    String? error,
+  }) =>
+      TripsState(
+        trips: trips ?? this.trips,
+        createStatus: createStatus ?? this.createStatus,
+        error: error,
+      );
+
+  @override
+  List<Object?> get props => [trips, createStatus, error];
+}

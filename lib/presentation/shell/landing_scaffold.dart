@@ -13,7 +13,8 @@ import 'package:texas_buddy/features/planning/presentation/pages/planning_page.d
 import 'package:texas_buddy/features/community/presentation/pages/community_page.dart';
 import 'package:texas_buddy/features/user/presentation/pages/user_page.dart';
 
-import 'package:texas_buddy/features/planning/presentation/cubit/planning_overlay_cubit.dart';
+import 'package:texas_buddy/features/planning/presentation/cubits/planning_overlay_cubit.dart';
+import 'package:texas_buddy/features/planning/presentation/cubits/trips_cubit.dart';
 import 'package:texas_buddy/features/map/presentation/blocs/nearby/nearby_bloc.dart';
 import 'package:texas_buddy/features/map/presentation/blocs/all_events/all_events_bloc.dart';
 import 'package:texas_buddy/features/map/presentation/cubits/category_filter_cubit.dart';
@@ -83,6 +84,7 @@ class _LandingScaffoldState extends State<LandingScaffold> {
       providers: [
         BlocProvider<CategoryFilterCubit>(create: (_) => CategoryFilterCubit()),
         BlocProvider<PlanningOverlayCubit>(create: (_) => PlanningOverlayCubit()),
+        BlocProvider<TripsCubit>(create: (_) => getIt<TripsCubit>()),
         BlocProvider<NearbyBloc>(create: (_) => getIt<NearbyBloc>()),
         BlocProvider<AllEventsBloc>(create: (_) => getIt<AllEventsBloc>()),
         BlocProvider<MapModeCubit>(create: (_) => MapModeCubit()),

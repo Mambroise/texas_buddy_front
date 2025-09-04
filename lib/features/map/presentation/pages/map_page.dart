@@ -18,6 +18,7 @@ import 'package:texas_buddy/features/map/presentation/blocs/location/location_ev
 import 'package:texas_buddy/features/map/presentation/blocs/location/location_state.dart';
 
 import 'package:texas_buddy/features/planning/presentation/widgets/planning_overlay_dock.dart';
+import 'package:texas_buddy/features/planning/presentation/cubits/planning_overlay_cubit.dart';
 
 //detail activity and event
 import 'package:texas_buddy/features/map/presentation/blocs/detail/detail_panel_bloc.dart';
@@ -468,6 +469,39 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
                 markers: _markers.values.toSet(),
               ),
 
+              // Recenter FAB
+              Positioned(
+                bottom: 16,
+                right: 16,
+                child: FloatingActionButton(
+                  heroTag: 'recenter',
+                  mini: true,
+                  backgroundColor: Colors.white,
+                  tooltip: l10n.recenterMap,
+                  child: const Icon(Icons.my_location, color: Colors.black87),
+                  onPressed: () => context.read<LocationBloc>().add(LocationRecenter()),
+                ),
+              ),
+
+              // ⬇️ SCRIM VISUEL (ne bloque pas la carte)
+              BlocBuilder<PlanningOverlayCubit, PlanningOverlayState>(
+                buildWhen: (p, n) => p.visible != n.visible || p.expanded != n.expanded,
+                builder: (ctx, ovr) {
+                  final show = ovr.visible;
+                  final opacity = ovr.expanded ? 0.22 : 0.12; // ajuste à ton goût
+                  return Positioned.fill(
+                    child: IgnorePointer(       // ← laisse passer tous les gestes à la map
+                      ignoring: true,
+                      child: AnimatedOpacity(
+                        duration: const Duration(milliseconds: 180),
+                        opacity: show ? opacity : 0.0,
+                        child: Container(color: Colors.black),
+                      ),
+                    ),
+                  );
+                },
+              ),
+
               // Category chip bar
               Positioned(
                 top: 8, left: 8, right: 8,
@@ -484,20 +518,6 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
               const PlanningOverlayDock(
                 stripeColor: AppColors.fog,         // try AppColors.linen, .almond, .desertSand
                 hourTextColor: AppColors.texasBlue,
-              ),
-
-              // Recenter FAB
-              Positioned(
-                bottom: 16,
-                right: 16,
-                child: FloatingActionButton(
-                  heroTag: 'recenter',
-                  mini: true,
-                  backgroundColor: Colors.white,
-                  tooltip: l10n.recenterMap,
-                  child: const Icon(Icons.my_location, color: Colors.black87),
-                  onPressed: () => context.read<LocationBloc>().add(LocationRecenter()),
-                ),
               ),
             ],
           );

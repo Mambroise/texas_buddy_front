@@ -101,7 +101,7 @@ class LabelsLayer {
       ),
     )..pushStyle(ui.TextStyle(
       color: const Color(0xFF000000).withValues(alpha: opacity),
-      fontSize: 22,
+      fontSize: 16,
       fontWeight: ui.FontWeight.w600,
     ))
       ..addText(expanded ? ' $name' : '');
@@ -166,7 +166,7 @@ class LabelsLayer {
     if (!expanded) return (_padH * 2) + _iconSize;
     final pb = ui.ParagraphBuilder(
       ui.ParagraphStyle(textDirection: TextDirection.ltr, maxLines: 2, ellipsis: '…'),
-    )..pushStyle(ui.TextStyle(fontSize: 22, fontWeight: ui.FontWeight.w600))
+    )..pushStyle(ui.TextStyle(fontSize: 16, fontWeight: ui.FontWeight.w600))
       ..addText(' ${it.name}');
     final p = pb.build()..layout(const ui.ParagraphConstraints(width: _maxTextWidth));
     final tw = math.min(p.longestLine, _maxTextWidth);

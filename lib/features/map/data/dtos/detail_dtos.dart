@@ -7,7 +7,40 @@
 
 
 import '../../domain/entities/detail_models.dart';
-import 'package:texas_buddy/core/utils/dtos_parsers.dart';
+
+//----HELPER----------------------
+int? _toMinutes(dynamic v) {
+  if (v == null) return null;
+  if (v is int) return v;
+  if (v is num) return v.toInt();
+  if (v is String) {
+    final s = v.trim();
+    if (s.isEmpty) return null;
+
+    // "HH:MM" ou "HH:MM:SS"
+    if (s.contains(':')) {
+      final parts = s.split(':');
+      int h = 0, m = 0, sec = 0;
+      if (parts.length >= 2) {
+        h = int.tryParse(parts[0]) ?? 0;
+        m = int.tryParse(parts[1]) ?? 0;
+        if (parts.length >= 3) {
+          sec = int.tryParse(parts[2]) ?? 0;
+        }
+      } else {
+        // format inattendu: tente parse entier
+        return int.tryParse(s);
+      }
+      // total minutes (arrondi sec → min)
+      final totalMin = h * 60 + m + ((sec >= 30) ? 1 : 0);
+      return totalMin;
+    }
+
+    // Nombre sous forme de chaîne -> minutes
+    return int.tryParse(s);
+  }
+  return null;
+}
 
 
 class CategoryDto {
@@ -74,13 +107,6 @@ class PromotionDto {
   );
 }
 
-int? _toInt(dynamic v) {
-  if (v == null) return null;
-  if (v is int) return v;
-  if (v is num) return v.toInt();
-  if (v is String) return int.tryParse(v.trim());
-  return null;
-}
 class ActivityDetailDto {
   final String id;
   final String name;
@@ -143,7 +169,7 @@ class ActivityDetailDto {
       phone:j['phone'],
       email:j['email'],
       price: j['price'],
-      duration: _toInt(j['duration']),
+      duration: _toMinutes(j['duration']),
       isByReservation: j['is_by_reservation'],
       staffFavorite:j['staff_favorite'], isActive:j['is_active'],
       createdAt: j['created_at']!=null?DateTime.tryParse(j['created_at']):null,
@@ -178,11 +204,24 @@ class ActivityDetailDto {
 }
 
 class EventDetailDto {
-  final String id; final String name; final String? description; final DateTime? start; final DateTime? end;
-  final String? location,city,state,placeId; final double latitude, longitude; final List<CategoryDto> categories; final CategoryDto? primaryCategory;
-  final String? website,image; final num? price; final int? duration; final bool? isByReservation;
-  final bool? staffFavorite,isPublic; final DateTime? createdAt;
-  final List<PromotionDto> promotions; final PromotionDto? currentPromotion; final bool? hasPromotion;
+  final String id;
+  final String name;
+  final String? description;
+  final DateTime? start;
+  final DateTime? end;
+  final String? location,city,state,placeId;
+  final double latitude, longitude;
+  final List<CategoryDto> categories;
+  final CategoryDto? primaryCategory;
+  final String? website,image;
+  final num? price;
+  final int? duration;
+  final bool? isByReservation;
+  final bool? staffFavorite,isPublic;
+  final DateTime? createdAt;
+  final List<PromotionDto> promotions;
+  final PromotionDto? currentPromotion;
+  final bool? hasPromotion;
   EventDetailDto({
     required this.id, required this.name, this.description, this.start, this.end, this.location, this.city, this.state, this.placeId,
     required this.latitude, required this.longitude, required this.categories, this.primaryCategory, this.website, this.image,
@@ -206,7 +245,7 @@ class EventDetailDto {
       website:j['website'],
       image:j['image'],
       price:j['price'],
-      duration: _toInt(j['duration']),
+      duration: _toMinutes(j['duration']),
       isByReservation: j['is_by_reservation'],
       staffFavorite:j['staff_favorite'],
       isPublic:j['is_public'],
