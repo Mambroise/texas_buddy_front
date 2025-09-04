@@ -12,6 +12,7 @@ class AppColors {
   static const Color texasRed = Color(0xFFBF0A30);
   static const Color texasRedGlow = Color(0xE6BF0A30); // ~90% d'opacité
   static const Color white = Colors.white;
+  static Color whiteGlow = Colors.white.withValues(alpha: 0.88);
   static const Color transparentWhite = Color.fromRGBO(255, 255, 255, 0.8);
 
   // ---- Neutres doux (beiges / sables) ------------------------------------

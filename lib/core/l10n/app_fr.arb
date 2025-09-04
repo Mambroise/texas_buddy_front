@@ -86,6 +86,22 @@
   "conflictError": "Conflit. Veuillez réessayer.",
   "rateLimitError": "Trop de requêtes. Patientez.",
   "validationError": "Certains champs sont invalides.",
-  "parseError": "Erreur de données."
+  "parseError": "Erreur de données.",
+
+  "tripCreateTitle": "Nouveau voyage",
+  "tripCreateNameLabel": "Titre du voyage",
+  "tripCreateNameHint": "Ex. Roadtrip Austin",
+  "tripCreateDatesLabel": "Dates",
+  "tripCreateDatesPick": "Sélectionner les dates",
+  "tripCreateSave": "OK",
+  "tripCreateCancel": "Annuler",
+  "tripCreateCreate": "Créer",
+  "tripCreateValidationNameRequired": "Le titre est requis",
+  "tripCreateValidationNameMax": "Maximum {max} caractères",
+  "tripCreateValidationDatesRequired": "Veuillez choisir une période",
+  "tripCreateTodoPersist": "TODO : enregistrer le voyage en BDD",
+
+  "tripCreateAdults": "Adultes",
+  "tripCreateChildren": "Enfants"
 
 }

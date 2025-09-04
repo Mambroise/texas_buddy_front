@@ -570,6 +570,90 @@ abstract class L10n {
   /// In en, this message translates to:
   /// **'Data error.'**
   String get parseError;
+
+  /// No description provided for @tripCreateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'New trip'**
+  String get tripCreateTitle;
+
+  /// No description provided for @tripCreateNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Trip title'**
+  String get tripCreateNameLabel;
+
+  /// No description provided for @tripCreateNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Austin Roadtrip'**
+  String get tripCreateNameHint;
+
+  /// No description provided for @tripCreateDatesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Dates'**
+  String get tripCreateDatesLabel;
+
+  /// No description provided for @tripCreateDatesPick.
+  ///
+  /// In en, this message translates to:
+  /// **'Select dates'**
+  String get tripCreateDatesPick;
+
+  /// No description provided for @tripCreateSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get tripCreateSave;
+
+  /// No description provided for @tripCreateCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get tripCreateCancel;
+
+  /// No description provided for @tripCreateCreate.
+  ///
+  /// In en, this message translates to:
+  /// **'Create'**
+  String get tripCreateCreate;
+
+  /// No description provided for @tripCreateValidationNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Title is required'**
+  String get tripCreateValidationNameRequired;
+
+  /// No description provided for @tripCreateValidationNameMax.
+  ///
+  /// In en, this message translates to:
+  /// **'Max {max} characters'**
+  String tripCreateValidationNameMax(Object max);
+
+  /// No description provided for @tripCreateValidationDatesRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select a date range'**
+  String get tripCreateValidationDatesRequired;
+
+  /// No description provided for @tripCreateTodoPersist.
+  ///
+  /// In en, this message translates to:
+  /// **'TODO: persist the trip in DB'**
+  String get tripCreateTodoPersist;
+
+  /// No description provided for @tripCreateAdults.
+  ///
+  /// In en, this message translates to:
+  /// **'Adults'**
+  String get tripCreateAdults;
+
+  /// No description provided for @tripCreateChildren.
+  ///
+  /// In en, this message translates to:
+  /// **'Children'**
+  String get tripCreateChildren;
 }
 
 class _L10nDelegate extends LocalizationsDelegate<L10n> {

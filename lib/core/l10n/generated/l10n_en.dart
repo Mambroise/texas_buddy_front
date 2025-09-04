@@ -258,4 +258,48 @@ class L10nEn extends L10n {
 
   @override
   String get parseError => 'Data error.';
+
+  @override
+  String get tripCreateTitle => 'New trip';
+
+  @override
+  String get tripCreateNameLabel => 'Trip title';
+
+  @override
+  String get tripCreateNameHint => 'e.g. Austin Roadtrip';
+
+  @override
+  String get tripCreateDatesLabel => 'Dates';
+
+  @override
+  String get tripCreateDatesPick => 'Select dates';
+
+  @override
+  String get tripCreateSave => 'Save';
+
+  @override
+  String get tripCreateCancel => 'Cancel';
+
+  @override
+  String get tripCreateCreate => 'Create';
+
+  @override
+  String get tripCreateValidationNameRequired => 'Title is required';
+
+  @override
+  String tripCreateValidationNameMax(Object max) {
+    return 'Max $max characters';
+  }
+
+  @override
+  String get tripCreateValidationDatesRequired => 'Please select a date range';
+
+  @override
+  String get tripCreateTodoPersist => 'TODO: persist the trip in DB';
+
+  @override
+  String get tripCreateAdults => 'Adults';
+
+  @override
+  String get tripCreateChildren => 'Children';
 }
