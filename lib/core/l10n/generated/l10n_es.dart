@@ -298,8 +298,61 @@ class L10nEs extends L10n {
   String get tripCreateTodoPersist => 'TODO: guardar el viaje en la BD';
 
   @override
+  String get trips_create_success => 'Viaje creado con éxito.';
+
+  @override
   String get tripCreateAdults => 'Adultos';
 
   @override
   String get tripCreateChildren => 'Niños';
+
+  @override
+  String get trips_add_label => 'Añadir un viaje';
+
+  @override
+  String get trips_actions_delete_tooltip => 'Eliminar';
+
+  @override
+  String get trips_actions_edit_tooltip => 'Editar';
+
+  @override
+  String get trips_delete_title => '¿Eliminar este viaje?';
+
+  @override
+  String get trips_delete_confirm => 'Eliminar';
+
+  @override
+  String get trips_delete_toast => 'Eliminación confirmada (solo UI).';
+
+  @override
+  String get trips_edit_toast => 'Edición próximamente.';
+
+  @override
+  String get common_cancel => 'Cancelar';
+
+  @override
+  String trips_delete_message(Object tripTitle) {
+    return '«$tripTitle» se eliminará de tu lista. Esta acción es irreversible.';
+  }
+
+  @override
+  String get trips_delete_success => 'Viaje eliminado.';
+
+  @override
+  String get trips_delete_error => 'Error al eliminar el viaje.';
+
+  @override
+  String get trips_update_success => 'Viaje actualizado.';
+
+  @override
+  String get trips_update_error => 'Error al actualizar el viaje.';
+
+  @override
+  String get tripEditTitle => 'Editar viaje';
+
+  @override
+  String get tripEditSave => 'Guardar';
+
+  @override
+  String get tripNoAddress => 'Sin dirección';
 }

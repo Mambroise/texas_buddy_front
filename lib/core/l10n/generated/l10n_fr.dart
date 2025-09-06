@@ -298,8 +298,61 @@ class L10nFr extends L10n {
   String get tripCreateTodoPersist => 'TODO : enregistrer le voyage en BDD';
 
   @override
+  String get trips_create_success => 'Voyage créé avec succès';
+
+  @override
   String get tripCreateAdults => 'Adultes';
 
   @override
   String get tripCreateChildren => 'Enfants';
+
+  @override
+  String get trips_add_label => 'Ajouter un voyage';
+
+  @override
+  String get trips_actions_delete_tooltip => 'Supprimer';
+
+  @override
+  String get trips_actions_edit_tooltip => 'Modifier';
+
+  @override
+  String get trips_delete_title => 'Supprimer ce voyage ?';
+
+  @override
+  String get trips_delete_confirm => 'Supprimer';
+
+  @override
+  String get trips_delete_toast => 'Suppression confirmée (UI seulement).';
+
+  @override
+  String get trips_edit_toast => 'Édition à venir.';
+
+  @override
+  String get common_cancel => 'Annuler';
+
+  @override
+  String trips_delete_message(Object tripTitle) {
+    return '« $tripTitle » sera supprimé de votre liste. Cette action est irréversible.';
+  }
+
+  @override
+  String get trips_delete_success => 'Voyage supprimé.';
+
+  @override
+  String get trips_delete_error => 'Échec de la suppression du voyage.';
+
+  @override
+  String get trips_update_success => 'Voyage mis à jour.';
+
+  @override
+  String get trips_update_error => 'Échec de la mise à jour du voyage.';
+
+  @override
+  String get tripEditTitle => 'Modifier le voyage';
+
+  @override
+  String get tripEditSave => 'Enregistrer';
+
+  @override
+  String get tripNoAddress => 'Aucune adresse';
 }

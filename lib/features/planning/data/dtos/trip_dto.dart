@@ -7,6 +7,7 @@
 
 
 import '../../domain/entities/trip.dart';
+import 'trip_day_dto.dart';
 
 class TripDto {
   final int id;
@@ -15,6 +16,7 @@ class TripDto {
   final DateTime endDate;
   final int adults;
   final int children;
+  final List<TripDayDto> days;
 
   TripDto({
     required this.id,
@@ -23,16 +25,22 @@ class TripDto {
     required this.endDate,
     required this.adults,
     required this.children,
+    required this.days,
   });
 
   factory TripDto.fromJson(Map<String, dynamic> j) {
+    final daysJson = (j['days'] as List?) ?? const [];
     return TripDto(
       id: j['id'] as int,
       title: j['title'] as String,
       startDate: DateTime.parse(j['start_date'] as String),
       endDate: DateTime.parse(j['end_date'] as String),
-      adults: j['adults'] as int? ?? 0,
-      children: j['children'] as int? ?? 0,
+      adults: (j['adults'] as int?) ?? 1,
+      children: (j['children'] as int?) ?? 0,
+      days: daysJson
+          .cast<Map<String, dynamic>>()
+          .map((d) => TripDayDto.fromJson(d))
+          .toList(),
     );
   }
 
@@ -43,6 +51,7 @@ class TripDto {
     endDate: endDate,
     adults: adults,
     children: children,
+    days: days.map((d) => d.toEntity()).toList(),
   );
 }
 

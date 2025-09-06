@@ -1,16 +1,29 @@
 //---------------------------------------------------------------------------
+//                           TEXAS BUDDY   ( 2 0 2 5 )
+//---------------------------------------------------------------------------
 // File   : features/planning/presentation/overlay/planning_overlay.dart
 // Author : Morice
 //---------------------------------------------------------------------------
 
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:texas_buddy/core/theme/app_colors.dart';
+
+// Cubit overlay (expanded, selectedTrip/Day)
 import 'package:texas_buddy/features/planning/presentation/cubits/planning_overlay_cubit.dart';
-import 'package:texas_buddy/features/planning/presentation/widgets/hours_list.dart';
-import 'package:texas_buddy/features/planning/presentation/widgets/fade_in_up.dart';
-import 'package:texas_buddy/features/planning/presentation/widgets/trips_strip.dart';
+
+// ✅ Import correct du strip (fichier: widgets/trips_strip.dart)
+import 'package:texas_buddy/features/planning/presentation/widgets/trip_strip/trips_strip.dart';
+
+// Timeline (steps/hasAddress/selectedDay/onCreateStep)
+import 'package:texas_buddy/features/planning/presentation/widgets/timeline/timeline_pane.dart';
+
+// NearbyItem (pour Draggable côté droit)
+import 'package:texas_buddy/features/map/domain/entities/nearby_item.dart';
+
+// Domain entities pour mapper les steps
+import 'package:texas_buddy/features/planning/domain/entities/trip_day.dart';
+import 'package:texas_buddy/features/planning/domain/entities/trip_step.dart';
 
 class PlanningOverlay extends StatefulWidget {
   final double width;
@@ -35,243 +48,236 @@ class PlanningOverlay extends StatefulWidget {
 }
 
 class _PlanningOverlayState extends State<PlanningOverlay> {
-  final _scrollController = ScrollController();
-  bool _isUserScrolling = false;
-
-  // Swipe horizontal
-  double _dragDx = 0;
-  static const _kSwipeDxThreshold = 60.0;
-  static const _kSwipeVxThreshold = 400.0;
-
-  void _maybeToggle() {
-    if (_isUserScrolling) return;
-    widget.onToggleTap();
-  }
-
-// features/planning/presentation/overlay/planning_overlay.dart (extrait build)
   @override
   Widget build(BuildContext context) {
     const double headerGap = 0.0;
-    final double topHeight    = widget.height / 4.0;                   // 1/3
-    final double bottomHeight = widget.height - topHeight - headerGap; // 2/3
-    final double leftPaneW    = widget.width / 2.0;
-    final double rightPaneW   = widget.width - leftPaneW;
+    final double topHeight = widget.height / 4;
+    const double kStripTopInsetFrac = 0.20;
+    final double stripTopInset = topHeight * kStripTopInsetFrac;
+    final double stripHeight = topHeight - stripTopInset;
 
-    // Timeline interne : 20% pour la bande d’heures
-    final double stripeW = leftPaneW * 0.20;
-    final double dropW   = leftPaneW - stripeW;
+    final double bottomHeight = widget.height - topHeight - headerGap;
 
     const int firstHour = 6;
-    const int lastHour  = 23;
-    final int slotCount = (lastHour - firstHour) + 1;
+    const int lastHour = 23;
 
-    final String lang = Localizations.localeOf(context).languageCode.toLowerCase();
+    final String lang =
+    Localizations.of<MaterialLocalizations>(context, MaterialLocalizations) == null
+        ? 'en'
+        : Localizations.localeOf(context).languageCode.toLowerCase();
     final bool use24h = !(lang == 'en' || lang == 'es');
 
-    final double contentH     = slotCount * widget.slotHeight;
-    final double extraScroll  = bottomHeight * 0.50;
-    final double stripeHeight = contentH + extraScroll + 4.0;
+    // === Sélection du state du cubit ===
+    final overlayState = context.watch<PlanningOverlayCubit>().state;
+    final TripDay? day = overlayState.selectedDay;
 
-    return NotificationListener<ScrollNotification>(
-      onNotification: (n) {
-        if (n is ScrollStartNotification) _isUserScrolling = true;
-        if (n is ScrollEndNotification)   _isUserScrolling = false;
-        return false;
-      },
-      child:  Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // ── HEADER FIXE (1/3) ─────────────────────────────────────────
-            SizedBox(
-              height: topHeight,
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(maxWidth: widget.width * 0.92),
-                  child: TripsStrip(
-                    height: topHeight,
-                    trips: const <String>[], // TODO: brancher BDD
-                    onNewTrip: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Créer un nouveau voyage (TODO)')),
+    // map TripStep → TripStepVm pour la timeline (tri par heure asc)
+    List<TripStepVm> stepsVm = const [];
+    bool hasAddress = false;
+    DateTime? selectedDayDate;
+  // map TripStep → TripStepVm (tri + durée)
+    if (day != null) {
+      selectedDayDate = day.date;
+      hasAddress = (day.address?.trim().isNotEmpty ?? false);
+
+      final sorted = List<TripStep>.from(day.steps)
+        ..sort((a, b) {
+          final ai = a.startHour * 60 + a.startMinute;
+          final bi = b.startHour * 60 + b.startMinute;
+          return ai.compareTo(bi);
+        });
+
+      stepsVm = sorted.map((s) {
+        final tod = TimeOfDay(hour: s.startHour, minute: s.startMinute);
+        final title = s.target.name;
+
+        // Essaye d'utiliser la durée du domaine si disponible, sinon fallback 60'
+        final dyn = s as dynamic; // tolérant à la forme exacte de l'entité
+        int durationMin = 60;
+        try {
+          durationMin = (dyn.estimatedDurationMinutes as int?) ??
+              ( (dyn.endHour is int && dyn.endMinute is int)
+                  ? ((dyn.endHour as int) * 60 + (dyn.endMinute as int) - (s.startHour * 60 + s.startMinute))
+                  : 60 );
+        } catch (_) {
+          durationMin = 60;
+        }
+        if (durationMin <= 0) durationMin = 60;
+
+        return TripStepVm(start: tod, durationMin: durationMin, title: title);
+      }).toList();
+    }
+
+
+    // Colonne droite : branchera plus tard NearbyBloc / vraie data
+    final List<NearbyItem> nearbyItems = const [];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // ── HEADER FIXE (strip des jours) ───────────────────────────────────
+        SizedBox(
+          height: topHeight,
+          child: Padding(
+            padding: EdgeInsets.only(top: stripTopInset),
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: widget.width * 0.92),
+                child: TripsStrip(height: stripHeight),
+              ),
+            ),
+          ),
+        ),
+
+        const SizedBox(height: headerGap),
+
+        // ── BAS (timeline + liste draggable) ────────────────────────────────
+        SizedBox(
+          height: bottomHeight,
+          child: Row(
+            children: [
+              // ==== COLONNE GAUCHE : TIMELINE (drop zone) ====
+              Expanded(
+                child: BlocBuilder<PlanningOverlayCubit, PlanningOverlayState>(
+                  // rebuild si expanded OU selectedDay OU selectedTrip change
+                  buildWhen: (p, n) =>
+                  p.expanded != n.expanded ||
+                      p.selectedDay != n.selectedDay ||
+                      p.selectedTrip != n.selectedTrip,
+                  builder: (context, ovr) {
+                    return TimelinePane(
+                      height: bottomHeight,
+                      firstHour: firstHour,
+                      lastHour: lastHour,
+                      slotHeight: widget.slotHeight,
+                      use24h: use24h,
+                      stripeColor: widget.stripeColor,
+                      hourTextColor: widget.hourTextColor,
+                      expanded: ovr.expanded,
+                      onToggleTap: widget.onToggleTap,
+                      onRequestExpanded: (expand) {
+                        final c = context.read<PlanningOverlayCubit>();
+                        expand ? c.expand() : c.collapse();
+                      },
+                      stripeFraction: 0.20,
+
+                      // --- données réelles pour la timeline ---
+                      steps: stepsVm,
+                      hasAddress: hasAddress,
+                      selectedDay: selectedDayDate,
+
+                      // TODO: branche la bottom-sheet d’adresse ici
+                      onAddAddress: null,
+
+                      // --- création d'un step au drop (facultatif pour l’instant) ---
+                      onCreateStep: ({required item, required day, required startTime}) async {
+                        // Map NearbyItem → paramètres attendus par le cubit
+                        final d = item as dynamic;
+                        await (context.read<PlanningOverlayCubit>() as dynamic).createTripStepFromTarget(
+                          day: day,
+                          startHour: startTime.hour,
+                          startMinute: startTime.minute,
+                          targetType: (d.type ?? 'activity') as String,
+                          targetId: (d.id as int?) ?? -1,
+                          targetName: (d.name as String?) ?? '',
+                          placeId: d.placeId as String?,
+                          latitude: (d.latitude is num) ? (d.latitude as num).toDouble() : null,
+                          longitude: (d.longitude is num) ? (d.longitude as num).toDouble() : null,
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+
+              // ==== COLONNE DROITE : LISTE D'ITEMS DRAGGABLES ====
+              Expanded(
+                child: ScrollConfiguration(
+                  behavior: const _NoGlowScroll(),
+                  child: ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+                    physics: const BouncingScrollPhysics(),
+                    itemCount: nearbyItems.length, // 0 par défaut → pas d’UI “fantôme”
+                    itemBuilder: (ctx, i) {
+                      final it = nearbyItems[i];
+                      final card = _NearbyCard(item: it);
+
+                      return LongPressDraggable<NearbyItem>(
+                        data: it,
+                        dragAnchorStrategy: pointerDragAnchorStrategy,
+                        feedback: Material(
+                          elevation: 6,
+                          borderRadius: BorderRadius.circular(12),
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: (widget.width / 2) - 40,
+                              minHeight: 80,
+                            ),
+                            child: card,
+                          ),
+                        ),
+                        childWhenDragging: Opacity(opacity: .35, child: card),
+                        child: card,
                       );
                     },
                   ),
                 ),
               ),
-            ),
-            const SizedBox(height: headerGap),
-
-            // ── BAS (2/3) : Row (gauche = timeline, droite = liste) ──────
-            SizedBox(
-              height: bottomHeight,
-              child: Row(
-                children: [
-// ==== COLONNE GAUCHE (SLIDE SEULEMENT ICI) ====
-                  BlocBuilder<PlanningOverlayCubit, PlanningOverlayState>(
-                    buildWhen: (p, n) => p.expanded != n.expanded,
-                    builder: (context, ovr) {
-                      final double slideFrac = -(1.0 - (stripeW / leftPaneW)); // ne laisse visible que la stripe en collapsed
-
-                      // Helpers swipe H
-                      void _onHStart(_) { _dragDx = 0; }
-                      void _onHUpdate(DragUpdateDetails d) { _dragDx += d.delta.dx; }
-                      void _onHEnd(DragEndDetails d) {
-                        if (_isUserScrolling) return;
-                        final vx = d.primaryVelocity ?? 0;
-                        final cubit = context.read<PlanningOverlayCubit>();
-                        final expanded = cubit.state.expanded;
-                        if (vx > _kSwipeVxThreshold || _dragDx > _kSwipeDxThreshold) {
-                          if (!expanded) cubit.expand();     // → droite
-                        } else if (vx < -_kSwipeVxThreshold || _dragDx < -_kSwipeDxThreshold) {
-                          if (expanded) cubit.collapse();    // ← gauche
-                        }
-                        _dragDx = 0;
-                      }
-
-                      return SizedBox(
-                        width: leftPaneW,
-                        height: bottomHeight,
-                        child: AnimatedSlide(
-                          duration: const Duration(milliseconds: 240),
-                          curve: Curves.easeOutCubic,
-                          offset: Offset(ovr.expanded ? 0.0 : slideFrac, 0.0),
-
-                          child: ScrollConfiguration(
-                            behavior: const _NoGlowScroll(),
-                            child: SingleChildScrollView(
-                              controller: _scrollController,
-                              physics: const BouncingScrollPhysics(),
-                              child: SizedBox(
-                                height: stripeHeight,
-                                child: Stack(
-                                  children: [
-                                    // 1) ZONE DE DROP (GAUCHE)
-                                    Align(
-                                      alignment: Alignment.topLeft,
-                                      child: SizedBox(
-                                        width: dropW,
-                                        height: stripeHeight,
-
-                                        // Quand collapsed → laisse passer vers la map
-                                        child: IgnorePointer(
-                                          ignoring: !ovr.expanded,
-
-                                          // ⚠️ plus de onTap ici (tap toggle supprimé)
-                                          // On garde le swipe H uniquement quand expanded
-                                          child: GestureDetector(
-                                            behavior: HitTestBehavior.translucent,
-                                            onHorizontalDragStart: _onHStart,
-                                            onHorizontalDragUpdate: _onHUpdate,
-                                            onHorizontalDragEnd: _onHEnd,
-                                            child: Container(
-                                              decoration:BoxDecoration(
-                                                color: AppColors.whiteGlow,
-                                                border: Border(
-                                                  top: BorderSide(color: AppColors.texasBlue, width: 1),
-                                                ),
-                                              ),
-                                              padding: EdgeInsets.only(bottom: extraScroll),
-                                              alignment: Alignment.topLeft,
-                                              // TODO: DragTarget<NearbyItem>
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-
-                                    // 2) STRIPE HEURES (DROITE de la colonne gauche)
-                                    Align(
-                                      alignment: Alignment.topRight,
-                                      child: GestureDetector(
-                                        behavior: HitTestBehavior.opaque,
-                                        // ✅ tap toggle RÉSERVÉ à la stripe
-                                        onTap: () {
-                                          if (!_isUserScrolling) widget.onToggleTap();
-                                        },
-                                        // Swipe H actif en permanence sur la stripe
-                                        onHorizontalDragStart: _onHStart,
-                                        onHorizontalDragUpdate: _onHUpdate,
-                                        onHorizontalDragEnd: _onHEnd,
-                                        child: Container(
-                                          width: stripeW,
-                                          height: stripeHeight,
-                                          decoration: BoxDecoration(
-                                            color: widget.stripeColor,
-                                            borderRadius: const BorderRadius.only(
-                                              topRight: Radius.circular(12),
-                                              bottomRight: Radius.circular(12),
-                                            ),
-                                            border: Border.all(color: AppColors.texasBlue, width: 1),
-                                            boxShadow: const [
-                                              BoxShadow(blurRadius: 6, offset: Offset(0, 2), color: Color(0x1F000000)),
-                                              BoxShadow(blurRadius: 18, offset: Offset(0, 8), color: Color(0x14000000)),
-                                            ],
-                                          ),
-                                          child: Padding(
-                                            padding: EdgeInsets.only(bottom: extraScroll),
-                                            child: HoursList(
-                                              firstHour: firstHour,
-                                              lastHour: lastHour,
-                                              slotHeight: widget.slotHeight,
-                                              textColor: widget.hourTextColor,
-                                              use24h: use24h,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-
-
-                  // ==== COLONNE DROITE (FIXE) ====
-                  SizedBox(
-                    width: rightPaneW,
-                    height: bottomHeight,
-                    child: ScrollConfiguration(
-                      behavior: const _NoGlowScroll(),
-                      child: ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                        physics: const BouncingScrollPhysics(),
-                        itemCount: 8, // TODO: data réelle
-                        itemBuilder: (ctx, i) => Container(
-                          margin: const EdgeInsets.only(top: 12),
-                          height: 88,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: AppColors.texasBlue, width: 1),
-                            boxShadow: const [BoxShadow(blurRadius: 10, offset: Offset(0, 4), color: Color(0x12000000))],
-                          ),
-                          child: Center(
-                            child: Text('Card #$i (TODO)', style: const TextStyle(color: AppColors.texasBlue)),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
-      );
+      ],
+    );
   }
-
-
 }
 
 class _NoGlowScroll extends ScrollBehavior {
   const _NoGlowScroll();
   @override
-  Widget buildOverscrollIndicator(BuildContext context, Widget child, ScrollableDetails details) {
-    return child;
+  Widget buildOverscrollIndicator(
+      BuildContext context,
+      Widget child,
+      ScrollableDetails details,
+      ) =>
+      child;
+}
+
+class _NearbyCard extends StatelessWidget {
+  final NearbyItem item;
+  const _NearbyCard({required this.item});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      height: 88,
+      decoration: BoxDecoration(
+        color: AppColors.fog,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.texasBlue, width: 1),
+        boxShadow: const [
+          BoxShadow(blurRadius: 10, offset: Offset(0, 4), color: Color(0x12000000))
+        ],
+      ),
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        children: [
+          const Icon(Icons.place, color: AppColors.texasBlue),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              item.name,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: AppColors.texasBlue,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

@@ -107,8 +107,29 @@
   "tripCreateValidationNameMax": "Max {max} characters",
   "tripCreateValidationDatesRequired": "Please select a date range",
   "tripCreateTodoPersist": "TODO: persist the trip in DB",
+  "trips_create_success": "trip successfully created",
 
   "tripCreateAdults": "Adults",
-  "tripCreateChildren": "Children"
+  "tripCreateChildren": "Children",
+
+  "trips_add_label": "Add a trip",
+  "trips_actions_delete_tooltip": "Delete",
+  "trips_actions_edit_tooltip": "Edit",
+  "trips_delete_title": "Delete this trip?",
+  "trips_delete_confirm": "Delete",
+  "trips_delete_toast": "Deletion confirmed (UI only).",
+  "trips_edit_toast": "Edit coming soon.",
+  "common_cancel": "Cancel",
+  "trips_delete_message": "\"{tripTitle}\" will be removed from your list. This action is irreversible.",
+  "@trips_delete_message": { "placeholders": { "tripTitle": { "type": "Object" } } },
+  "trips_delete_success": "Trip deleted.",
+  "trips_delete_error": "Failed to delete trip.",
+  "trips_update_success": "Trip updated.",
+  "trips_update_error": "Failed to update trip.",
+  "tripEditTitle": "Edit trip",
+  "tripEditSave": "Save",
+  "trips_update_success": "Trip updated.",
+  "trips_update_error": "Failed to update trip.",
+  "tripNoAddress": "No address"
 
 }

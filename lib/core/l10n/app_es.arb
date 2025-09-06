@@ -100,8 +100,29 @@
   "tripCreateValidationNameMax": "Máximo {max} caracteres",
   "tripCreateValidationDatesRequired": "Seleccione un periodo",
   "tripCreateTodoPersist": "TODO: guardar el viaje en la BD",
+  "trips_create_success": "Viaje creado con éxito.",
 
   "tripCreateAdults": "Adultos",
-  "tripCreateChildren": "Niños"
+  "tripCreateChildren": "Niños",
+
+  "trips_add_label": "Añadir un viaje",
+  "trips_actions_delete_tooltip": "Eliminar",
+  "trips_actions_edit_tooltip": "Editar",
+  "trips_delete_title": "¿Eliminar este viaje?",
+  "trips_delete_confirm": "Eliminar",
+  "trips_delete_toast": "Eliminación confirmada (solo UI).",
+  "trips_edit_toast": "Edición próximamente.",
+  "common_cancel": "Cancelar",
+  "trips_delete_message": "«{tripTitle}» se eliminará de tu lista. Esta acción es irreversible.",
+  "@trips_delete_message": { "placeholders": { "tripTitle": { "type": "Object" } } },
+  "trips_delete_success": "Viaje eliminado.",
+  "trips_delete_error": "Error al eliminar el viaje.",
+  "trips_update_success": "Viaje actualizado.",
+  "trips_update_error": "Error al actualizar el viaje.",
+  "tripEditTitle": "Editar viaje",
+  "tripEditSave": "Guardar",
+  "trips_update_success": "Viaje actualizado.",
+  "trips_update_error": "Error al actualizar el viaje.",
+  "tripNoAddress": "Sin dirección"
 
 }

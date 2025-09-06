@@ -42,7 +42,7 @@ import 'package:texas_buddy/features/user/domain/repositories/user_repository.da
 import 'package:texas_buddy/features/planning/data/datasources/remote/trip_remote_datasource.dart';
 import 'package:texas_buddy/features/planning/data/repositories/trip_repository_impl.dart';
 import 'package:texas_buddy/features/planning/domain/repositories/trip_repository.dart';
-import 'package:texas_buddy/features/planning/domain/usecases/create_trip.dart';
+
 
 // Usecases
 import 'package:texas_buddy/features/auth/domain/usecases/login_usecase.dart';
@@ -65,6 +65,11 @@ import 'package:texas_buddy/features/map/domain/usecases/get_event_detail.dart';
 
 import 'package:texas_buddy/features/user/domain/usecases/fetch_and_cache_me_usecase.dart';
 import 'package:texas_buddy/features/user/domain/usecases/get_cached_user_usecase.dart';
+import 'package:texas_buddy/features/planning/domain/usecases/trips/create_trip.dart';
+import 'package:texas_buddy/features/planning/domain/usecases/trips/list_trips.dart';
+
+import 'package:texas_buddy/features/planning/domain/usecases/trips/delete_trip.dart';
+import 'package:texas_buddy/features/planning/domain/usecases/trips/update_trip.dart';
 
 // Caches
 import 'package:texas_buddy/features/map/data/cache/nearby_memory_cache.dart';
@@ -137,7 +142,9 @@ Future<void> setupLocator(Dio dio) async {
         () => DetailRemoteDataSource(getIt<Dio>()),
   );
 
-  getIt.registerLazySingleton<TripRemoteDataSource>(() => TripRemoteDataSourceImpl(dio));
+  getIt.registerLazySingleton<TripRemoteDataSource>(
+        () => TripRemoteDataSourceImpl(getIt<Dio>()),
+  );
 
   // ── Repositories ─────────────────────────────────────────────────────────
   getIt.registerLazySingleton<AuthRepository>(
@@ -187,6 +194,7 @@ Future<void> setupLocator(Dio dio) async {
   getIt.registerFactory<CheckSessionUseCase>(() => CheckSessionUseCase(getIt<AuthRepository>()));
   getIt.registerFactory<LogoutUseCase>(() => LogoutUseCase(getIt<AuthRepository>()));
   getIt.registerLazySingleton<CreateTrip>(() => CreateTrip(getIt()));
+  getIt.registerLazySingleton<ListTrips>(() => ListTrips(getIt()));
 
   getIt.registerLazySingleton<GetUserPositionStream>(() => GetUserPositionStream(getIt<LocationRepository>()));
 
@@ -201,6 +209,9 @@ Future<void> setupLocator(Dio dio) async {
 
   getIt.registerFactory<GetActivityDetail>(() => GetActivityDetail(getIt<DetailRepository>()));
   getIt.registerFactory<GetEventDetail>(() => GetEventDetail(getIt<DetailRepository>()));
+
+  getIt.registerLazySingleton<DeleteTrip>(()  => DeleteTrip(getIt<TripRepository>()));
+  getIt.registerLazySingleton<UpdateTrip>(()  => UpdateTrip(getIt<TripRepository>()));
 
   // ── App State (router) ───────────────────────────────────────────────────
   getIt.registerLazySingleton<AuthNotifier>(() => AuthNotifier(getIt<CheckSessionUseCase>()));
@@ -253,5 +264,11 @@ Future<void> setupLocator(Dio dio) async {
       UserOverviewCubit(getCached: getIt<GetCachedUserUseCase>(),
           refreshRemote: getIt<FetchAndCacheMeUseCase>()));
 
-  getIt.registerFactory<TripsCubit>(() => TripsCubit(createTripUsecase: getIt()));
+  getIt.registerFactory<TripsCubit>(() => TripsCubit(
+    createTripUsecase: getIt<CreateTrip>(),
+    listTripsUsecase: getIt<ListTrips>(),
+    deleteTripUsecase: getIt<DeleteTrip>(),
+    updateTripUsecase: getIt<UpdateTrip>(),
+    tripRepository: getIt<TripRepository>(), // ✅ manquait
+  ));
 }
