@@ -70,6 +70,13 @@ import 'package:texas_buddy/features/planning/domain/usecases/trips/list_trips.d
 
 import 'package:texas_buddy/features/planning/domain/usecases/trips/delete_trip.dart';
 import 'package:texas_buddy/features/planning/domain/usecases/trips/update_trip.dart';
+import 'package:texas_buddy/features/planning/domain/usecases/trips/get_trip_usecase.dart';
+
+// Usecases Address Search
+import 'package:texas_buddy/features/planning/domain/usecases/address_search/search_address_suggestions_usecase.dart';
+import 'package:texas_buddy/features/planning/domain/usecases/address_search/select_address_usecase.dart';
+import 'package:texas_buddy/features/planning/domain/usecases/trips/update_tripday_address_usecase.dart';
+
 
 // Caches
 import 'package:texas_buddy/features/map/data/cache/nearby_memory_cache.dart';
@@ -195,6 +202,10 @@ Future<void> setupLocator(Dio dio) async {
   getIt.registerFactory<LogoutUseCase>(() => LogoutUseCase(getIt<AuthRepository>()));
   getIt.registerLazySingleton<CreateTrip>(() => CreateTrip(getIt()));
   getIt.registerLazySingleton<ListTrips>(() => ListTrips(getIt()));
+  getIt.registerLazySingleton<ListTrips>(() => ListTrips(getIt()));
+  getIt.registerLazySingleton<GetTripUseCase>(
+        () => GetTripUseCase(getIt<TripRepository>()),
+  );
 
   getIt.registerLazySingleton<GetUserPositionStream>(() => GetUserPositionStream(getIt<LocationRepository>()));
 
@@ -212,6 +223,20 @@ Future<void> setupLocator(Dio dio) async {
 
   getIt.registerLazySingleton<DeleteTrip>(()  => DeleteTrip(getIt<TripRepository>()));
   getIt.registerLazySingleton<UpdateTrip>(()  => UpdateTrip(getIt<TripRepository>()));
+
+  // … après l’enregistrement du TripRepository
+  getIt.registerLazySingleton<SearchAddressSuggestionsUseCase>(
+        () => SearchAddressSuggestionsUseCase(getIt<TripRepository>()),
+  );
+
+  getIt.registerLazySingleton<SelectAddressUseCase>(
+        () => SelectAddressUseCase(getIt<TripRepository>()),
+  );
+
+  getIt.registerLazySingleton<UpdateTripDayAddressUseCase>(
+        () => UpdateTripDayAddressUseCase(getIt<TripRepository>()),
+  );
+
 
   // ── App State (router) ───────────────────────────────────────────────────
   getIt.registerLazySingleton<AuthNotifier>(() => AuthNotifier(getIt<CheckSessionUseCase>()));

@@ -8,6 +8,10 @@ import '../../domain/entities/trip.dart';
 import '../../domain/repositories/trip_repository.dart';
 import '../datasources/remote/trip_remote_datasource.dart';
 import 'package:dio/dio.dart';
+import 'package:dartz/dartz.dart';
+import 'package:texas_buddy/core/errors/failure.dart';
+import '../../domain/entities/address_suggestion.dart';
+import '../../domain/entities/address_selected.dart';
 
 class TripRepositoryImpl implements TripRepository {
   final TripRemoteDataSource remote;
@@ -90,6 +94,83 @@ class TripRepositoryImpl implements TripRepository {
     } catch (_) {}
     return e.message ?? 'Network error';
   }
+
+  @override
+  Future<Either<Failure, List<AddressSuggestion>>> searchAddressTx({
+    required String city,
+    required String q,
+    required String lang,
+    required int limit,
+  }) async {
+    try {
+      final items = await remote.searchAddressTx(
+        city: city, q: q, lang: lang, limit: limit,
+      );
+      return Right(items);
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      final detail = e.response?.data is Map<String, dynamic>
+          ? (e.response!.data['detail']?.toString())
+          : e.message;
+
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        return Left(Failure.timeout());
+      }
+      if (status == 401) return Left(Failure.unauthorized());
+      if (status == 403) return Left(Failure.forbidden());
+      if (status == 404) return Left(Failure.notFound());
+      if (status == 409) return Left(Failure.conflict());
+      if (status == 429) return Left(Failure.rateLimit());
+
+      return Left(Failure.server(status, detail));
+    } catch (e) {
+      return Left(Failure.unknown(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, AddressSelected>> selectAddress({
+    required String placeId,
+    required String city,
+    required String lang,
+  }) async {
+    try {
+      final r = await remote.selectAddress(placeId: placeId, city: city, lang: lang);
+      return Right(r);
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      final detail = e.response?.data is Map<String, dynamic>
+          ? (e.response!.data['detail']?.toString())
+          : e.message;
+      if (e.type == DioExceptionType.connectionTimeout ||
+          e.type == DioExceptionType.receiveTimeout) {
+        return Left(Failure.timeout());
+      }
+      return Left(Failure.server(status, detail));
+    } catch (e) {
+      return Left(Failure.unknown(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> updateTripDayAddress({
+    required int tripDayId,
+    required int addressCacheId,
+  }) async {
+    try {
+      await remote.updateTripDayAddress(tripDayId: tripDayId, addressCacheId: addressCacheId);
+      return const Right(null);
+    } on DioException catch (e) {
+      final status = e.response?.statusCode;
+      final detail = e.response?.data is Map<String, dynamic>
+          ? (e.response!.data['detail']?.toString())
+          : e.message;
+      return Left(Failure.server(status, detail));
+    } catch (e) {
+      return Left(Failure.unknown(e.toString()));
+    }
+  }
 }
 
 class TripCreateFailure implements Exception {
@@ -120,7 +201,7 @@ class TripUpdateFailure implements Exception {
   String toString() => 'TripUpdateFailure($message)';
 }
 
-// ✅ NEW
+
 class TripGetFailure implements Exception {
   final String message;
   TripGetFailure(this.message);

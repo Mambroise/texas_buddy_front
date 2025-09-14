@@ -6,6 +6,8 @@
 import 'package:dio/dio.dart';
 import '../../dtos/trip_dto.dart';
 import '../../../domain/entities/trip.dart';
+import '../../../domain/entities/address_suggestion.dart';
+import '../../../domain/entities/address_selected.dart';
 
 abstract class TripRemoteDataSource {
   Future<Trip> create(TripCreate input);
@@ -20,8 +22,24 @@ abstract class TripRemoteDataSource {
     int? children,
   });
 
-  // ✅ NEW
   Future<Trip> get(int id);
+  Future<List<AddressSuggestion>> searchAddressTx({
+    required String city,
+    required String q,
+    required String lang,
+    required int limit,
+  });
+
+  Future<AddressSelected> selectAddress({
+    required String placeId,
+    required String city,
+    required String lang,
+  });
+
+  Future<void> updateTripDayAddress({
+    required int tripDayId,
+    required int addressCacheId,
+  });
 }
 
 class TripRemoteDataSourceImpl implements TripRemoteDataSource {
@@ -89,5 +107,79 @@ class TripRemoteDataSourceImpl implements TripRemoteDataSource {
     final resp = await dio.get('$_base$id');
     final dto = TripDto.fromJson(resp.data as Map<String, dynamic>);
     return dto.toEntity();
+  }
+
+  // rechercher une adresse dans le back
+  @override
+  Future<List<AddressSuggestion>> searchAddressTx({
+    required String city,
+    required String q,
+    required String lang,
+    required int limit,
+  }) async {
+    final res = await dio.get(
+      'planners/address/search-tx/', // ✅ pas de slash initial, et pas "planners/"
+      queryParameters: {
+        'city': city,
+        'q': q,
+        'lang': lang,
+        'limit': limit,
+      },
+    );
+    final list = (res.data as List).cast<Map<String, dynamic>>();
+    return list.map((m) => AddressSuggestion(
+      placeId: m['place_id'] as String,
+      name: m['name'] as String,
+      formattedAddress: m['formatted_address'] as String?,
+      lat: (m['lat'] as num?)?.toDouble(),
+      lng: (m['lng'] as num?)?.toDouble(),
+      city: m['city'] as String?,
+      stateCode: m['state_code'] as String?,
+      countryCode: m['country_code'] as String?,
+      source: m['source'] as String?,
+      addressCacheId: m['address_cache_id'] as int?, // ✅ si source = cache
+    )).toList();
+  }
+
+  @override
+  Future<AddressSelected> selectAddress({
+    required String placeId,
+    required String city,
+    required String lang,
+  }) async {
+    final res = await dio.post(
+      'planners/address/select/',
+      data: {
+        'place_id': placeId,
+        'city': city,
+        'lang': lang,
+      },
+    );
+    final m = (res.data as Map<String, dynamic>);
+    return AddressSelected(
+      addressCacheId: m['address_cache_id'] as int,
+      placeId: m['place_id'] as String,
+      formattedAddress: m['formatted_address'] as String?,
+      lat: (m['lat'] as num?)?.toDouble(),
+      lng: (m['lng'] as num?)?.toDouble(),
+      city: m['city'] as String?,
+      stateCode: m['state_code'] as String?,
+      countryCode: m['country_code'] as String?,
+    );
+  }
+
+  @override
+  Future<void> updateTripDayAddress({
+    required int tripDayId,
+    required int addressCacheId,
+
+  }) async {
+    print('coucoucou');
+    print(tripDayId);
+    print(addressCacheId);
+    await dio.patch(
+      'planners/trip-days/$tripDayId/',
+      data: {'address_cache_id': addressCacheId}, //
+    );
   }
 }

@@ -10,6 +10,8 @@ class StepTarget {
   final String? placeId;
   final double latitude;
   final double longitude;
+  final String? primaryIcon;      // ex: "fa-guitar"
+  final List<String> otherIcons;
 
   const StepTarget({
     required this.id,
@@ -18,5 +20,7 @@ class StepTarget {
     this.placeId,
     required this.latitude,
     required this.longitude,
+    this.primaryIcon,
+    this.otherIcons = const [],
   });
 }

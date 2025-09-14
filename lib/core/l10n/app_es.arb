@@ -123,6 +123,17 @@
   "tripEditSave": "Guardar",
   "trips_update_success": "Viaje actualizado.",
   "trips_update_error": "Error al actualizar el viaje.",
-  "tripNoAddress": "Sin dirección"
+  "tripNoAddress": "Sin dirección",
+  "addHotelAddress": "añadir la dirección",
+
+  "addressFormTitle": "Definir la dirección del hotel",
+  "cityLabel": "Ciudad",
+  "cityHint": "p. ej. Dallas",
+  "addressLabel": "Dirección",
+  "addressHint": "Escribe al menos 3 letras…",
+  "fillCityFirst": "Introduce primero la ciudad",
+  "typeAtLeast3Chars": "Escribe al menos 3 letras para buscar.",
+  "genericError": "Ha ocurrido un error.",
+  "noResults": "Sin resultados."
 
 }

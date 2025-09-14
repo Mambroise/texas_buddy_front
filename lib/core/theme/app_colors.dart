@@ -9,11 +9,17 @@ import 'package:flutter/material.dart';
 
 class AppColors {
   static const Color texasBlue = Color(0xFF002868); // Bleu du drapeau texan
+
   static const Color texasRed = Color(0xFFBF0A30);
   static const Color texasRedGlow = Color(0xE6BF0A30); // ~90% d'opacité
+  static const Color texasRedGlow80 = Color(0xCCBF0A30); // 80%
+  static const Color texasRedGlow70 = Color(0xB3BF0A30); // 70%
+
   static const Color white = Colors.white;
   static Color whiteGlow = Colors.white.withValues(alpha: 0.88);
   static const Color transparentWhite = Color.fromRGBO(255, 255, 255, 0.8);
+
+  static Color black = Colors.black87;
 
   // ---- Neutres doux (beiges / sables) ------------------------------------
   static const Color beige = Color(0xFFF5F5DC);      // #F5F5DC

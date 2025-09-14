@@ -8,18 +8,27 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:texas_buddy/core/theme/app_colors.dart';
+import 'package:texas_buddy/core/l10n/l10n_ext.dart';
 import 'package:texas_buddy/features/planning/presentation/widgets/hours_list.dart';
 import 'package:texas_buddy/features/map/domain/entities/nearby_item.dart';
 
+
+
 class TripStepVm {
   final TimeOfDay start;
-  final int durationMin; // ← NEW: durée en minutes
+  final int durationMin;
   final String title;
+
+  /// Icônes déjà résolues (plus de mapping ici)
+  final IconData? primaryIcon;
+  final List<IconData> otherIcons;
 
   const TripStepVm({
     required this.start,
     required this.durationMin,
     required this.title,
+    this.primaryIcon,
+    this.otherIcons = const <IconData>[],
   });
 }
 
@@ -99,7 +108,6 @@ class _TimelinePaneState extends State<TimelinePane> {
   }
 
   double _snapY(double yModel) {
-    // on snap dans l’espace "modèle" (sans inset)
     final contentH = _contentHeight();
     final clamped = yModel.clamp(0.0, math.max(0.0, contentH - 1.0));
     final slot = (clamped / widget.slotHeight).roundToDouble();
@@ -126,8 +134,8 @@ class _TimelinePaneState extends State<TimelinePane> {
 
   double _durationToHeight(int minutes) {
     final h = (minutes / 60.0) * widget.slotHeight;
-    // hauteur mini pour rester saisissable visuellement
-    return h.clamp(28.0, widget.slotHeight * 4); // min 28px, max 4h (ajuste si besoin)
+    // hauteur mini pour rester lisible
+    return h.clamp(28.0, widget.slotHeight * 4); // min 28px, max 4h
   }
 
   double _localY(Offset globalOffset) {
@@ -158,6 +166,7 @@ class _TimelinePaneState extends State<TimelinePane> {
         final stripeH = contentH + extraScroll + 4.0;
 
         final double slideFrac = -(1.0 - (stripeW / leftPaneW));
+
 
         void _onHStart(_) => _dragDx = 0;
         void _onHUpdate(DragUpdateDetails d) => _dragDx += d.delta.dx;
@@ -190,159 +199,172 @@ class _TimelinePaneState extends State<TimelinePane> {
                 child: SingleChildScrollView(
                   controller: _scrollController,
                   physics: const BouncingScrollPhysics(),
-                  child: SizedBox(
-                    height: stripeH,
-                    child: Stack(
-                      children: [
-                        // 1) Zone de drop (gauche)
-                        Align(
-                          alignment: Alignment.topLeft,
-                          child: SizedBox(
-                            key: _dropKey,
-                            width: dropW,
-                            height: stripeH,
-                            child: IgnorePointer(
-                              ignoring: !widget.expanded,
-                              child: DragTarget<NearbyItem>(
-                                onWillAcceptWithDetails: (d) {
-                                  _updateHover(d);
-                                  return widget.onCreateStep != null && widget.selectedDay != null;
-                                },
-                                onMove: _updateHover,
-                                onLeave: (_) => setState(() {
-                                  _hoverY = null;
-                                  _hoverItem = null;
-                                }),
-                                onAcceptWithDetails: (d) async {
-                                  if (widget.onCreateStep == null || widget.selectedDay == null) return;
-                                  final y = _localY(d.offset);
-                                  final snapped = _snapY(y);
-                                  final t = _yToTime(snapped);
-                                  final item = d.data;
-                                  setState(() {
+                  child: ConstrainedBox( // (2) s’assure qu’on a toujours un minimum de hauteur
+                    constraints: BoxConstraints(minHeight: stripeH),
+                    child: SizedBox(
+                      height: stripeH,
+                      child: Stack(
+                        children: [
+                          // 1) Zone de drop (gauche)
+                          Align(
+                            alignment: Alignment.topLeft,
+                            child: SizedBox(
+                              key: _dropKey,
+                              width: dropW,
+                              height: stripeH,
+                              child: IgnorePointer(
+                                ignoring: !widget.expanded,
+                                child: DragTarget<NearbyItem>(
+                                  onWillAcceptWithDetails: (d) {
+                                    _updateHover(d);
+                                    return widget.onCreateStep != null && widget.selectedDay != null;
+                                  },
+                                  onMove: _updateHover,
+                                  onLeave: (_) => setState(() {
                                     _hoverY = null;
                                     _hoverItem = null;
-                                  });
-                                  await widget.onCreateStep!(
-                                    item: item,
-                                    day: widget.selectedDay!,
-                                    startTime: t,
-                                  );
-                                },
-                                builder: (_, __, ___) {
-                                  return Container(
-                                    decoration: BoxDecoration(
-                                      color: AppColors.whiteGlow,
-                                      border: Border(
-                                        top: BorderSide(color: AppColors.texasBlue, width: 1),
+                                  }),
+                                  onAcceptWithDetails: (d) async {
+                                    if (widget.onCreateStep == null || widget.selectedDay == null) return;
+                                    final y = _localY(d.offset);
+                                    final snapped = _snapY(y);
+                                    final t = _yToTime(snapped);
+                                    final item = d.data;
+                                    setState(() {
+                                      _hoverY = null;
+                                      _hoverItem = null;
+                                    });
+                                    await widget.onCreateStep!(
+                                      item: item,
+                                      day: widget.selectedDay!,
+                                      startTime: t,
+                                    );
+                                  },
+                                  builder: (_, __, ___) {
+                                    return Container(
+                                      decoration: const BoxDecoration(
+                                        color: Colors.white, // fond clair pour bien voir
+                                        border: Border(
+                                          top: BorderSide(color: AppColors.texasBlue, width: 1),
+                                        ),
                                       ),
-                                    ),
-                                    padding: EdgeInsets.only(bottom: extraScroll),
-                                    alignment: Alignment.topLeft,
-                                    child: Stack(
-                                      children: [
-                                        // Steps existants (position + hauteur par durée)
-                                        ...widget.steps.map((s) {
-                                          final top = _timeToY(s.start);
-                                          final height = _durationToHeight(s.durationMin);
-                                          return Positioned(
-                                            top: top,
-                                            left: 8,
-                                            right: 8,
-                                            height: height,
-                                            child: _StepCard(title: s.title),
-                                          );
-                                        }),
-
-                                        // Placeholder vertical si pas d'adresse et pas de steps
-                                        if (!widget.hasAddress && widget.steps.isEmpty)
-                                          Positioned.fill(
-                                            child: GestureDetector(
-                                              onTap: widget.onAddAddress,
-                                              child: const Align(
-                                                alignment: Alignment.centerLeft,
-                                                child: _VerticalPrompt(),
+                                      padding: EdgeInsets.only(bottom: extraScroll),
+                                      alignment: Alignment.topLeft,
+                                      child: Stack(
+                                        children: [
+                                          // --- Bouton "Ajouter une adresse" en overlay, sans date ---
+                                          if (widget.onAddAddress != null &&
+                                              widget.selectedDay != null &&
+                                              !widget.hasAddress)
+                                            Positioned(
+                                              top: 8,
+                                              left: 8,
+                                              child: TextButton.icon(
+                                                onPressed: widget.onAddAddress,
+                                                icon: const Icon(Icons.add_location_alt, size: 12),
+                                                label: Text(context.l10n.addHotelAddress),
+                                                style: TextButton.styleFrom(
+                                                  foregroundColor: AppColors.whiteGlow,
+                                                  backgroundColor: AppColors.texasBlue,
+                                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius: BorderRadius.circular(8),
+                                                    side: const BorderSide(color: AppColors.texasBlue, width: 1),
+                                                  ),
+                                                ),
                                               ),
                                             ),
-                                          ),
 
-                                        // Guide de drop (ligne + ghost sur 60')
-                                        if (_hoverY != null)
-                                          Positioned(
-                                            top: _snapY(_hoverY!),
-                                            left: 0,
-                                            right: 0,
-                                            child: Column(
-                                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                                              children: [
-                                                Container(
-                                                  height: 2,
-                                                  color: AppColors.texasBlue.withValues(alpha: .55),
-                                                ),
-                                                const SizedBox(height: 4),
-                                                if (_hoverItem != null)
-                                                  Padding(
-                                                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                                                    child: Opacity(
+                                          // --- Steps existants ---
+                                          ...widget.steps.map((s) {
+                                            final top = _timeToY(s.start);
+                                            final height = _durationToHeight(s.durationMin);
+                                            return Positioned(
+                                              top: top,
+                                              left: 0,
+                                              right: 0,
+                                              height: height,
+                                              child: _StepCard(
+                                                title: s.title,
+                                                primaryIcon: s.primaryIcon,
+                                                otherIcons: s.otherIcons,
+                                              ),
+                                            );
+                                          }),
+
+                                          // --- Guide de drop (ligne + ghost 60') ---
+                                          if (_hoverY != null)
+                                            Positioned(
+                                              top: _snapY(_hoverY!),
+                                              left: 0,
+                                              right: 0,
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                                children: [
+                                                  Container(height: 2, color: AppColors.texasBlue.withValues(alpha: .55)),
+                                                  const SizedBox(height: 4),
+                                                  if (_hoverItem != null)
+                                                    Opacity(
                                                       opacity: .85,
                                                       child: SizedBox(
-                                                        height: _durationToHeight(60), // ghost 1h
+                                                        height: _durationToHeight(60),
                                                         child: _StepCard(title: _hoverItem!.name),
                                                       ),
                                                     ),
-                                                  ),
-                                              ],
+                                                ],
+                                              ),
                                             ),
-                                          ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                              ),
-                            ),
-                          ),
-                        ),
+                                        ],
+                                      ),
+                                    );
 
-                        // 2) Stripe heures (droite)
-                        Align(
-                          alignment: Alignment.topRight,
-                          child: GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: () {
-                              if (!_isUserScrolling) widget.onToggleTap();
-                            },
-                            onHorizontalDragStart: _onHStart,
-                            onHorizontalDragUpdate: _onHUpdate,
-                            onHorizontalDragEnd: _onHEnd,
-                            child: Container(
-                              width: stripeW,
-                              height: stripeH,
-                              decoration: BoxDecoration(
-                                color: widget.stripeColor,
-                                borderRadius: const BorderRadius.only(
-                                  topRight: Radius.circular(12),
-                                  bottomRight: Radius.circular(12),
-                                ),
-                                border: Border.all(color: AppColors.texasBlue, width: 1),
-                                boxShadow: const [
-                                  BoxShadow(blurRadius: 6, offset: Offset(0, 2), color: Color(0x1F000000)),
-                                  BoxShadow(blurRadius: 18, offset: Offset(0, 8), color: Color(0x14000000)),
-                                ],
-                              ),
-                              child: Padding(
-                                padding: EdgeInsets.only(bottom: extraScroll),
-                                child: HoursList(
-                                  firstHour: widget.firstHour,
-                                  lastHour: widget.lastHour,
-                                  slotHeight: widget.slotHeight,
-                                  textColor: widget.hourTextColor,
-                                  use24h: widget.use24h,
+                                  },
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
+
+                          // 2) Stripe heures (droite)
+                          Align(
+                            alignment: Alignment.topRight,
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () {
+                                if (!_isUserScrolling) widget.onToggleTap();
+                              },
+                              onHorizontalDragStart: _onHStart,
+                              onHorizontalDragUpdate: _onHUpdate,
+                              onHorizontalDragEnd: _onHEnd,
+                              child: Container(
+                                width: stripeW,
+                                height: stripeH,
+                                decoration: BoxDecoration(
+                                  color: widget.stripeColor,
+                                  borderRadius: const BorderRadius.only(
+                                    topRight: Radius.circular(12),
+                                    bottomRight: Radius.circular(12),
+                                  ),
+                                  border: Border.all(color: AppColors.texasBlue, width: 1),
+                                  boxShadow: const [
+                                    BoxShadow(blurRadius: 6, offset: Offset(0, 2), color: Color(0x1F000000)),
+                                    BoxShadow(blurRadius: 18, offset: Offset(0, 8), color: Color(0x14000000)),
+                                  ],
+                                ),
+                                child: Padding(
+                                  padding: EdgeInsets.only(bottom: extraScroll),
+                                  child: HoursList(
+                                    firstHour: widget.firstHour,
+                                    lastHour: widget.lastHour,
+                                    slotHeight: widget.slotHeight,
+                                    textColor: widget.hourTextColor,
+                                    use24h: widget.use24h,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -353,68 +375,69 @@ class _TimelinePaneState extends State<TimelinePane> {
       },
     );
   }
+
 }
 
 class _StepCard extends StatelessWidget {
   final String title;
-  const _StepCard({required this.title});
+  final IconData? primaryIcon;
+  final List<IconData> otherIcons;
+
+  const _StepCard({
+    required this.title,
+    this.primaryIcon,
+    this.otherIcons = const [],
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      // pleine largeur → padding simple
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: AppColors.texasBlue, width: 1),
-        borderRadius: BorderRadius.circular(10),
+        // pas de borderRadius (coins vifs)
         boxShadow: const [
-          BoxShadow(blurRadius: 8, offset: Offset(0, 4), color: Color(0x14000000))
+          BoxShadow(blurRadius: 12, offset: Offset(0, 6), color: Color(0x24000000)),
+          BoxShadow(blurRadius: 24, offset: Offset(0, 12), color: Color(0x14000000)),
         ],
       ),
-      child: Align(
-        alignment: Alignment.centerLeft,
-        child: Text(
-          title,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: AppColors.texasBlue,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _VerticalPrompt extends StatelessWidget {
-  const _VerticalPrompt();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 8.0),
-      child: RotatedBox(
-        quarterTurns: 3, // -90°
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: const [
-            Icon(Icons.add_location_alt, size: 16, color: AppColors.texasBlue),
-            SizedBox(width: 6),
-            Text(
-              "ajouter l'adresse de l'hotel",
-              style: TextStyle(
-                color: AppColors.texasBlue,
-                fontWeight: FontWeight.w800,
-                letterSpacing: .5,
-              ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Titre centré en haut
+          Text(
+            title,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: AppColors.black,
+              fontWeight: FontWeight.w800,
+              fontSize: 10
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 8),
+
+          // Icônes catégories : primary mise en avant + autres dans un wrap
+          if (primaryIcon != null || otherIcons.isNotEmpty)
+            Wrap(
+              spacing: 10,
+              runSpacing: 6,
+              alignment: WrapAlignment.center,
+              children: [
+                if (primaryIcon != null)
+                  Icon(primaryIcon, size: 10, color: AppColors.texasRedGlow),
+                ...otherIcons.map((ic) => Icon(ic, size: 10, color: AppColors.black)),
+              ],
+            ),
+        ],
       ),
     );
   }
 }
+
 
 class _NoGlowScroll extends ScrollBehavior {
   const _NoGlowScroll();

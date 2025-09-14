@@ -55,6 +55,7 @@ class TripStepDto {
 
   TripStep toEntity() {
     final targetDto = activity ?? event;
+
     final target = StepTarget(
       id: targetDto?.id ?? -1,
       name: targetDto?.name ?? '',
@@ -62,6 +63,9 @@ class TripStepDto {
       placeId: targetDto?.placeId,
       latitude: targetDto?.latitude ?? 0,
       longitude: targetDto?.longitude ?? 0,
+      // ⬇️ NEW: remonte les icônes
+      primaryIcon: targetDto?.primaryIcon,
+      otherIcons: targetDto?.otherIcons ?? const [],
     );
 
     int _parseH(String s) => int.tryParse(s.split(':')[0]) ?? 0;

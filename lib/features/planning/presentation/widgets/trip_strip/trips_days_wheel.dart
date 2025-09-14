@@ -1,4 +1,11 @@
-// features/planning/presentation/widgets/trip_strip/trip_days_wheel.dart
+//---------------------------------------------------------------------------
+//                           TEXAS BUDDY   ( 2 0 2 5 )
+//---------------------------------------------------------------------------
+// File   : features/planning/presentation/widgets/trip_strip/trip_days_wheel.dart
+// Author : Morice
+//---------------------------------------------------------------------------
+
+
 import 'package:flutter/material.dart';
 import 'package:texas_buddy/core/theme/app_colors.dart';
 import 'package:texas_buddy/features/planning/domain/entities/trip.dart';
@@ -29,7 +36,7 @@ class TripDaysStrip extends StatefulWidget {
 
 class _TripDaysStripState extends State<TripDaysStrip> {
   late final PageController _ctl;
-  late final List<_Item> _items; // [arrival] + days + [departure]
+  late List<_Item> _items; // [arrival] + days + [departure]
   double _page = 1.0;
 
   @override
@@ -39,6 +46,42 @@ class _TripDaysStripState extends State<TripDaysStrip> {
     _ctl = PageController(viewportFraction: 0.26, initialPage: 1);
     _ctl.addListener(_onScroll);
   }
+
+  @override
+  void didUpdateWidget(covariant TripDaysStrip oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.trip != widget.trip) {
+      // mémorise le jour centré actuellement (si c’est un “day”)
+      final int curIdx = (_ctl.page ?? 1.0).round().clamp(0, _items.length - 1);
+      DateTime? curDate;
+      if (_items[curIdx].type == _ItemType.day) {
+        curDate = _items[curIdx].day!.date;
+      }
+
+      // régénère les items à partir du NOUVEAU trip
+      _items = _buildItems(widget.trip);
+
+      // essaie de se recaler sur le même jour
+      if (curDate != null) {
+        final newIdx = _items.indexWhere(
+              (it) => it.type == _ItemType.day &&
+              _isSameYMD(it.day!.date, curDate!),
+        );
+        if (newIdx != -1) {
+          // jump pour éviter une anim visible
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _ctl.jumpToPage(newIdx);
+          });
+        }
+      }
+
+      // force le rebuild pour refléter la nouvelle adresse
+      setState(() {});
+    }
+  }
+
+  bool _isSameYMD(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
 
   @override
   void dispose() {
@@ -130,7 +173,7 @@ class _TripDaysStripState extends State<TripDaysStrip> {
             ),
           ),
 
-          // liste horizontale avec effet scale (date TOUJOURS visible)
+          // liste horizontale avec effet scale (date visible)
           Expanded(
             child: PageView.builder(
               controller: _ctl,
@@ -141,6 +184,9 @@ class _TripDaysStripState extends State<TripDaysStrip> {
                 final it = _items[index];
                 final scale = _scaleFor(index);
 
+                // NEW: considéré sélectionné si proche du centre
+                final bool isCentered = (index - _page).abs() < 0.5;
+
                 return GestureDetector(
                   onTap: () => _ctl.animateToPage(
                     index,
@@ -149,20 +195,25 @@ class _TripDaysStripState extends State<TripDaysStrip> {
                   ),
                   child: Align(
                     child: switch (it.type) {
-                      _ItemType.arrival   => _MarkerIcon(icon: Icons.flight_land, scale: scale),
+                      _ItemType.arrival   => _MarkerIcon(icon: Icons.flight_land,   scale: scale),
                       _ItemType.departure => _MarkerIcon(icon: Icons.flight_takeoff, scale: scale),
                       _ItemType.day => _DayColumnItem(
                         dateLabel: _fmt(it.day!.date),
                         address: it.day!.address,
-                        scale: scale, // <— au lieu de scaleBody
+                        scale: scale,
+                        isSelected: isCentered, // ✅ passe le flag ici
                         onAddAddress: widget.onAddressTap == null
                             ? null
-                            : () => widget.onAddressTap!(it.day!.date, it.day!.id == -1 ? null : it.day!.id),
+                            : () => widget.onAddressTap!(
+                          it.day!.date,
+                          it.day!.id == -1 ? null : it.day!.id,
+                        ),
                       ),
                     },
                   ),
                 );
               },
+
             ),
           ),
         ],
@@ -220,31 +271,32 @@ class _DayColumnItem extends StatelessWidget {
   final String? address;
   final VoidCallback? onAddAddress;
   final double scale;
+  final bool isSelected;
 
   const _DayColumnItem({
     required this.dateLabel,
     required this.address,
     required this.scale,
     this.onAddAddress,
+    this.isSelected = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final hasAddress = (address != null && address!.trim().isNotEmpty);
 
-    // échelle bornée pour éviter des tailles extrêmes
     final s = scale.clamp(1.0, 1.6);
-    // font-size de la date qui suit l’échelle (discret mais lisible)
-    final dateFontSize = 11.0 + (s - 1.0) * 3.5; // ~11 → ~13.1 pour s=1.6
+    final dateFontSize = 11.0 + (s - 1.0) * 3.5;
     final dateWeight   = s > 1.35 ? FontWeight.w700 : FontWeight.w600;
-    final dateColor    = AppColors.fog;
+
+    // ✅ rouge quand sélectionné, sinon gris (fog)
+    final Color accent = isSelected ? AppColors.texasRedGlow80 : AppColors.fog;
 
     return SizedBox(
       width: 110,
       height: 170,
       child: Column(
         children: [
-          // Date : grandit par la taille de police (sans transform, donc jamais “coupée”)
           Text(
             dateLabel,
             maxLines: 1,
@@ -252,20 +304,23 @@ class _DayColumnItem extends StatelessWidget {
             style: TextStyle(
               fontSize: dateFontSize,
               fontWeight: dateWeight,
-              color: dateColor,
+              color: AppColors.fog,
               height: 1.1,
             ),
           ),
           const SizedBox(height: 6),
 
-          // Corps (maison + adresse) — lui reste sous Transform.scale
           Expanded(
             child: Transform.scale(
               scale: s,
               alignment: Alignment.topCenter,
               child: Column(
                 children: [
-                  const Icon(Icons.home_rounded, color: AppColors.fog, size: 32),
+                  Icon( // ← juste cette couleur change
+                    Icons.home_rounded,
+                    color: accent,               // ✅ ici
+                    size: 32,
+                  ),
                   const SizedBox(height: 6),
                   Expanded(
                     child: Align(

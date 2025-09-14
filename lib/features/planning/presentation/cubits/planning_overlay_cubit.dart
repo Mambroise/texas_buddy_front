@@ -10,6 +10,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/trip.dart';
 import '../../domain/entities/trip_day.dart';
+import 'package:collection/collection.dart';
 
 class PlanningOverlayState extends Equatable {
   final bool visible;      // calque affiché ?
@@ -51,6 +52,22 @@ class PlanningOverlayCubit extends Cubit<PlanningOverlayState> {
   bool kPlanningDebug = true;
   void d(String msg) { if (kPlanningDebug) print(msg); }
 
+
+  /// Applique un Trip fraîchement rechargé et recalcule le selectedDay
+  void applyRefreshedTrip(Trip newTrip) {
+    final int? curDayId = state.selectedDay?.id;
+
+    TripDay? newSelectedDay;
+    if (curDayId != null) {
+      newSelectedDay = newTrip.days.firstWhereOrNull((d) => d.id == curDayId);
+    }
+    newSelectedDay ??= newTrip.days.isNotEmpty ? newTrip.days.first : null;
+
+    emit(state.copyWith(
+      selectedTrip: newTrip,
+      selectedDay: newSelectedDay,
+    ));
+  }
 
   // === UI controls ===
   void toggleOverlay() => emit(state.copyWith(visible: !state.visible));

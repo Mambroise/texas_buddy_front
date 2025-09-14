@@ -5,6 +5,7 @@
 // Author : Morice
 //---------------------------------------------------------------------------
 
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 // ⚠️ On préfixe les entities pour éviter tout conflit de nom (TripCreate)

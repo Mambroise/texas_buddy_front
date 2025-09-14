@@ -130,6 +130,17 @@
   "tripEditSave": "Save",
   "trips_update_success": "Trip updated.",
   "trips_update_error": "Failed to update trip.",
-  "tripNoAddress": "No address"
+  "tripNoAddress": "No address",
+  "addHotelAddress": "Add an address",
+
+  "addressFormTitle": "Set hotel address",
+  "cityLabel": "City",
+  "cityHint": "e.g. Dallas",
+  "addressLabel": "Address",
+  "addressHint": "Type at least 3 letters…",
+  "fillCityFirst": "Enter the city first",
+  "typeAtLeast3Chars": "Type at least 3 letters to search.",
+  "genericError": "An error occurred.",
+  "noResults": "No results found."
 
 }

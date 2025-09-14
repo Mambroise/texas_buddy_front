@@ -119,38 +119,47 @@ class _TripsStripState extends State<TripsStrip> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<TripsCubit, TripsState>(
-      buildWhen: (p, n) => p.trips != n.trips || p.fetchStatus != n.fetchStatus,
-      builder: (ctx, st) {
-        if (_loading) {
-          return SizedBox(
-            height: widget.height,
-            child: const Center(child: CircularProgressIndicator()),
-          );
+    return BlocListener<PlanningOverlayCubit, PlanningOverlayState>(
+      listenWhen: (prev, next) => prev.selectedTrip != next.selectedTrip,
+      listener: (ctx, overlay) {
+        final newTrip = overlay.selectedTrip;
+        if (_focusedTrip != null && newTrip != null && newTrip.id == _focusedTrip!.id) {
+          setState(() {
+            _focusedTrip = newTrip; // ✅ met à jour la source de vérité de la roue
+          });
         }
-
-        // 🔁 Quand un trip est sélectionné → roue des jours
-        if (_focusedTrip != null) {
-          return TripDaysStrip(
-            height: widget.height,
-            trip: _focusedTrip!,
-            onBack: () => setState(() => _focusedTrip = null),
-            onCenteredDayChanged: (d) {
-              context.read<PlanningOverlayCubit>().selectDay(d);
-            },
-          );
-        }
-
-        // Sinon, liste de cartes
-        return TripCardsStrip(
-          height: widget.height,
-          trips: st.trips,
-          onTripSelected: _onTripSelected,
-          onCreateTap: () => _openCreateFlow(context),
-          onDeleteTap: (trip) async => context.read<TripsCubit>().delete(trip.id),
-          onEditTap: (trip) => _openEditFlow(context, trip),
-        );
       },
+      child: BlocBuilder<TripsCubit, TripsState>(
+        buildWhen: (p, n) => p.trips != n.trips || p.fetchStatus != n.fetchStatus,
+        builder: (ctx, st) {
+          if (_loading) {
+            return SizedBox(
+              height: widget.height,
+              child: const Center(child: CircularProgressIndicator()),
+            );
+          }
+
+          if (_focusedTrip != null) {
+            return TripDaysStrip(
+              height: widget.height,
+              trip: _focusedTrip!,
+              onBack: () => setState(() => _focusedTrip = null),
+              onCenteredDayChanged: (d) {
+                context.read<PlanningOverlayCubit>().selectDay(d);
+              },
+            );
+          }
+
+          return TripCardsStrip(
+            height: widget.height,
+            trips: st.trips,
+            onTripSelected: _onTripSelected,
+            onCreateTap: () => _openCreateFlow(context),
+            onDeleteTap: (trip) async => context.read<TripsCubit>().delete(trip.id),
+            onEditTap: (trip) => _openEditFlow(context, trip),
+          );
+        },
+      ),
     );
   }
 }

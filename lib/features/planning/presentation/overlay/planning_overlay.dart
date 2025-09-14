@@ -9,14 +9,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:texas_buddy/core/theme/app_colors.dart';
 
-// Cubit overlay (expanded, selectedTrip/Day)
 import 'package:texas_buddy/features/planning/presentation/cubits/planning_overlay_cubit.dart';
-
-// ✅ Import correct du strip (fichier: widgets/trips_strip.dart)
 import 'package:texas_buddy/features/planning/presentation/widgets/trip_strip/trips_strip.dart';
 
-// Timeline (steps/hasAddress/selectedDay/onCreateStep)
+// Timeline (steps/hasAddress/selectedDay/onCreateStep/onAddAdress)
 import 'package:texas_buddy/features/planning/presentation/widgets/timeline/timeline_pane.dart';
+import 'package:texas_buddy/features/planning/presentation/widgets/sheets/address_search_sheet.dart';
+
 
 // NearbyItem (pour Draggable côté droit)
 import 'package:texas_buddy/features/map/domain/entities/nearby_item.dart';
@@ -24,6 +23,9 @@ import 'package:texas_buddy/features/map/domain/entities/nearby_item.dart';
 // Domain entities pour mapper les steps
 import 'package:texas_buddy/features/planning/domain/entities/trip_day.dart';
 import 'package:texas_buddy/features/planning/domain/entities/trip_step.dart';
+
+// ⬇️ Mapper FA → IconData
+import 'package:texas_buddy/core/utils/category_icon_mapper.dart';
 
 class PlanningOverlay extends StatefulWidget {
   final double width;
@@ -48,6 +50,7 @@ class PlanningOverlay extends StatefulWidget {
 }
 
 class _PlanningOverlayState extends State<PlanningOverlay> {
+
   @override
   Widget build(BuildContext context) {
     const double headerGap = 0.0;
@@ -71,11 +74,11 @@ class _PlanningOverlayState extends State<PlanningOverlay> {
     final overlayState = context.watch<PlanningOverlayCubit>().state;
     final TripDay? day = overlayState.selectedDay;
 
-    // map TripStep → TripStepVm pour la timeline (tri par heure asc)
+    // map TripStep → TripStepVm (tri + durée + icônes)
     List<TripStepVm> stepsVm = const [];
     bool hasAddress = false;
     DateTime? selectedDayDate;
-  // map TripStep → TripStepVm (tri + durée)
+
     if (day != null) {
       selectedDayDate = day.date;
       hasAddress = (day.address?.trim().isNotEmpty ?? false);
@@ -90,24 +93,57 @@ class _PlanningOverlayState extends State<PlanningOverlay> {
       stepsVm = sorted.map((s) {
         final tod = TimeOfDay(hour: s.startHour, minute: s.startMinute);
         final title = s.target.name;
-
-        // Essaye d'utiliser la durée du domaine si disponible, sinon fallback 60'
-        final dyn = s as dynamic; // tolérant à la forme exacte de l'entité
+        print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ primaryIcon");
+        print(s.target.primaryIcon);
+        print("attention au otherIcons venant de target");
+        print(s.target.otherIcons);
+        // Durée: estimatedDurationMinutes > sinon calcul end - start > sinon 60'
+        final dyn = s as dynamic;
         int durationMin = 60;
         try {
+          print("dans le 1er try");
           durationMin = (dyn.estimatedDurationMinutes as int?) ??
-              ( (dyn.endHour is int && dyn.endMinute is int)
-                  ? ((dyn.endHour as int) * 60 + (dyn.endMinute as int) - (s.startHour * 60 + s.startMinute))
-                  : 60 );
+              ((dyn.endHour is int && dyn.endMinute is int)
+                  ? ((dyn.endHour as int) * 60 +
+                  (dyn.endMinute as int) -
+                  (s.startHour * 60 + s.startMinute))
+                  : 60);
         } catch (_) {
           durationMin = 60;
         }
         if (durationMin <= 0) durationMin = 60;
 
-        return TripStepVm(start: tod, durationMin: durationMin, title: title);
+// --- Icônes catégories → IconData ---------------------------------
+        IconData? primaryIconData;
+        final List<IconData> otherIconDatas = <IconData>[];
+
+        try {
+          final primaryIconStr = s.target.primaryIcon;
+          if (primaryIconStr != null && primaryIconStr.trim().isNotEmpty) {
+            primaryIconData = CategoryIconMapper.map(primaryIconStr);
+          }
+
+          for (final iconStr in s.target.otherIcons) {
+            if (iconStr.trim().isEmpty) continue;
+            final ic = CategoryIconMapper.map(iconStr);
+            // évite le doublon si c'est la même que la primaire
+            if (primaryIconData == null || ic != primaryIconData) {
+              otherIconDatas.add(ic);
+            }
+          }
+        } catch (_) {
+          // silencieux
+        }
+
+        return TripStepVm(
+          start: tod,
+          durationMin: durationMin,
+          title: title,
+          primaryIcon: primaryIconData,
+          otherIcons: otherIconDatas,
+        );
       }).toList();
     }
-
 
     // Colonne droite : branchera plus tard NearbyBloc / vraie data
     final List<NearbyItem> nearbyItems = const [];
@@ -167,12 +203,43 @@ class _PlanningOverlayState extends State<PlanningOverlay> {
                       hasAddress: hasAddress,
                       selectedDay: selectedDayDate,
 
-                      // TODO: branche la bottom-sheet d’adresse ici
-                      onAddAddress: null,
+                      // ✅ bouton "Ajouter une adresse"
+                      onAddAddress: () async {
+                        final tripDayId = day?.id;
+                        if (tripDayId == null || tripDayId <= 0) {
+                          return;
+                        }
 
-                      // --- création d'un step au drop (facultatif pour l’instant) ---
+                        // ✅ Récupérer l'id du trip sélectionné
+                        final tripId = context.read<PlanningOverlayCubit>().state.selectedTrip?.id;
+                        if (tripId == null || tripId <= 0) {
+                          // tu peux afficher un snackbar si tu veux
+                          return;
+                        }
+
+                        await showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          useSafeArea: true,
+                          backgroundColor: Colors.white,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                          ),
+                          builder: (ctx) => BlocProvider.value(
+                            value: context.read<PlanningOverlayCubit>(),
+                            child: Padding(
+                              padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+                              child: AddressSearchSheet(
+                                tripId: tripId,
+                                tripDayId: tripDayId,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+
+                      // --- création d'un step au drop (inchangé) ---
                       onCreateStep: ({required item, required day, required startTime}) async {
-                        // Map NearbyItem → paramètres attendus par le cubit
                         final d = item as dynamic;
                         await (context.read<PlanningOverlayCubit>() as dynamic).createTripStepFromTarget(
                           day: day,
@@ -187,6 +254,7 @@ class _PlanningOverlayState extends State<PlanningOverlay> {
                         );
                       },
                     );
+
                   },
                 ),
               ),
@@ -198,7 +266,7 @@ class _PlanningOverlayState extends State<PlanningOverlay> {
                   child: ListView.builder(
                     padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
                     physics: const BouncingScrollPhysics(),
-                    itemCount: nearbyItems.length, // 0 par défaut → pas d’UI “fantôme”
+                    itemCount: nearbyItems.length,
                     itemBuilder: (ctx, i) {
                       final it = nearbyItems[i];
                       final card = _NearbyCard(item: it);

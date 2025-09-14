@@ -355,4 +355,34 @@ class L10nFr extends L10n {
 
   @override
   String get tripNoAddress => 'Aucune adresse';
+
+  @override
+  String get addHotelAddress => 'ajouter l\'adresse';
+
+  @override
+  String get addressFormTitle => 'Définir l\'adresse de l\'hôtel';
+
+  @override
+  String get cityLabel => 'Ville';
+
+  @override
+  String get cityHint => 'ex. Dallas';
+
+  @override
+  String get addressLabel => 'Adresse';
+
+  @override
+  String get addressHint => 'Tape au moins 3 lettres…';
+
+  @override
+  String get fillCityFirst => 'Saisis d\'abord la ville';
+
+  @override
+  String get typeAtLeast3Chars => 'Tape au moins 3 lettres pour rechercher.';
+
+  @override
+  String get genericError => 'Une erreur est survenue.';
+
+  @override
+  String get noResults => 'Aucun résultat.';
 }
