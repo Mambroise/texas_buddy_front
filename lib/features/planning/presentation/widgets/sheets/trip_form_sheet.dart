@@ -1,44 +1,53 @@
 //---------------------------------------------------------------------------
 //                           TEXAS BUDDY   ( 2 0 2 5 )
 //---------------------------------------------------------------------------
-// File   : features/planning/presentation/widgets/trip_create_sheet.dart
+// File   : features/planning/presentation/widgets/trip_form_sheet.dart
 // Author : Morice
 //---------------------------------------------------------------------------
+
 
 import 'package:flutter/material.dart';
 import 'package:texas_buddy/core/theme/app_colors.dart';
 import 'package:texas_buddy/core/l10n/l10n_ext.dart';
+import 'trip_draft.dart';
 
-class TripDraft {
-  final String title;
-  final DateTimeRange range;
-  final int adults;
-  final int children;
-
-  TripDraft({
-    required this.title,
-    required this.range,
-    required this.adults,
-    required this.children,
-  });
-}
-
-class TripCreateSheet extends StatefulWidget {
+class TripFormSheet extends StatefulWidget {
+  final TripDraft? initial;                  // null => create
+  final String titleText;                   // ex: “Créer un voyage” / “Modifier le voyage”
+  final String submitText;                  // ex: “Créer” / “Enregistrer”
   final ValueChanged<TripDraft> onSubmit;
 
-  const TripCreateSheet({super.key, required this.onSubmit});
+  const TripFormSheet({
+    super.key,
+    this.initial,
+    required this.titleText,
+    required this.submitText,
+    required this.onSubmit,
+  });
 
   @override
-  State<TripCreateSheet> createState() => _TripCreateSheetState();
+  State<TripFormSheet> createState() => _TripFormSheetState();
 }
 
-class _TripCreateSheetState extends State<TripCreateSheet> {
+class _TripFormSheetState extends State<TripFormSheet> {
   final _formKey = GlobalKey<FormState>();
   final _titleCtl = TextEditingController();
   DateTimeRange? _range;
   bool _submitting = false;
   int _adults = 2;
   int _children = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    final init = widget.initial;
+    if (init != null) {
+      _titleCtl.text = init.title;
+      _range = init.range;
+      _adults = init.adults;
+      _children = init.children;
+    }
+  }
 
   @override
   void dispose() {
@@ -106,7 +115,7 @@ class _TripCreateSheetState extends State<TripCreateSheet> {
                 ),
               ),
             ),
-            Text(l10n.tripCreateTitle,
+            Text(widget.titleText,
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
             ),
@@ -169,10 +178,8 @@ class _TripCreateSheetState extends State<TripCreateSheet> {
                     ),
                   ],
 
-
                   const SizedBox(height: 16),
 
-                  // ── ADULTES / ENFANTS (sur la même ligne) ──────────────────
                   Row(
                     children: [
                       Expanded(
@@ -213,7 +220,7 @@ class _TripCreateSheetState extends State<TripCreateSheet> {
                             height: 18, width: 18,
                             child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                           )
-                              : Text(l10n.tripCreateCreate),
+                              : Text(widget.submitText),
                         ),
                       ),
                     ],
@@ -246,7 +253,6 @@ class _DateChip extends StatelessWidget {
   }
 }
 
-//INCREMENTEUR POUR ADULTE ET ENFANT
 class _CounterField extends StatelessWidget {
   final String label;
   final int value;
@@ -273,23 +279,12 @@ class _CounterField extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10),
       child: Row(
         children: [
-          Expanded(
-            child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-          ),
-          IconButton(
-            onPressed: () => onChanged((value - 1).clamp(0, 20)),
-            icon: const Icon(Icons.remove),
-            tooltip: '-',
-          ),
+          Expanded(child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600))),
+          IconButton(onPressed: () => onChanged((value - 1).clamp(0, 20)), icon: const Icon(Icons.remove)),
           Text('$value', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-          IconButton(
-            onPressed: () => onChanged((value + 1).clamp(0, 20)),
-            icon: const Icon(Icons.add),
-            tooltip: '+',
-          ),
+          IconButton(onPressed: () => onChanged((value + 1).clamp(0, 20)), icon: const Icon(Icons.add)),
         ],
       ),
     );
   }
 }
-

@@ -100,8 +100,40 @@
   "tripCreateValidationNameMax": "Maximum {max} caractères",
   "tripCreateValidationDatesRequired": "Veuillez choisir une période",
   "tripCreateTodoPersist": "TODO : enregistrer le voyage en BDD",
+  "trips_create_success": "Voyage créé avec succès",
 
   "tripCreateAdults": "Adultes",
-  "tripCreateChildren": "Enfants"
+  "tripCreateChildren": "Enfants",
+
+  "trips_add_label": "Ajouter un voyage",
+  "trips_actions_delete_tooltip": "Supprimer",
+  "trips_actions_edit_tooltip": "Modifier",
+  "trips_delete_title": "Supprimer ce voyage ?",
+  "trips_delete_confirm": "Supprimer",
+  "trips_delete_toast": "Suppression confirmée (UI seulement).",
+  "trips_edit_toast": "Édition à venir.",
+  "common_cancel": "Annuler",
+  "trips_delete_message": "« {tripTitle} » sera supprimé de votre liste. Cette action est irréversible.",
+  "@trips_delete_message": { "placeholders": { "tripTitle": { "type": "Object" } } },
+  "trips_delete_success": "Voyage supprimé.",
+  "trips_delete_error": "Échec de la suppression du voyage.",
+  "trips_update_success": "Voyage mis à jour.",
+  "trips_update_error": "Échec de la mise à jour du voyage.",
+  "tripEditTitle": "Modifier le voyage",
+  "tripEditSave": "Enregistrer",
+  "trips_update_success": "Voyage mis à jour.",
+  "trips_update_error": "Échec de la mise à jour du voyage.",
+  "tripNoAddress": "Aucune adresse",
+  "addHotelAddress": "ajouter l'adresse",
+
+  "addressFormTitle": "Définir l'adresse de l'hôtel",
+  "cityLabel": "Ville",
+  "cityHint": "ex. Dallas",
+  "addressLabel": "Adresse",
+  "addressHint": "Tape au moins 3 lettres…",
+  "fillCityFirst": "Saisis d'abord la ville",
+  "typeAtLeast3Chars": "Tape au moins 3 lettres pour rechercher.",
+  "genericError": "Une erreur est survenue.",
+  "noResults": "Aucun résultat."
 
 }

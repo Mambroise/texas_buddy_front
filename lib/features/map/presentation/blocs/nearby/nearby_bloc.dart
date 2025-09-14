@@ -13,8 +13,7 @@ import 'package:texas_buddy/features/map/domain/entities/nearby_item.dart';
 import 'package:texas_buddy/features/map/domain/usecases/get_nearby.dart';
 import 'package:texas_buddy/features/map/domain/usecases/get_nearby_in_bounds.dart';
 import 'package:texas_buddy/features/map/domain/usecases/get_cached_nearby_in_bounds.dart';
-import 'package:texas_buddy/core/errors/failure.dart';
-import 'package:texas_buddy/core/errors/error_mapper.dart';
+
 
 part 'nearby_event.dart';
 part 'nearby_state.dart';

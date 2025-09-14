@@ -51,14 +51,6 @@ class _LandingScaffoldState extends State<LandingScaffold> {
     _TabNavigator(key: _navKeys[2], child: const CommunityPage()),
   ];
 
-  Future<bool> _onWillPop() async {
-    final NavigatorState? currentNavigator = _navKeys[_currentIndex].currentState;
-    if (currentNavigator?.canPop() ?? false) {
-      currentNavigator!.pop();
-      return false;
-    }
-    return true;
-  }
 
   Future<void> _openMapMenu(BuildContext ctx) async {
     final choice = await showModalBottomSheet<String>(
@@ -88,12 +80,15 @@ class _LandingScaffoldState extends State<LandingScaffold> {
         BlocProvider<NearbyBloc>(create: (_) => getIt<NearbyBloc>()),
         BlocProvider<AllEventsBloc>(create: (_) => getIt<AllEventsBloc>()),
         BlocProvider<MapModeCubit>(create: (_) => MapModeCubit()),
-        BlocProvider<DetailPanelBloc>(
-          create: (_) => DetailPanelBloc(
+        BlocProvider<DetailPanelBloc>(create: (_) => DetailPanelBloc(
             getActivity: getIt<GetActivityDetail>(),
             getEvent:    getIt<GetEventDetail>(),
           ),
         ),
+        BlocProvider<TripsCubit>(
+          create: (_) => getIt<TripsCubit>()..fetchAll(),
+        ),
+
       ],
       child: Builder(
         builder: (ctx) {

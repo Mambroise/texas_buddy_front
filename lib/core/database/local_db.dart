@@ -82,27 +82,6 @@ class LocalDatabase {
     '''
     );
 
-    // Advertisement table
-    await db.execute('''
-      CREATE TABLE advertisements (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        io_reference_number TEXT,
-        contract_id INTEGER,
-        campaign_type TEXT,
-        format TEXT,
-        title TEXT,
-        ad_creative_content_text TEXT,
-        image_url TEXT,
-        video_url TEXT,
-        link_url TEXT,
-        push_message TEXT,
-        start_date TEXT,
-        end_date TEXT,
-        related_activity_id INTEGER,
-        related_event_id INTEGER
-      )
-    '''
-    );
 
     // Activity table
     await db.execute('''
