@@ -22,6 +22,8 @@ class CategoryChipsBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final Color blue = AppColors.texasBlue;
+    final Color activeColor = AppColors.texasRed ;
+    final Color inactiveColor = AppColors.texasBlue;
 
     // Labels 100% localisés via ARB
     final chips = <ChipSpec>[
@@ -94,7 +96,10 @@ class CategoryChipsBar extends StatelessWidget {
                 return FilterChip(
                   label: Text(
                     spec.label,
-                    style: TextStyle(color: blue, fontWeight: FontWeight.w600),
+                    style: TextStyle(
+                      color: active ? activeColor : inactiveColor,  // ✅ label rouge si actif
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   showCheckmark: false,
                   backgroundColor: Colors.white,
@@ -103,7 +108,9 @@ class CategoryChipsBar extends StatelessWidget {
                   pressElevation: 3,
                   shadowColor: Colors.black26,
                   side: BorderSide(
-                    color: active ? blue : blue.withValues(alpha: 0.35),
+                    color: active
+                        ? activeColor                                 // ✅ bordure rouge si actif
+                        : inactiveColor.withValues(alpha: 0.35),
                     width: active ? 1.6 : 1.0,
                   ),
                   shape: const StadiumBorder(),
@@ -113,14 +120,14 @@ class CategoryChipsBar extends StatelessWidget {
                   onSelected: (_) {
                     final cubit = context.read<CategoryFilterCubit>();
                     if (isAll) {
-                      cubit.clear(); // reset
+                      cubit.clear();
                     } else if (isTypeOnly) {
-                      cubit.setEventsOnly(!eventsOnly); // toggle events-only
+                      cubit.setEventsOnly(!eventsOnly);
                     } else {
                       cubit.setEventsOnly(false);
                       cubit.toggleMany(spec.categories);
                     }
-                    onChanged(); // MapPage: local render + server fetch
+                    onChanged();
                   },
                 );
               },

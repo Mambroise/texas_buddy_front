@@ -298,8 +298,91 @@ class L10nEn extends L10n {
   String get tripCreateTodoPersist => 'TODO: persist the trip in DB';
 
   @override
+  String get trips_create_success => 'trip successfully created';
+
+  @override
   String get tripCreateAdults => 'Adults';
 
   @override
   String get tripCreateChildren => 'Children';
+
+  @override
+  String get trips_add_label => 'Add a trip';
+
+  @override
+  String get trips_actions_delete_tooltip => 'Delete';
+
+  @override
+  String get trips_actions_edit_tooltip => 'Edit';
+
+  @override
+  String get trips_delete_title => 'Delete this trip?';
+
+  @override
+  String get trips_delete_confirm => 'Delete';
+
+  @override
+  String get trips_delete_toast => 'Deletion confirmed (UI only).';
+
+  @override
+  String get trips_edit_toast => 'Edit coming soon.';
+
+  @override
+  String get common_cancel => 'Cancel';
+
+  @override
+  String trips_delete_message(Object tripTitle) {
+    return '\"$tripTitle\" will be removed from your list. This action is irreversible.';
+  }
+
+  @override
+  String get trips_delete_success => 'Trip deleted.';
+
+  @override
+  String get trips_delete_error => 'Failed to delete trip.';
+
+  @override
+  String get trips_update_success => 'Trip updated.';
+
+  @override
+  String get trips_update_error => 'Failed to update trip.';
+
+  @override
+  String get tripEditTitle => 'Edit trip';
+
+  @override
+  String get tripEditSave => 'Save';
+
+  @override
+  String get tripNoAddress => 'No address';
+
+  @override
+  String get addHotelAddress => 'Add an address';
+
+  @override
+  String get addressFormTitle => 'Set hotel address';
+
+  @override
+  String get cityLabel => 'City';
+
+  @override
+  String get cityHint => 'e.g. Dallas';
+
+  @override
+  String get addressLabel => 'Address';
+
+  @override
+  String get addressHint => 'Type at least 3 letters…';
+
+  @override
+  String get fillCityFirst => 'Enter the city first';
+
+  @override
+  String get typeAtLeast3Chars => 'Type at least 3 letters to search.';
+
+  @override
+  String get genericError => 'An error occurred.';
+
+  @override
+  String get noResults => 'No results found.';
 }

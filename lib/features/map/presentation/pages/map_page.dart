@@ -30,6 +30,7 @@ import 'package:texas_buddy/features/map/domain/entities/nearby_item.dart';
 import 'package:texas_buddy/features/map/presentation/cubits/category_filter_cubit.dart';
 import 'package:texas_buddy/features/map/presentation/cubits/map_mode_cubit.dart';
 import 'package:texas_buddy/features/map/presentation/widgets/category_chip_bar.dart';
+import 'package:texas_buddy/features/map/presentation/layers/planning_scrim_layer.dart';
 
 // Layers (pins + labels)
 import 'package:texas_buddy/features/map/presentation/layers/pins_layer.dart';
@@ -483,23 +484,11 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
                 ),
               ),
 
-              // ⬇️ SCRIM VISUEL (ne bloque pas la carte)
-              BlocBuilder<PlanningOverlayCubit, PlanningOverlayState>(
-                buildWhen: (p, n) => p.visible != n.visible || p.expanded != n.expanded,
-                builder: (ctx, ovr) {
-                  final show = ovr.visible;
-                  final opacity = ovr.expanded ? 0.22 : 0.12; // ajuste à ton goût
-                  return Positioned.fill(
-                    child: IgnorePointer(       // ← laisse passer tous les gestes à la map
-                      ignoring: true,
-                      child: AnimatedOpacity(
-                        duration: const Duration(milliseconds: 180),
-                        opacity: show ? opacity : 0.0,
-                        child: Container(color: Colors.black),
-                      ),
-                    ),
-                  );
-                },
+              // ⬇️ SCRIM VISUEL (dimming.ne bloque pas la carte) voile sur carte
+              const PlanningScrimLayer(
+                expandedOpacity: 0.78,   // ex: plus sombre en expanded
+                collapsedOpacity: 0.68,  // ex: plus sombre en collapsed
+                // absorbGestures: true,  // si un jour tu veux bloquer la map sous le voile
               ),
 
               // Category chip bar

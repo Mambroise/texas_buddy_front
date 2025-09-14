@@ -643,6 +643,12 @@ abstract class L10n {
   /// **'TODO: persist the trip in DB'**
   String get tripCreateTodoPersist;
 
+  /// No description provided for @trips_create_success.
+  ///
+  /// In en, this message translates to:
+  /// **'trip successfully created'**
+  String get trips_create_success;
+
   /// No description provided for @tripCreateAdults.
   ///
   /// In en, this message translates to:
@@ -654,6 +660,162 @@ abstract class L10n {
   /// In en, this message translates to:
   /// **'Children'**
   String get tripCreateChildren;
+
+  /// No description provided for @trips_add_label.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a trip'**
+  String get trips_add_label;
+
+  /// No description provided for @trips_actions_delete_tooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get trips_actions_delete_tooltip;
+
+  /// No description provided for @trips_actions_edit_tooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get trips_actions_edit_tooltip;
+
+  /// No description provided for @trips_delete_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this trip?'**
+  String get trips_delete_title;
+
+  /// No description provided for @trips_delete_confirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get trips_delete_confirm;
+
+  /// No description provided for @trips_delete_toast.
+  ///
+  /// In en, this message translates to:
+  /// **'Deletion confirmed (UI only).'**
+  String get trips_delete_toast;
+
+  /// No description provided for @trips_edit_toast.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit coming soon.'**
+  String get trips_edit_toast;
+
+  /// No description provided for @common_cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get common_cancel;
+
+  /// No description provided for @trips_delete_message.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{tripTitle}\" will be removed from your list. This action is irreversible.'**
+  String trips_delete_message(Object tripTitle);
+
+  /// No description provided for @trips_delete_success.
+  ///
+  /// In en, this message translates to:
+  /// **'Trip deleted.'**
+  String get trips_delete_success;
+
+  /// No description provided for @trips_delete_error.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to delete trip.'**
+  String get trips_delete_error;
+
+  /// No description provided for @trips_update_success.
+  ///
+  /// In en, this message translates to:
+  /// **'Trip updated.'**
+  String get trips_update_success;
+
+  /// No description provided for @trips_update_error.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed to update trip.'**
+  String get trips_update_error;
+
+  /// No description provided for @tripEditTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit trip'**
+  String get tripEditTitle;
+
+  /// No description provided for @tripEditSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get tripEditSave;
+
+  /// No description provided for @tripNoAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'No address'**
+  String get tripNoAddress;
+
+  /// No description provided for @addHotelAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Add an address'**
+  String get addHotelAddress;
+
+  /// No description provided for @addressFormTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Set hotel address'**
+  String get addressFormTitle;
+
+  /// No description provided for @cityLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'City'**
+  String get cityLabel;
+
+  /// No description provided for @cityHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Dallas'**
+  String get cityHint;
+
+  /// No description provided for @addressLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Address'**
+  String get addressLabel;
+
+  /// No description provided for @addressHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Type at least 3 letters…'**
+  String get addressHint;
+
+  /// No description provided for @fillCityFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the city first'**
+  String get fillCityFirst;
+
+  /// No description provided for @typeAtLeast3Chars.
+  ///
+  /// In en, this message translates to:
+  /// **'Type at least 3 letters to search.'**
+  String get typeAtLeast3Chars;
+
+  /// No description provided for @genericError.
+  ///
+  /// In en, this message translates to:
+  /// **'An error occurred.'**
+  String get genericError;
+
+  /// No description provided for @noResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No results found.'**
+  String get noResults;
 }
 
 class _L10nDelegate extends LocalizationsDelegate<L10n> {
