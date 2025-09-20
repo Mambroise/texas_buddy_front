@@ -5,8 +5,7 @@
 // Author : Morice
 //---------------------------------------------------------------------------
 
-// lib/main.dart
-// lib/main.dart
+
 import 'dart:ui';
 import 'package:flutter/material.dart';
 
@@ -15,6 +14,9 @@ import 'package:texas_buddy/core/network/dio_client.dart';    // ✅ createDioCl
 import 'package:texas_buddy/app/di/service_locator.dart';
 import 'package:texas_buddy/app/router/auth_notifier.dart';
 import 'package:texas_buddy/app/app.dart';
+
+// ← import DB provider (tu as placé le fichier dans lib/core/database)
+import 'package:texas_buddy/core/database/db_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,6 +35,11 @@ void main() async {
 
   // ✅ crée Dio avec l’interceptor de langue basé sur currentLocale
   final dio = createDioClient(currentLocale: currentLocale);
+
+  // --- Initialise la BDD locale (création des tables IF NOT EXISTS)
+  //     On attend ici l'ouverture pour s'assurer que la DB existe si d'autres
+  //     composants (ex: service locator) en ont besoin au boot.
+  await DBProvider.instance.db;
 
   // ✅ ta signature actuelle: setupLocator(Dio dio)
   await setupLocator(dio);

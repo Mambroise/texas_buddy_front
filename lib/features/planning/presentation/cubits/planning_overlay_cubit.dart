@@ -5,16 +5,20 @@
 // Author : Morice
 //---------------------------------------------------------------------------
 
-
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
-import '../../domain/entities/trip.dart';
-import '../../domain/entities/trip_day.dart';
 import 'package:collection/collection.dart';
 
+import '../../domain/entities/trip.dart';
+import '../../domain/entities/trip_day.dart';
+import '../../domain/entities/trip_step.dart';
+
+// ✅ injecté par constructeur
+import '../../domain/usecases/trips/create_trip_step.dart';
+
 class PlanningOverlayState extends Equatable {
-  final bool visible;      // calque affiché ?
-  final bool expanded;     // calque entièrement visible ou peek (20%)
+  final bool visible;
+  final bool expanded;
   final Trip? selectedTrip;
   final TripDay? selectedDay;
 
@@ -48,12 +52,59 @@ class PlanningOverlayState extends Equatable {
 }
 
 class PlanningOverlayCubit extends Cubit<PlanningOverlayState> {
-  PlanningOverlayCubit() : super(PlanningOverlayState.initial());
+  // ✅ Usecase fortement typé et non-null
+  final CreateTripStep createTripStep;
+
+  PlanningOverlayCubit({required this.createTripStep})
+      : super(PlanningOverlayState.initial());
+
   bool kPlanningDebug = true;
   void d(String msg) { if (kPlanningDebug) print(msg); }
 
+  // ---- Helpers privés -----------------------------------------------------
 
-  /// Applique un Trip fraîchement rechargé et recalcule le selectedDay
+  TripDay? _dayById(int id) {
+    final t = state.selectedTrip;
+    if (t == null) return null;
+    return t.days.firstWhereOrNull((d) => d.id == id);
+  }
+
+  void _emitWithUpdatedDayOnly(TripDay newDay) {
+    emit(state.copyWith(selectedDay: newDay));
+  }
+
+  void _emitWithUpdatedTripIfPossible(TripDay newDay) {
+    final t = state.selectedTrip;
+    if (t == null) {
+      _emitWithUpdatedDayOnly(newDay);
+      return;
+    }
+    try {
+      final newDays = t.days.map((d) => d.id == newDay.id ? newDay : d).toList();
+      // ignore: avoid_dynamic_calls
+      final Trip newTrip = (t as dynamic).copyWith(days: newDays) as Trip;
+      emit(state.copyWith(selectedTrip: newTrip, selectedDay: newDay));
+    } catch (_) {
+      _emitWithUpdatedDayOnly(newDay);
+    }
+  }
+
+  // ---- UI controls --------------------------------------------------------
+
+  void toggleOverlay() => emit(state.copyWith(visible: !state.visible));
+
+  void toggleExpanded() {
+    if (!state.visible) return;
+    emit(state.copyWith(expanded: !state.expanded));
+  }
+
+  void expand() => emit(state.copyWith(visible: true, expanded: true));
+  void collapse() => emit(state.copyWith(expanded: false));
+  void showExpanded() => emit(state.copyWith(visible: true, expanded: true));
+  void hide() => emit(const PlanningOverlayState(visible: false, expanded: false));
+
+  // ---- Data wiring --------------------------------------------------------
+
   void applyRefreshedTrip(Trip newTrip) {
     final int? curDayId = state.selectedDay?.id;
 
@@ -69,25 +120,10 @@ class PlanningOverlayCubit extends Cubit<PlanningOverlayState> {
     ));
   }
 
-  // === UI controls ===
-  void toggleOverlay() => emit(state.copyWith(visible: !state.visible));
-  void toggleExpanded() {
-    if (!state.visible) return;
-    emit(state.copyWith(expanded: !state.expanded));
-  }
-  void expand() => emit(state.copyWith(visible: true, expanded: true));
-  void collapse() => emit(state.copyWith(expanded: false));
-  void showExpanded() => emit(state.copyWith(visible: true, expanded: true));
-  void hide() => emit(const PlanningOverlayState(visible: false, expanded: false));
-
-  // === Data wiring ===
-  /// Injecte un Trip complet (déjà fetch côté repo), positionne selectedDay sur le premier jour.
   void setTrip(Trip t) {
-    // DEBUG
     d('[OverlayCubit] setTrip(tripId=${t.id}) days=${t.days.length}');
     if (t.days.isNotEmpty) {
       final first = t.days.first;
-      // ⚠️ si TripDay a bien steps[]
       try {
         d('[OverlayCubit] firstDay id=${first.id} date=${first.date} '
             'addr="${first.address}" steps=${first.steps.length}');
@@ -96,12 +132,10 @@ class PlanningOverlayCubit extends Cubit<PlanningOverlayState> {
             'addr="${first.address}" steps=<no field>');
       }
     }
-
     final first = t.days.isNotEmpty ? t.days.first : null;
     emit(state.copyWith(selectedTrip: t, selectedDay: first));
   }
 
-  /// Change le jour courant par date (ex: depuis le TripDaysStrip).
   void selectDay(DateTime date) {
     d('[OverlayCubit] selectDay requested: $date');
     final t = state.selectedTrip;
@@ -123,28 +157,78 @@ class PlanningOverlayCubit extends Cubit<PlanningOverlayState> {
       d('[OverlayCubit] selectDay: found id=${found.id} addr="${found.address}" '
           'steps=${found.steps.length}');
     } catch (_) {
-      d('[OverlayCubit] selectDay: found id=${found.id} addr="${found.address}" '
-          'steps=<no field>');
+      d('[OverlayCubit] selectDay: found id=${found.id} addr="${found.address}" steps=<no field>');
     }
     emit(state.copyWith(selectedDay: found));
   }
 
-  /// (stub) Création d'un step côté domaine, puis refresh local
-  /// A brancher sur ton usecase/repository (POST step, retour step, update TripDay).
+  // ---- Création de step (drop depuis Nearby) ------------------------------
+
   Future<void> createTripStepFromTarget({
-    required DateTime day,
+    required int tripId,
+    required int tripDayId,
     required int startHour,
     required int startMinute,
+    required int estimatedDurationMinutes,
     required String targetType, // "activity"|"event"
     required int targetId,
     required String targetName,
+    String? primaryIcon,
+    List<String> otherIcons = const [],
     String? placeId,
     double? latitude,
     double? longitude,
   }) async {
-    // TODO:
-    // 1. call usecase -> create step (trip_day_id, start_time, target info…)
-    // 2. re-fetch trip OR update selectedDay.steps locally with returned step
-    // 3. emit(state.copyWith(selectedTrip: updatedTrip, selectedDay: updatedDay));
+    try {
+      // 1) Domaine → API
+      final TripStep saved = await createTripStep.execute(
+        tripId: tripId,
+        tripDayId: tripDayId,
+        startHour: startHour,
+        startMinute: startMinute,
+        estimatedDurationMinutes: estimatedDurationMinutes,
+        targetType: targetType,
+        targetId: targetId,
+        targetName: targetName,
+        primaryIcon: primaryIcon,
+        otherIcons: otherIcons,
+        placeId: placeId,
+        latitude: latitude,
+        longitude: longitude,
+      );
+
+      // 2) MAJ du TripDay en mémoire
+      TripDay? day = state.selectedDay;
+      if (day == null || day.id != tripDayId) {
+        day = _dayById(tripDayId);
+      }
+      if (day == null) {
+        d('[OverlayCubit] createTripStepFromTarget: TripDay $tripDayId not found in state');
+        return;
+      }
+
+      final List<TripStep> updatedSteps = [...day.steps, saved];
+
+      TripDay newDay;
+      try {
+        // ignore: avoid_dynamic_calls
+        newDay = (day as dynamic).copyWith(steps: updatedSteps) as TripDay;
+      } catch (_) {
+        newDay = TripDay(
+          id: day.id,
+          date: day.date,
+          address: day.address,
+          latitude: day.latitude,
+          longitude: day.longitude,
+          steps: updatedSteps,
+        );
+      }
+
+      _emitWithUpdatedTripIfPossible(newDay);
+      d('[OverlayCubit] step created ✅ (tripDayId=$tripDayId, steps=${newDay.steps.length})');
+    } catch (e, st) {
+      d('[OverlayCubit] createTripStepFromTarget ERROR: $e\n$st');
+      // (optionnel) émet un état d’erreur si tu en as un
+    }
   }
 }

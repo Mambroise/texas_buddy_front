@@ -7,26 +7,35 @@
 
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:texas_buddy/core/theme/app_colors.dart';
 import 'package:texas_buddy/core/l10n/l10n_ext.dart';
 import 'package:texas_buddy/features/planning/presentation/widgets/hours_list.dart';
 import 'package:texas_buddy/features/map/domain/entities/nearby_item.dart';
+import 'package:texas_buddy/features/map/presentation/cubits/map_focus_cubit.dart';
 
 
 
 class TripStepVm {
+  final int? id;
   final TimeOfDay start;
   final int durationMin;
   final String title;
+
+  final double? latitude;
+  final double? longitude;
 
   /// Icônes déjà résolues (plus de mapping ici)
   final IconData? primaryIcon;
   final List<IconData> otherIcons;
 
   const TripStepVm({
+    this.id,
     required this.start,
     required this.durationMin,
     required this.title,
+    this.latitude,
+    this.longitude,
     this.primaryIcon,
     this.otherIcons = const <IconData>[],
   });
@@ -34,11 +43,13 @@ class TripStepVm {
 
 typedef CreateStepAtTime = Future<void> Function({
 required NearbyItem item,
+required int tripDayId,          // ✅ NOUVEAU
 required DateTime day,
 required TimeOfDay startTime,
 });
 
 class TimelinePane extends StatefulWidget {
+  final int? selectedTripDayId;
   const TimelinePane({
     super.key,
     required this.height,
@@ -53,12 +64,16 @@ class TimelinePane extends StatefulWidget {
     required this.onRequestExpanded,
     this.stripeFraction = 0.20,
 
+
     // nouveaux
     this.steps = const <TripStepVm>[],
     this.hasAddress = true,
     this.onAddAddress,
     this.selectedDay,
     this.onCreateStep,
+    this.selectedTripDayId,
+    this.tripDayLatitude,
+    this.tripDayLongitude,
   });
 
   final double height;
@@ -79,6 +94,8 @@ class TimelinePane extends StatefulWidget {
   final VoidCallback? onAddAddress;
   final DateTime? selectedDay;
   final CreateStepAtTime? onCreateStep;
+  final double? tripDayLatitude;   // ➕
+  final double? tripDayLongitude;
 
   @override
   State<TimelinePane> createState() => _TimelinePaneState();
@@ -100,31 +117,55 @@ class _TimelinePaneState extends State<TimelinePane> {
   double? _hoverY;
   NearbyItem? _hoverItem;
 
+  int? _selectedStepId;                 // sélection par id si dispo
+  String? _selectedTitleFallback;       // fallback si pas d'id
+  TimeOfDay? _selectedStartFallback;
+
+  // Clé du step qui vient d’être créé (pour l’auto-select après rebuild)
+  String? _pendingTitle;                // on se base sur (title + start)
+  TimeOfDay? _pendingStart;
+
+
   // ---- Helpers temps <-> pixels ------------------------------------------
+
+  bool _hasValidCoords(double? lat, double? lng) =>
+      lat != null && lng != null && lat.abs() > 0.0001 && lng.abs() > 0.0001;
+
+  // Focus helper
+  void _focusTripDayIfPossible() {
+    if (widget.hasAddress &&
+        widget.tripDayLatitude != null &&
+        widget.tripDayLongitude != null) {
+      context.read<MapFocusCubit>().focusTripDay(
+        widget.tripDayLatitude!, widget.tripDayLongitude!, zoom: 14,
+      );
+    }
+  }
 
   double _contentHeight() {
     final slotCount = (widget.lastHour - widget.firstHour) + 1;
     return slotCount * widget.slotHeight;
   }
 
-  double _snapY(double yModel) {
+  double _snapY15(double yModel) {
     final contentH = _contentHeight();
     final clamped = yModel.clamp(0.0, math.max(0.0, contentH - 1.0));
-    final slot = (clamped / widget.slotHeight).roundToDouble();
-    return slot * widget.slotHeight;
+    final quarterH = widget.slotHeight / 4.0;      // 15'
+    final quarter = (clamped / quarterH).roundToDouble();
+    return quarter * quarterH;
   }
 
   TimeOfDay _yToTime(double yUi) {
-    // ramène la coordonnée UI à la "coordonnée modèle" (0 = début d’heure)
     final y = yUi - _gridTopInset;
-    final totalSlots = (y / widget.slotHeight);
-    final hour = widget.firstHour + totalSlots.floor();
-    final minutes = (((totalSlots - totalSlots.floor()) * 60) / 5).round() * 5; // snap 5'
+    final totalHours = y / widget.slotHeight;
+    final hour = widget.firstHour + totalHours.floor();
+    final minutes = (((totalHours - totalHours.floor()) * 60) / 15).round() * 15; // 15'
     return TimeOfDay(
       hour: hour.clamp(0, 23),
-      minute: minutes.clamp(0, 55),
+      minute: minutes.clamp(0, 45),
     );
   }
+
 
   double _timeToY(TimeOfDay t) {
     final h = (t.hour - widget.firstHour).toDouble();
@@ -149,6 +190,70 @@ class _TimelinePaneState extends State<TimelinePane> {
       _hoverY = _localY(d.offset);
       _hoverItem = d.data;
     });
+  }
+  bool _isSelected(TripStepVm s) {
+    if (_selectedStepId != null && s.id != null) {
+      return s.id == _selectedStepId;
+    }
+    return _selectedTitleFallback == s.title &&
+        _selectedStartFallback?.hour == s.start.hour &&
+        _selectedStartFallback?.minute == s.start.minute;
+  }
+
+  void _selectStep(TripStepVm s) {
+    setState(() {
+      _selectedStepId = s.id;
+      _selectedTitleFallback = s.title;
+      _selectedStartFallback = s.start;
+    });
+
+    if (_hasValidCoords(s.latitude, s.longitude)) {
+      context.read<MapFocusCubit>().focusTripStep(s.latitude!, s.longitude!, zoom: 16);
+    } else {
+      _focusTripDayIfPossible();
+    }
+  }
+
+  void _clearSelection() {
+    setState(() {
+      _selectedStepId = null;
+      _selectedTitleFallback = null;
+      _selectedStartFallback = null;
+    });
+    _focusTripDayIfPossible();
+  }
+
+  void _toggleStepSelection(TripStepVm s) {
+    if (_isSelected(s)) {
+      _clearSelection();
+    } else {
+      _selectStep(s);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant TimelinePane old) {
+    super.didUpdateWidget(old);
+
+    // Changement de TripDay → reset sélection et focus TripDay
+    if (old.selectedTripDayId != widget.selectedTripDayId) {
+      _clearSelection();
+    }
+
+// Auto-select du *dernier step créé* (match sur pending title+start)
+    if (_pendingTitle != null && _pendingStart != null) {
+      final idx = widget.steps.indexWhere((s) =>
+      s.title == _pendingTitle &&
+          s.start.hour == _pendingStart!.hour &&
+          s.start.minute == _pendingStart!.minute);
+
+      if (idx != -1) {
+        final created = widget.steps[idx];
+        _selectStep(created);
+        _pendingTitle = null;
+        _pendingStart = null;
+      }
+    }
   }
 
   // ------------------------------------------------------------------------
@@ -227,15 +332,21 @@ class _TimelinePaneState extends State<TimelinePane> {
                                   onAcceptWithDetails: (d) async {
                                     if (widget.onCreateStep == null || widget.selectedDay == null) return;
                                     final y = _localY(d.offset);
-                                    final snapped = _snapY(y);
+                                    final snapped = _snapY15(y);
                                     final t = _yToTime(snapped);
                                     final item = d.data;
                                     setState(() {
                                       _hoverY = null;
                                       _hoverItem = null;
                                     });
+
+                                      // ➕ mémorise la "clé" attendue pour auto-select au prochain rebuild
+                                    _pendingTitle = item.name;
+                                    _pendingStart = t;
+
                                     await widget.onCreateStep!(
                                       item: item,
+                                      tripDayId: widget.selectedTripDayId!,
                                       day: widget.selectedDay!,
                                       startTime: t,
                                     );
@@ -279,15 +390,23 @@ class _TimelinePaneState extends State<TimelinePane> {
                                           ...widget.steps.map((s) {
                                             final top = _timeToY(s.start);
                                             final height = _durationToHeight(s.durationMin);
+                                            final isSelected = _isSelected(s);
                                             return Positioned(
                                               top: top,
                                               left: 0,
                                               right: 0,
                                               height: height,
-                                              child: _StepCard(
-                                                title: s.title,
-                                                primaryIcon: s.primaryIcon,
-                                                otherIcons: s.otherIcons,
+                                              child: GestureDetector(
+                                                onTap: () => _toggleStepSelection(s),
+                                                child: _StepCard(
+                                                  title: s.title,
+                                                  primaryIcon: s.primaryIcon,
+                                                  otherIcons: s.otherIcons,
+                                                  durationMin: s.durationMin,
+                                                  latitude: s.latitude,
+                                                  longitude: s.longitude,
+                                                  selected: isSelected,             // ✅
+                                                ),
                                               ),
                                             );
                                           }),
@@ -295,7 +414,7 @@ class _TimelinePaneState extends State<TimelinePane> {
                                           // --- Guide de drop (ligne + ghost 60') ---
                                           if (_hoverY != null)
                                             Positioned(
-                                              top: _snapY(_hoverY!),
+                                              top: _snapY15(_hoverY!),
                                               left: 0,
                                               right: 0,
                                               child: Column(
@@ -382,61 +501,88 @@ class _StepCard extends StatelessWidget {
   final String title;
   final IconData? primaryIcon;
   final List<IconData> otherIcons;
+  final int? durationMin;
+  final double? latitude;
+  final double? longitude;
+  final bool selected;
 
   const _StepCard({
     required this.title,
     this.primaryIcon,
     this.otherIcons = const [],
+    this.durationMin,
+    this.latitude,
+    this.longitude,
+    this.selected = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      // pleine largeur → padding simple
+      clipBehavior: Clip.hardEdge,
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: AppColors.texasBlue, width: 1),
-        // pas de borderRadius (coins vifs)
+        color: selected ? const Color(0xFFFFF3F3) : Colors.white,
+        border: Border.all(
+          color: selected ? AppColors.texasRedGlow : AppColors.texasBlue,
+          width: selected ? 2 : 1,
+        ),
         boxShadow: const [
           BoxShadow(blurRadius: 12, offset: Offset(0, 6), color: Color(0x24000000)),
           BoxShadow(blurRadius: 24, offset: Offset(0, 12), color: Color(0x14000000)),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Titre centré en haut
-          Text(
-            title,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: AppColors.black,
-              fontWeight: FontWeight.w800,
-              fontSize: 10
-            ),
-          ),
-          const SizedBox(height: 8),
 
-          // Icônes catégories : primary mise en avant + autres dans un wrap
-          if (primaryIcon != null || otherIcons.isNotEmpty)
-            Wrap(
-              spacing: 10,
-              runSpacing: 6,
-              alignment: WrapAlignment.center,
-              children: [
-                if (primaryIcon != null)
-                  Icon(primaryIcon, size: 10, color: AppColors.texasRedGlow),
-                ...otherIcons.map((ic) => Icon(ic, size: 10, color: AppColors.black)),
-              ],
+      // ⬇️ this viewport prevents RenderFlex overflow; it won’t be scrollable
+      child: SingleChildScrollView(
+        physics: const NeverScrollableScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min, // be polite inside the viewport
+          children: [
+            // Titre
+            Text(
+              title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: TextStyle(color: AppColors.black, fontWeight: FontWeight.w800, fontSize: 10),
             ),
-        ],
+            const SizedBox(height: 6),
+
+            // Icônes
+            if (primaryIcon != null || otherIcons.isNotEmpty)
+              Wrap(
+                spacing: 10,
+                runSpacing: 6,
+                alignment: WrapAlignment.center,
+                children: [
+                  if (primaryIcon != null) Icon(primaryIcon, size: 10, color: AppColors.texasRedGlow),
+                  ...otherIcons.map((ic) => Icon(ic, size: 10, color: AppColors.black)),
+                ],
+              ),
+
+            // Durée
+            if (durationMin != null) ...[
+              const SizedBox(height: 6),
+              Text('${durationMin} min', style: TextStyle(fontSize: 10, color: AppColors.black)),
+            ],
+
+            // Lat/Lng (petit, discret)
+            if (latitude != null && longitude != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                '(${latitude!.toStringAsFixed(5)}, ${longitude!.toStringAsFixed(5)})',
+                style: const TextStyle(fontSize: 9, color: Colors.black54),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
 }
+
 
 
 class _NoGlowScroll extends ScrollBehavior {

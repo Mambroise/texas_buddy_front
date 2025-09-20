@@ -1,79 +1,45 @@
 //---------------------------------------------------------------------------
 //                           TEXAS BUDDY   ( 2 0 2 5 )
 //---------------------------------------------------------------------------
-// File   :data/datasources/local/trip_day_local_datasource.dart
+// File   :features/planning/data/datasources/local/trip_day_local_datasource.dart
 // Author : Morice
 //-------------------------------------------------------------------------
 
 
 import 'package:sqflite/sqflite.dart';
-import '../../../../../core/database/local_db.dart';
+import 'package:texas_buddy/core/database/db_provider.dart';
 import '../../models/trip_day_model.dart';
 
-/// A data source for performing CRUD operations on the local
-/// SQLite 'trip_days' table. Acts as the DAO layer for TripDayModel.
-class TripDayLocalDatasource {
-  final LocalDatabase _db = LocalDatabase();
+class TripDayLocalDataSource {
+  TripDayLocalDataSource._();
+  static final TripDayLocalDataSource instance = TripDayLocalDataSource._();
 
-  /// Inserts a new [TripDayModel] into the 'trip_days' table.
-  ///
-  /// If an entry with the same primary key already exists,
-  /// it will be replaced (ConflictAlgorithm.replace).
-  Future<void> insertTripDay(TripDayModel tripDay) async {
-    final db = await _db.database;
-    await db.insert(
-      'trip_days',
-      tripDay.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+  Future<int> insertTripDay(TripDayModel d) async {
+    final Database db = await DBProvider.instance.db;
+    return await db.insert('trip_days', d.toMap());
   }
 
-  /// Retrieves a single [TripDayModel] by its [id].
-  ///
-  /// Returns null if no matching row is found.
+  Future<int> updateTripDay(TripDayModel d) async {
+    if (d.id == null) throw Exception('TripDayModel.id is null');
+    final Database db = await DBProvider.instance.db;
+    return await db.update('trip_days', d.toMap(), where: 'id = ?', whereArgs: [d.id]);
+  }
+
   Future<TripDayModel?> getTripDayById(int id) async {
-    final db = await _db.database;
-    final maps = await db.query(
-      'trip_days',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-    if (maps.isNotEmpty) {
-      return TripDayModel.fromMap(maps.first);
-    }
-    return null;
+    final Database db = await DBProvider.instance.db;
+    final rows = await db.query('trip_days', where: 'id = ?', whereArgs: [id], limit: 1);
+    if (rows.isEmpty) return null;
+    return TripDayModel.fromMap(rows.first);
   }
 
-  /// Retrieves all [TripDayModel] rows associated with a given [tripId].
-  ///
-  /// Returns an empty list if no trip days are found.
-  Future<List<TripDayModel>> getTripDaysByTripId(int tripId) async {
-    final db = await _db.database;
-    final result = await db.query(
-      'trip_days',
-      where: 'trip_id = ?',
-      whereArgs: [tripId],
-    );
-    return result.map((map) => TripDayModel.fromMap(map)).toList();
+  Future<List<TripDayModel>> getTripDaysForTrip(int tripId) async {
+    final Database db = await DBProvider.instance.db;
+    final rows = await db.query('trip_days', where: 'trip_id = ?', whereArgs: [tripId], orderBy: 'date ASC');
+    return rows.map((r) => TripDayModel.fromMap(r)).toList();
   }
 
-  /// Deletes the trip day row matching the given [id].
-  ///
-  /// If no row matches, nothing happens.
-  Future<void> deleteTripDay(int id) async {
-    final db = await _db.database;
-    await db.delete(
-      'trip_days',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-  }
-
-  /// Clears all rows from the 'trip_days' table.
-  ///
-  /// Use with care: this will remove all locally cached trip days.
-  Future<void> clearAll() async {
-    final db = await _db.database;
-    await db.delete('trip_days');
+  Future<int> deleteTripDay(int id) async {
+    final Database db = await DBProvider.instance.db;
+    return await db.delete('trip_days', where: 'id = ?', whereArgs: [id]);
   }
 }
