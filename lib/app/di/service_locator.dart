@@ -43,6 +43,11 @@ import 'package:texas_buddy/features/planning/data/datasources/remote/trip_remot
 import 'package:texas_buddy/features/planning/data/repositories/trip_repository_impl.dart';
 import 'package:texas_buddy/features/planning/domain/repositories/trip_repository.dart';
 
+import 'package:texas_buddy/features/planning/data/datasources/remote/trip_step_remote_datasource.dart';
+import 'package:texas_buddy/features/planning/data/repositories/trip_step_repository_impl.dart';
+import 'package:texas_buddy/features/planning/domain/repositories/trip_step_repository.dart';
+
+
 
 // Usecases
 import 'package:texas_buddy/features/auth/domain/usecases/login_usecase.dart';
@@ -77,6 +82,8 @@ import 'package:texas_buddy/features/planning/domain/usecases/address_search/sea
 import 'package:texas_buddy/features/planning/domain/usecases/address_search/select_address_usecase.dart';
 import 'package:texas_buddy/features/planning/domain/usecases/trips/update_tripday_address_usecase.dart';
 
+import 'package:texas_buddy/features/planning/domain/usecases/trips/create_trip_step.dart';
+
 
 // Caches
 import 'package:texas_buddy/features/map/data/cache/nearby_memory_cache.dart';
@@ -101,6 +108,8 @@ import 'package:texas_buddy/features/map/presentation/blocs/nearby/nearby_bloc.d
 // Cubits
 import 'package:texas_buddy/features/user/presentation/cubits/user_overview_cubit.dart';
 import 'package:texas_buddy/features/planning/presentation/cubits/trips_cubit.dart';
+import 'package:texas_buddy/features/planning/presentation/cubits/planning_overlay_cubit.dart';
+import 'package:texas_buddy/features/map/presentation/cubits/map_focus_cubit.dart';
 
 final getIt = GetIt.instance;
 
@@ -153,6 +162,10 @@ Future<void> setupLocator(Dio dio) async {
         () => TripRemoteDataSourceImpl(getIt<Dio>()),
   );
 
+  getIt.registerLazySingleton<TripStepRemoteDataSource>(
+        () => TripStepRemoteDataSourceImpl(getIt<Dio>()),
+  );
+
   // ── Repositories ─────────────────────────────────────────────────────────
   getIt.registerLazySingleton<AuthRepository>(
         () => AuthRepositoryImpl(getIt<AuthRemoteDatasource>(), getIt<TokenStorage>()),
@@ -188,6 +201,10 @@ Future<void> setupLocator(Dio dio) async {
   );
 
   getIt.registerLazySingleton<TripRepository>(() => TripRepositoryImpl(getIt()));
+
+  getIt.registerLazySingleton<TripStepRepository>(
+        () => TripStepRepositoryImpl(getIt<TripStepRemoteDataSource>()),
+  );
 
   // ── UseCases ─────────────────────────────────────────────────────────────
   getIt.registerFactory<LoginUseCase>(() => LoginUseCase(getIt<AuthRepository>()));
@@ -237,6 +254,9 @@ Future<void> setupLocator(Dio dio) async {
         () => UpdateTripDayAddressUseCase(getIt<TripRepository>()),
   );
 
+  getIt.registerLazySingleton<CreateTripStep>(
+        () => CreateTripStep(getIt<TripStepRepository>()),
+  );
 
   // ── App State (router) ───────────────────────────────────────────────────
   getIt.registerLazySingleton<AuthNotifier>(() => AuthNotifier(getIt<CheckSessionUseCase>()));
@@ -296,4 +316,11 @@ Future<void> setupLocator(Dio dio) async {
     updateTripUsecase: getIt<UpdateTrip>(),
     tripRepository: getIt<TripRepository>(), // ✅ manquait
   ));
+
+// après avoir enregistré CreateTripStep
+  getIt.registerFactory<PlanningOverlayCubit>(() =>
+      PlanningOverlayCubit(createTripStep: getIt<CreateTripStep>()));
+
+  getIt.registerFactory<MapFocusCubit>(() => MapFocusCubit());
+
 }

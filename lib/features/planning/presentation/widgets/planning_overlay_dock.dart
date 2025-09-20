@@ -7,6 +7,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:texas_buddy/features/map/presentation/blocs/nearby/nearby_bloc.dart';
 import 'package:texas_buddy/features/planning/presentation/cubits/planning_overlay_cubit.dart';
 import 'package:texas_buddy/features/planning/presentation/overlay/planning_overlay.dart';
 import 'package:texas_buddy/core/theme/app_colors.dart';
@@ -55,14 +56,30 @@ class PlanningOverlayDock extends StatelessWidget {
             switchOutCurve: curve,
             transitionBuilder: (child, anim) => FadeTransition(opacity: anim, child: child),
             child: ovr.visible
-                ? PlanningOverlay(
-              key: const ValueKey('planning-overlay'),
-              width: panelWidth,
-              height: panelHeight,
-              onToggleTap: context.read<PlanningOverlayCubit>().toggleExpanded,
-              stripeColor: stripeColor,
-              hourTextColor: hourTextColor,
-              slotHeight: 80.0,
+                ? Builder(
+              builder: (ctx) {
+                // (Optionnel) Déclenche un refresh si rien n'est chargé
+                final nearbyState = ctx.read<NearbyBloc>().state;
+                if (nearbyState.items.isEmpty && nearbyState.status != NearbyStatus.loading) {
+                  // exemple min: appel legacy GetNearby (centre = Dallas pour démarrer)
+                  // mieux: utiliser des bounds réels si tu les as (MapCubit / last bounds)
+                  ctx.read<NearbyBloc>().add(NearbyRequested(
+                    latitude: 32.7767, // Dallas center par défaut
+                    longitude: -96.7970,
+                    radiusKm: 25,
+                    limit: 100,
+                  ));
+                }
+                return PlanningOverlay(
+                  key: const ValueKey('planning-overlay'),
+                  width: panelWidth,
+                  height: panelHeight,
+                  onToggleTap: context.read<PlanningOverlayCubit>().toggleExpanded,
+                  stripeColor: stripeColor,
+                  hourTextColor: hourTextColor,
+                  slotHeight: 80.0,
+                );
+              },
             )
                 : const SizedBox.shrink(),
           ),

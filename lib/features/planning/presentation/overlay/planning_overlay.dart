@@ -7,7 +7,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:texas_buddy/core/theme/app_colors.dart';
 
 import 'package:texas_buddy/features/planning/presentation/cubits/planning_overlay_cubit.dart';
 import 'package:texas_buddy/features/planning/presentation/widgets/trip_strip/trips_strip.dart';
@@ -16,9 +15,9 @@ import 'package:texas_buddy/features/planning/presentation/widgets/trip_strip/tr
 import 'package:texas_buddy/features/planning/presentation/widgets/timeline/timeline_pane.dart';
 import 'package:texas_buddy/features/planning/presentation/widgets/sheets/address_search_sheet.dart';
 
-
 // NearbyItem (pour Draggable côté droit)
 import 'package:texas_buddy/features/map/domain/entities/nearby_item.dart';
+import 'package:texas_buddy/features/planning/presentation/widgets/nearby/nearby_draggable_list.dart';
 
 // Domain entities pour mapper les steps
 import 'package:texas_buddy/features/planning/domain/entities/trip_day.dart';
@@ -50,6 +49,41 @@ class PlanningOverlay extends StatefulWidget {
 }
 
 class _PlanningOverlayState extends State<PlanningOverlay> {
+  // --- Helpers Nearby → backend fields ------------------------------------
+
+  String _typeFromKind(NearbyItem it) {
+    final k = it.kind.toString().toLowerCase();
+    return k.contains('event') ? 'event' : 'activity';
+  }
+
+  int _defaultDurationMinFor(NearbyItem it) {
+    // si event avec dates → durée réelle bornée (15'..240')
+    if (it.startDateTime != null && it.endDateTime != null) {
+      final d = it.endDateTime!.difference(it.startDateTime!).inMinutes;
+      if (d.isFinite) {
+        final clamped = d.clamp(15, 240);
+        return clamped;
+      }
+    }
+    return 60; // activité par défaut : 60'
+  }
+
+  List<String> _otherIconKeysOf(NearbyItem it) {
+    final primary = it.primaryCategory?.trim();
+    final cats = it.categories;
+    if (cats.isEmpty) return const [];
+    final out = <String>[];
+    final seen = <String>{};
+    for (final raw in cats) {
+      final key = raw.trim();
+      if (key.isEmpty) continue;
+      if (primary != null && key == primary) continue;
+      if (seen.add(key)) out.add(key);
+    }
+    return out;
+  }
+
+  // ------------------------------------------------------------------------
 
   @override
   Widget build(BuildContext context) {
@@ -91,17 +125,11 @@ class _PlanningOverlayState extends State<PlanningOverlay> {
         });
 
       stepsVm = sorted.map((s) {
-        final tod = TimeOfDay(hour: s.startHour, minute: s.startMinute);
-        final title = s.target.name;
-        print("+++++++++++++++++++++++++++++++++++++++++++++++++++++++++ primaryIcon");
-        print(s.target.primaryIcon);
-        print("attention au otherIcons venant de target");
-        print(s.target.otherIcons);
+
         // Durée: estimatedDurationMinutes > sinon calcul end - start > sinon 60'
-        final dyn = s as dynamic;
         int durationMin = 60;
         try {
-          print("dans le 1er try");
+          final dyn = s as dynamic;
           durationMin = (dyn.estimatedDurationMinutes as int?) ??
               ((dyn.endHour is int && dyn.endMinute is int)
                   ? ((dyn.endHour as int) * 60 +
@@ -113,7 +141,7 @@ class _PlanningOverlayState extends State<PlanningOverlay> {
         }
         if (durationMin <= 0) durationMin = 60;
 
-// --- Icônes catégories → IconData ---------------------------------
+        // --- Icônes catégories → IconData ---------------------------------
         IconData? primaryIconData;
         final List<IconData> otherIconDatas = <IconData>[];
 
@@ -126,7 +154,6 @@ class _PlanningOverlayState extends State<PlanningOverlay> {
           for (final iconStr in s.target.otherIcons) {
             if (iconStr.trim().isEmpty) continue;
             final ic = CategoryIconMapper.map(iconStr);
-            // évite le doublon si c'est la même que la primaire
             if (primaryIconData == null || ic != primaryIconData) {
               otherIconDatas.add(ic);
             }
@@ -136,17 +163,18 @@ class _PlanningOverlayState extends State<PlanningOverlay> {
         }
 
         return TripStepVm(
-          start: tod,
+          id: s.id,
+          start: TimeOfDay(hour: s.startHour, minute: s.startMinute),
           durationMin: durationMin,
-          title: title,
+          title: s.target.name,
+          latitude: (s.target.latitude == 0) ? null : s.target.latitude,
+          longitude: (s.target.longitude == 0) ? null : s.target.longitude,
           primaryIcon: primaryIconData,
           otherIcons: otherIconDatas,
         );
+
       }).toList();
     }
-
-    // Colonne droite : branchera plus tard NearbyBloc / vraie data
-    final List<NearbyItem> nearbyItems = const [];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -202,20 +230,17 @@ class _PlanningOverlayState extends State<PlanningOverlay> {
                       steps: stepsVm,
                       hasAddress: hasAddress,
                       selectedDay: selectedDayDate,
+                      tripDayLatitude: day?.latitude,     // ✅ nouveau
+                      tripDayLongitude: day?.longitude,
+                      selectedTripDayId: day?.id, // ✅ nécessaire pour créer le step au bon endroit
 
                       // ✅ bouton "Ajouter une adresse"
                       onAddAddress: () async {
                         final tripDayId = day?.id;
-                        if (tripDayId == null || tripDayId <= 0) {
-                          return;
-                        }
+                        if (tripDayId == null || tripDayId <= 0) return;
 
-                        // ✅ Récupérer l'id du trip sélectionné
                         final tripId = context.read<PlanningOverlayCubit>().state.selectedTrip?.id;
-                        if (tripId == null || tripId <= 0) {
-                          // tu peux afficher un snackbar si tu veux
-                          return;
-                        }
+                        if (tripId == null || tripId <= 0) return;
 
                         await showModalBottomSheet(
                           context: context,
@@ -238,114 +263,55 @@ class _PlanningOverlayState extends State<PlanningOverlay> {
                         );
                       },
 
-                      // --- création d'un step au drop (inchangé) ---
-                      onCreateStep: ({required item, required day, required startTime}) async {
-                        final d = item as dynamic;
+                      // --- création d'un step au drop ---
+                      onCreateStep: ({
+                        required NearbyItem item,
+                        required int tripDayId,
+                        required DateTime day,
+                        required TimeOfDay startTime,
+                      }) async {
+                        final tripId = context.read<PlanningOverlayCubit>().state.selectedTrip?.id;
+                        if (tripId == null) return;
+
+                        final targetType = _typeFromKind(item);      // "activity" | "event"
+                        final targetId   = int.tryParse(item.id) ?? -1; // si id est String dans le domain
+                        final targetName = item.name;
+                        final durationMin = _defaultDurationMinFor(item);
+                        final primaryIcon = item.primaryCategory;    // clé FA "fa-xxx" si dispo
+                        final otherIcons  = _otherIconKeysOf(item);  // autres clés FA
+                        final lat = item.latitude;
+                        final lng = item.longitude;
+
                         await (context.read<PlanningOverlayCubit>() as dynamic).createTripStepFromTarget(
-                          day: day,
+                          tripId: tripId,
+                          tripDayId: tripDayId,
                           startHour: startTime.hour,
                           startMinute: startTime.minute,
-                          targetType: (d.type ?? 'activity') as String,
-                          targetId: (d.id as int?) ?? -1,
-                          targetName: (d.name as String?) ?? '',
-                          placeId: d.placeId as String?,
-                          latitude: (d.latitude is num) ? (d.latitude as num).toDouble() : null,
-                          longitude: (d.longitude is num) ? (d.longitude as num).toDouble() : null,
+                          estimatedDurationMinutes: durationMin,
+                          targetType: targetType,
+                          targetId: targetId,
+                          targetName: targetName,
+                          primaryIcon: primaryIcon,
+                          otherIcons: otherIcons,
+                          latitude: lat,
+                          longitude: lng,
                         );
                       },
                     );
-
                   },
                 ),
               ),
 
               // ==== COLONNE DROITE : LISTE D'ITEMS DRAGGABLES ====
               Expanded(
-                child: ScrollConfiguration(
-                  behavior: const _NoGlowScroll(),
-                  child: ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(12, 0, 12, 12),
-                    physics: const BouncingScrollPhysics(),
-                    itemCount: nearbyItems.length,
-                    itemBuilder: (ctx, i) {
-                      final it = nearbyItems[i];
-                      final card = _NearbyCard(item: it);
-
-                      return LongPressDraggable<NearbyItem>(
-                        data: it,
-                        dragAnchorStrategy: pointerDragAnchorStrategy,
-                        feedback: Material(
-                          elevation: 6,
-                          borderRadius: BorderRadius.circular(12),
-                          child: ConstrainedBox(
-                            constraints: BoxConstraints(
-                              maxWidth: (widget.width / 2) - 40,
-                              minHeight: 80,
-                            ),
-                            child: card,
-                          ),
-                        ),
-                        childWhenDragging: Opacity(opacity: .35, child: card),
-                        child: card,
-                      );
-                    },
-                  ),
+                child: NearbyDraggableList(
+                  maxCardWidth: (widget.width / 2) - 40,
                 ),
               ),
             ],
           ),
         ),
       ],
-    );
-  }
-}
-
-class _NoGlowScroll extends ScrollBehavior {
-  const _NoGlowScroll();
-  @override
-  Widget buildOverscrollIndicator(
-      BuildContext context,
-      Widget child,
-      ScrollableDetails details,
-      ) =>
-      child;
-}
-
-class _NearbyCard extends StatelessWidget {
-  final NearbyItem item;
-  const _NearbyCard({required this.item});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(top: 12),
-      height: 88,
-      decoration: BoxDecoration(
-        color: AppColors.fog,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.texasBlue, width: 1),
-        boxShadow: const [
-          BoxShadow(blurRadius: 10, offset: Offset(0, 4), color: Color(0x12000000))
-        ],
-      ),
-      padding: const EdgeInsets.all(12),
-      child: Row(
-        children: [
-          const Icon(Icons.place, color: AppColors.texasBlue),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              item.name,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: AppColors.texasBlue,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

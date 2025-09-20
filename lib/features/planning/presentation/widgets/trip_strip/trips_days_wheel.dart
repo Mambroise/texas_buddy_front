@@ -7,9 +7,12 @@
 
 
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:texas_buddy/core/theme/app_colors.dart';
 import 'package:texas_buddy/features/planning/domain/entities/trip.dart';
 import 'package:texas_buddy/features/planning/domain/entities/trip_day.dart';
+
+import 'package:texas_buddy/features/map/presentation/cubits/map_focus_cubit.dart';
 // + i18n sugar
 import 'package:texas_buddy/core/l10n/l10n_ext.dart';
 
@@ -39,12 +42,17 @@ class _TripDaysStripState extends State<TripDaysStrip> {
   late List<_Item> _items; // [arrival] + days + [departure]
   double _page = 1.0;
 
+  int? _lastFocusedTripDayId;
+  bool _didInitialFocus = false;
+
   @override
   void initState() {
     super.initState();
     _items = _buildItems(widget.trip);
     _ctl = PageController(viewportFraction: 0.26, initialPage: 1);
     _ctl.addListener(_onScroll);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) => _ensureInitialFocus());
   }
 
   @override
@@ -77,6 +85,8 @@ class _TripDaysStripState extends State<TripDaysStrip> {
 
       // force le rebuild pour refléter la nouvelle adresse
       setState(() {});
+      _didInitialFocus = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) => _ensureInitialFocus());
     }
   }
 
@@ -90,6 +100,23 @@ class _TripDaysStripState extends State<TripDaysStrip> {
     super.dispose();
   }
 
+  void _ensureInitialFocus() {
+    if (_didInitialFocus || _items.isEmpty) return;
+
+    // trouve le 1er item de type "day" (souvent index 1)
+    final firstDayIdx = _items.indexWhere((it) => it.type == _ItemType.day);
+    if (firstDayIdx == -1) return;
+
+    final day = _items[firstDayIdx].day!;
+    final hasAddress = (day.address != null && day.address!.trim().isNotEmpty);
+    final hasGeo = (day.latitude != null && day.longitude != null);
+
+    if (hasAddress && hasGeo) {
+      _lastFocusedTripDayId = day.id;
+      _didInitialFocus = true;
+      context.read<MapFocusCubit>().focusTripDay(day.latitude!, day.longitude!, zoom: 14);
+    }
+  }
   void _onScroll() {
     final p = _ctl.page ?? 0.0;
     if (p == _page) return;
@@ -97,8 +124,21 @@ class _TripDaysStripState extends State<TripDaysStrip> {
 
     final idx = p.round().clamp(0, _items.length - 1);
     final it = _items[idx];
-    if (it.type == _ItemType.day && widget.onCenteredDayChanged != null) {
-      widget.onCenteredDayChanged!(it.day!.date);
+
+    if (it.type == _ItemType.day) {
+      final day = it.day!;
+      // expose à l’extérieur si tu en as besoin
+      widget.onCenteredDayChanged?.call(day.date);
+
+      // ❗️critère demandé : adresse non nulle ET coords présentes
+      final hasAddress = (day.address != null && day.address!.trim().isNotEmpty);
+      final hasGeo = (day.latitude != null && day.longitude != null);
+      final notSame = (_lastFocusedTripDayId != day.id);
+
+      if (hasAddress && hasGeo && notSame) {
+        _lastFocusedTripDayId = day.id;
+        context.read<MapFocusCubit>().focusTripDay(day.latitude!, day.longitude!, zoom: 14);
+      }
     }
   }
 

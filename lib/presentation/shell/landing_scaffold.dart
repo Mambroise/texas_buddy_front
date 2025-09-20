@@ -20,6 +20,7 @@ import 'package:texas_buddy/features/map/presentation/blocs/all_events/all_event
 import 'package:texas_buddy/features/map/presentation/cubits/category_filter_cubit.dart';
 import 'package:texas_buddy/features/map/presentation/cubits/map_mode_cubit.dart';
 import 'package:texas_buddy/features/map/presentation/widgets/map_mode_menu_sheet.dart';
+import 'package:texas_buddy/features/map/presentation/cubits/map_focus_cubit.dart';
 
 import 'package:texas_buddy/features/map/presentation/blocs/detail/detail_panel_bloc.dart';
 import 'package:texas_buddy/features/map/domain/usecases/get_activity_detail.dart';
@@ -75,11 +76,14 @@ class _LandingScaffoldState extends State<LandingScaffold> {
     return MultiBlocProvider(
       providers: [
         BlocProvider<CategoryFilterCubit>(create: (_) => CategoryFilterCubit()),
-        BlocProvider<PlanningOverlayCubit>(create: (_) => PlanningOverlayCubit()),
+        BlocProvider<PlanningOverlayCubit>(
+          create: (_) => getIt<PlanningOverlayCubit>(),
+        ),
         BlocProvider<TripsCubit>(create: (_) => getIt<TripsCubit>()),
         BlocProvider<NearbyBloc>(create: (_) => getIt<NearbyBloc>()),
         BlocProvider<AllEventsBloc>(create: (_) => getIt<AllEventsBloc>()),
         BlocProvider<MapModeCubit>(create: (_) => MapModeCubit()),
+        BlocProvider(create: (_) => getIt<MapFocusCubit>()),
         BlocProvider<DetailPanelBloc>(create: (_) => DetailPanelBloc(
             getActivity: getIt<GetActivityDetail>(),
             getEvent:    getIt<GetEventDetail>(),
