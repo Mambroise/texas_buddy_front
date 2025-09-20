@@ -14,42 +14,12 @@ import 'package:texas_buddy/features/planning/presentation/widgets/hours_list.da
 import 'package:texas_buddy/features/map/domain/entities/nearby_item.dart';
 import 'package:texas_buddy/features/map/presentation/cubits/map_focus_cubit.dart';
 
-
-
-class TripStepVm {
-  final int? id;
-  final TimeOfDay start;
-  final int durationMin;
-  final String title;
-
-  final double? latitude;
-  final double? longitude;
-
-  /// Icônes déjà résolues (plus de mapping ici)
-  final IconData? primaryIcon;
-  final List<IconData> otherIcons;
-
-  const TripStepVm({
-    this.id,
-    required this.start,
-    required this.durationMin,
-    required this.title,
-    this.latitude,
-    this.longitude,
-    this.primaryIcon,
-    this.otherIcons = const <IconData>[],
-  });
-}
-
-typedef CreateStepAtTime = Future<void> Function({
-required NearbyItem item,
-required int tripDayId,          // ✅ NOUVEAU
-required DateTime day,
-required TimeOfDay startTime,
-});
+// ⬇️ nouveau fichier extrait
+import 'package:texas_buddy/features/planning/presentation/widgets/timeline/timeline_step.dart';
 
 class TimelinePane extends StatefulWidget {
   final int? selectedTripDayId;
+
   const TimelinePane({
     super.key,
     required this.height,
@@ -63,7 +33,6 @@ class TimelinePane extends StatefulWidget {
     required this.onToggleTap,
     required this.onRequestExpanded,
     this.stripeFraction = 0.20,
-
 
     // nouveaux
     this.steps = const <TripStepVm>[],
@@ -125,11 +94,7 @@ class _TimelinePaneState extends State<TimelinePane> {
   String? _pendingTitle;                // on se base sur (title + start)
   TimeOfDay? _pendingStart;
 
-
   // ---- Helpers temps <-> pixels ------------------------------------------
-
-  bool _hasValidCoords(double? lat, double? lng) =>
-      lat != null && lng != null && lat.abs() > 0.0001 && lng.abs() > 0.0001;
 
   // Focus helper
   void _focusTripDayIfPossible() {
@@ -166,7 +131,6 @@ class _TimelinePaneState extends State<TimelinePane> {
     );
   }
 
-
   double _timeToY(TimeOfDay t) {
     final h = (t.hour - widget.firstHour).toDouble();
     // + inset pour aligner sur la ligne "centrée" d'HoursList
@@ -191,6 +155,7 @@ class _TimelinePaneState extends State<TimelinePane> {
       _hoverItem = d.data;
     });
   }
+
   bool _isSelected(TripStepVm s) {
     if (_selectedStepId != null && s.id != null) {
       return s.id == _selectedStepId;
@@ -207,7 +172,7 @@ class _TimelinePaneState extends State<TimelinePane> {
       _selectedStartFallback = s.start;
     });
 
-    if (_hasValidCoords(s.latitude, s.longitude)) {
+    if (s.hasCoords) {
       context.read<MapFocusCubit>().focusTripStep(s.latitude!, s.longitude!, zoom: 16);
     } else {
       _focusTripDayIfPossible();
@@ -240,7 +205,7 @@ class _TimelinePaneState extends State<TimelinePane> {
       _clearSelection();
     }
 
-// Auto-select du *dernier step créé* (match sur pending title+start)
+    // Auto-select du *dernier step créé* (match sur pending title+start)
     if (_pendingTitle != null && _pendingStart != null) {
       final idx = widget.steps.indexWhere((s) =>
       s.title == _pendingTitle &&
@@ -271,7 +236,6 @@ class _TimelinePaneState extends State<TimelinePane> {
         final stripeH = contentH + extraScroll + 4.0;
 
         final double slideFrac = -(1.0 - (stripeW / leftPaneW));
-
 
         void _onHStart(_) => _dragDx = 0;
         void _onHUpdate(DragUpdateDetails d) => _dragDx += d.delta.dx;
@@ -304,7 +268,7 @@ class _TimelinePaneState extends State<TimelinePane> {
                 child: SingleChildScrollView(
                   controller: _scrollController,
                   physics: const BouncingScrollPhysics(),
-                  child: ConstrainedBox( // (2) s’assure qu’on a toujours un minimum de hauteur
+                  child: ConstrainedBox( // s’assure qu’on a toujours un minimum de hauteur
                     constraints: BoxConstraints(minHeight: stripeH),
                     child: SizedBox(
                       height: stripeH,
@@ -340,7 +304,7 @@ class _TimelinePaneState extends State<TimelinePane> {
                                       _hoverItem = null;
                                     });
 
-                                      // ➕ mémorise la "clé" attendue pour auto-select au prochain rebuild
+                                    // ➕ mémorise la "clé" attendue pour auto-select au prochain rebuild
                                     _pendingTitle = item.name;
                                     _pendingStart = t;
 
@@ -398,7 +362,7 @@ class _TimelinePaneState extends State<TimelinePane> {
                                               height: height,
                                               child: GestureDetector(
                                                 onTap: () => _toggleStepSelection(s),
-                                                child: _StepCard(
+                                                child: StepCard(
                                                   title: s.title,
                                                   primaryIcon: s.primaryIcon,
                                                   otherIcons: s.otherIcons,
@@ -427,7 +391,7 @@ class _TimelinePaneState extends State<TimelinePane> {
                                                       opacity: .85,
                                                       child: SizedBox(
                                                         height: _durationToHeight(60),
-                                                        child: _StepCard(title: _hoverItem!.name),
+                                                        child: StepCard(title: _hoverItem!.name),
                                                       ),
                                                     ),
                                                 ],
@@ -436,7 +400,6 @@ class _TimelinePaneState extends State<TimelinePane> {
                                         ],
                                       ),
                                     );
-
                                   },
                                 ),
                               ),
@@ -494,96 +457,7 @@ class _TimelinePaneState extends State<TimelinePane> {
       },
     );
   }
-
 }
-
-class _StepCard extends StatelessWidget {
-  final String title;
-  final IconData? primaryIcon;
-  final List<IconData> otherIcons;
-  final int? durationMin;
-  final double? latitude;
-  final double? longitude;
-  final bool selected;
-
-  const _StepCard({
-    required this.title,
-    this.primaryIcon,
-    this.otherIcons = const [],
-    this.durationMin,
-    this.latitude,
-    this.longitude,
-    this.selected = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      clipBehavior: Clip.hardEdge,
-      padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
-      decoration: BoxDecoration(
-        color: selected ? const Color(0xFFFFF3F3) : Colors.white,
-        border: Border.all(
-          color: selected ? AppColors.texasRedGlow : AppColors.texasBlue,
-          width: selected ? 2 : 1,
-        ),
-        boxShadow: const [
-          BoxShadow(blurRadius: 12, offset: Offset(0, 6), color: Color(0x24000000)),
-          BoxShadow(blurRadius: 24, offset: Offset(0, 12), color: Color(0x14000000)),
-        ],
-      ),
-
-      // ⬇️ this viewport prevents RenderFlex overflow; it won’t be scrollable
-      child: SingleChildScrollView(
-        physics: const NeverScrollableScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min, // be polite inside the viewport
-          children: [
-            // Titre
-            Text(
-              title,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.black, fontWeight: FontWeight.w800, fontSize: 10),
-            ),
-            const SizedBox(height: 6),
-
-            // Icônes
-            if (primaryIcon != null || otherIcons.isNotEmpty)
-              Wrap(
-                spacing: 10,
-                runSpacing: 6,
-                alignment: WrapAlignment.center,
-                children: [
-                  if (primaryIcon != null) Icon(primaryIcon, size: 10, color: AppColors.texasRedGlow),
-                  ...otherIcons.map((ic) => Icon(ic, size: 10, color: AppColors.black)),
-                ],
-              ),
-
-            // Durée
-            if (durationMin != null) ...[
-              const SizedBox(height: 6),
-              Text('${durationMin} min', style: TextStyle(fontSize: 10, color: AppColors.black)),
-            ],
-
-            // Lat/Lng (petit, discret)
-            if (latitude != null && longitude != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                '(${latitude!.toStringAsFixed(5)}, ${longitude!.toStringAsFixed(5)})',
-                style: const TextStyle(fontSize: 9, color: Colors.black54),
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-
 
 class _NoGlowScroll extends ScrollBehavior {
   const _NoGlowScroll();

@@ -13,6 +13,8 @@ import 'package:texas_buddy/features/planning/presentation/widgets/trip_strip/tr
 
 // Timeline (steps/hasAddress/selectedDay/onCreateStep/onAddAdress)
 import 'package:texas_buddy/features/planning/presentation/widgets/timeline/timeline_pane.dart';
+import 'package:texas_buddy/features/planning/presentation/widgets/timeline/timeline_step.dart';
+
 import 'package:texas_buddy/features/planning/presentation/widgets/sheets/address_search_sheet.dart';
 
 // NearbyItem (pour Draggable côté droit)
