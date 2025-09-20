@@ -16,9 +16,9 @@ import 'package:texas_buddy/features/map/domain/entities/user_position.dart';
 import 'package:texas_buddy/features/map/presentation/blocs/location/location_bloc.dart';
 import 'package:texas_buddy/features/map/presentation/blocs/location/location_event.dart';
 import 'package:texas_buddy/features/map/presentation/blocs/location/location_state.dart';
+import 'package:texas_buddy/features/map/presentation/cubits/map_focus_cubit.dart';
 
 import 'package:texas_buddy/features/planning/presentation/widgets/planning_overlay_dock.dart';
-import 'package:texas_buddy/features/planning/presentation/cubits/planning_overlay_cubit.dart';
 
 //detail activity and event
 import 'package:texas_buddy/features/map/presentation/blocs/detail/detail_panel_bloc.dart';
@@ -178,6 +178,15 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
     final lat = p.latitude;
     final lon = p.longitude;
     return lat >= 25.5 && lat <= 36.6 && lon >= -106.7 && lon <= -93.5;
+  }
+
+  void _animateTo(double lat, double lng, double zoom) {
+    _controller?.animateCamera(
+      CameraUpdate.newCameraPosition(CameraPosition(
+        target: LatLng(lat, lng),
+        zoom: zoom,
+      )),
+    );
   }
 
   // --- Fetch orchestration -------------------------------------------------
@@ -444,6 +453,13 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
             }
           },
         ),
+
+        BlocListener<MapFocusCubit, MapFocusState?>(
+          listener: (ctx, st) {
+            if (st == null) return;
+            _animateTo(st.latitude, st.longitude, st.zoom);
+          },
+        ),
       ],
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -462,6 +478,15 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
                 mapType: MapType.normal,
                 onMapCreated: (c) {
                   _controller = c;
+                  // ✅ rejoue le dernier focus en attente (si émis avant la création du controller)
+                  final pending = context.read<MapFocusCubit>().state;
+                  if (pending != null) {
+                    WidgetsBinding.instance.addPostFrameCallback((_) {
+                      _controller?.animateCamera(CameraUpdate.newCameraPosition(
+                        CameraPosition(target: LatLng(pending.latitude, pending.longitude), zoom: pending.zoom),
+                      ));
+                    });
+                  }
                   // first bounds-aware fetch after first frame
                   WidgetsBinding.instance.addPostFrameCallback((_) => _onCameraIdle());
                 },

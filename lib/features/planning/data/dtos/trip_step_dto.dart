@@ -19,7 +19,6 @@ class TripStepDto {
   final String travelMode;            // "driving" | ...
   final int travelDurationMinutes;
   final int travelDistanceMeters;
-  final String notes;
 
   TripStepDto({
     required this.id,
@@ -31,7 +30,6 @@ class TripStepDto {
     required this.travelMode,
     required this.travelDurationMinutes,
     required this.travelDistanceMeters,
-    this.notes = '',
   });
 
   factory TripStepDto.fromJson(Map<String, dynamic> j) {
@@ -49,7 +47,6 @@ class TripStepDto {
       travelMode: (j['travel_mode'] as String?) ?? 'driving',
       travelDurationMinutes: (j['travel_duration_minutes'] as int?) ?? 0,
       travelDistanceMeters: (j['travel_distance_meters'] as int?) ?? 0,
-      notes: (j['notes'] as String?) ?? '',
     );
   }
 
@@ -87,7 +84,6 @@ class TripStepDto {
       travelMode: travelMode,
       travelDurationMinutes: travelDurationMinutes,
       travelDistanceMeters: travelDistanceMeters,
-      notes: notes,
     );
   }
 }
