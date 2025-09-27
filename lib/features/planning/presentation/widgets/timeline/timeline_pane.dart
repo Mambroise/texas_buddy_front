@@ -36,6 +36,7 @@ class TimelinePane extends StatefulWidget {
     required this.onRequestExpanded,
     this.stripeFraction = 0.20,
 
+
     // nouveaux
     this.steps = const <TripStepVm>[],
     this.hasAddress = true,
@@ -141,6 +142,7 @@ class _TimelinePaneState extends State<TimelinePane> {
       minute: minutes.clamp(0, 45),
     );
   }
+
 
   double _timeToY(TimeOfDay t) {
     final h = (t.hour - widget.firstHour).toDouble();
@@ -288,6 +290,70 @@ class _TimelinePaneState extends State<TimelinePane> {
       _scrollController.jumpTo(target);
       setState(() {});
     });
+  }
+  bool _isSelected(TripStepVm s) {
+    if (_selectedStepId != null && s.id != null) {
+      return s.id == _selectedStepId;
+    }
+    return _selectedTitleFallback == s.title &&
+        _selectedStartFallback?.hour == s.start.hour &&
+        _selectedStartFallback?.minute == s.start.minute;
+  }
+
+  void _selectStep(TripStepVm s) {
+    setState(() {
+      _selectedStepId = s.id;
+      _selectedTitleFallback = s.title;
+      _selectedStartFallback = s.start;
+    });
+
+    if (_hasValidCoords(s.latitude, s.longitude)) {
+      context.read<MapFocusCubit>().focusTripStep(s.latitude!, s.longitude!, zoom: 16);
+    } else {
+      _focusTripDayIfPossible();
+    }
+  }
+
+  void _clearSelection() {
+    setState(() {
+      _selectedStepId = null;
+      _selectedTitleFallback = null;
+      _selectedStartFallback = null;
+    });
+    _focusTripDayIfPossible();
+  }
+
+  void _toggleStepSelection(TripStepVm s) {
+    if (_isSelected(s)) {
+      _clearSelection();
+    } else {
+      _selectStep(s);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant TimelinePane old) {
+    super.didUpdateWidget(old);
+
+    // Changement de TripDay → reset sélection et focus TripDay
+    if (old.selectedTripDayId != widget.selectedTripDayId) {
+      _clearSelection();
+    }
+
+// Auto-select du *dernier step créé* (match sur pending title+start)
+    if (_pendingTitle != null && _pendingStart != null) {
+      final idx = widget.steps.indexWhere((s) =>
+      s.title == _pendingTitle &&
+          s.start.hour == _pendingStart!.hour &&
+          s.start.minute == _pendingStart!.minute);
+
+      if (idx != -1) {
+        final created = widget.steps[idx];
+        _selectStep(created);
+        _pendingTitle = null;
+        _pendingStart = null;
+      }
+    }
   }
 
   void _stopAutoScroll() {

@@ -130,6 +130,7 @@ class _PlanningOverlayState extends State<PlanningOverlay> {
         });
 
       stepsVm = sorted.map((s) {
+
         // Durée: estimatedDurationMinutes > sinon calcul end - start > sinon 60'
         int durationMin = 60;
         try {
@@ -176,6 +177,7 @@ class _PlanningOverlayState extends State<PlanningOverlay> {
           primaryIcon: primaryIconData,
           otherIcons: otherIconDatas,
         );
+
       }).toList();
     }
 
@@ -242,6 +244,7 @@ class _PlanningOverlayState extends State<PlanningOverlay> {
 
                         final tripId =
                             context.read<PlanningOverlayCubit>().state.selectedTrip?.id;
+
                         if (tripId == null || tripId <= 0) return;
 
                         await showModalBottomSheet(

@@ -50,6 +50,9 @@ class _TripDaysStripState extends State<TripDaysStrip> {
   int? _lastFocusedTripDayId;
   bool _didInitialFocus = false;
 
+  int? _lastFocusedTripDayId;
+  bool _didInitialFocus = false;
+
   @override
   void initState() {
     super.initState();
@@ -98,6 +101,7 @@ class _TripDaysStripState extends State<TripDaysStrip> {
     _ctl.dispose();
     super.dispose();
   }
+
 
   List<TripDay> _buildDays(Trip t) {
     List<TripDay> days = t.days;
