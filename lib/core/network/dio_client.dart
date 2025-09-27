@@ -20,8 +20,9 @@ Dio createDioClient({
   final dio = Dio(
     BaseOptions(
       baseUrl: 'http://192.168.0.22:8001/api/',
-      // baseUrl: 'http://192.168.1.20:8001/api/',
-      //baseUrl: 'http://10.0.2.2:8001/api/',
+      // baseUrl: 'http://192.168.1.20:8001/api/',teddy
+      //baseUrl: 'http://192.168.1.153:8001/api/', laura
+      //baseUrl: 'http://10.0.2.2:8001/api/', emul
 
 
       connectTimeout: const Duration(seconds: 15),
