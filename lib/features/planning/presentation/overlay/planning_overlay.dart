@@ -28,6 +28,9 @@ import 'package:texas_buddy/features/planning/domain/entities/trip_step.dart';
 // ⬇️ Mapper FA → IconData
 import 'package:texas_buddy/core/utils/category_icon_mapper.dart';
 
+// ⬇️ Couleurs (texasBlue)
+import 'package:texas_buddy/core/theme/app_colors.dart';
+
 class PlanningOverlay extends StatefulWidget {
   final double width;
   final double height;
@@ -127,7 +130,6 @@ class _PlanningOverlayState extends State<PlanningOverlay> {
         });
 
       stepsVm = sorted.map((s) {
-
         // Durée: estimatedDurationMinutes > sinon calcul end - start > sinon 60'
         int durationMin = 60;
         try {
@@ -174,7 +176,6 @@ class _PlanningOverlayState extends State<PlanningOverlay> {
           primaryIcon: primaryIconData,
           otherIcons: otherIconDatas,
         );
-
       }).toList();
     }
 
@@ -186,12 +187,10 @@ class _PlanningOverlayState extends State<PlanningOverlay> {
           height: topHeight,
           child: Padding(
             padding: EdgeInsets.only(top: stripTopInset),
-            child: Align(
-              alignment: Alignment.topCenter,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(maxWidth: widget.width * 0.92),
-                child: TripsStrip(height: stripHeight),
-              ),
+            child: TripStripBand(
+              height: stripHeight,
+              margin: const EdgeInsets.symmetric(vertical: 8), // ⬅️ marge haut/bas
+              child: TripsStrip(height: stripHeight),
             ),
           ),
         ),
@@ -232,7 +231,7 @@ class _PlanningOverlayState extends State<PlanningOverlay> {
                       steps: stepsVm,
                       hasAddress: hasAddress,
                       selectedDay: selectedDayDate,
-                      tripDayLatitude: day?.latitude,     // ✅ nouveau
+                      tripDayLatitude: day?.latitude, // ✅ nouveau
                       tripDayLongitude: day?.longitude,
                       selectedTripDayId: day?.id, // ✅ nécessaire pour créer le step au bon endroit
 
@@ -241,7 +240,8 @@ class _PlanningOverlayState extends State<PlanningOverlay> {
                         final tripDayId = day?.id;
                         if (tripDayId == null || tripDayId <= 0) return;
 
-                        final tripId = context.read<PlanningOverlayCubit>().state.selectedTrip?.id;
+                        final tripId =
+                            context.read<PlanningOverlayCubit>().state.selectedTrip?.id;
                         if (tripId == null || tripId <= 0) return;
 
                         await showModalBottomSheet(
@@ -250,12 +250,14 @@ class _PlanningOverlayState extends State<PlanningOverlay> {
                           useSafeArea: true,
                           backgroundColor: Colors.white,
                           shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                            borderRadius:
+                            BorderRadius.vertical(top: Radius.circular(16)),
                           ),
                           builder: (ctx) => BlocProvider.value(
                             value: context.read<PlanningOverlayCubit>(),
                             child: Padding(
-                              padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+                              padding: EdgeInsets.only(
+                                  bottom: MediaQuery.of(ctx).viewInsets.bottom),
                               child: AddressSearchSheet(
                                 tripId: tripId,
                                 tripDayId: tripDayId,
@@ -272,19 +274,25 @@ class _PlanningOverlayState extends State<PlanningOverlay> {
                         required DateTime day,
                         required TimeOfDay startTime,
                       }) async {
-                        final tripId = context.read<PlanningOverlayCubit>().state.selectedTrip?.id;
+                        final tripId =
+                            context.read<PlanningOverlayCubit>().state.selectedTrip?.id;
                         if (tripId == null) return;
 
-                        final targetType = _typeFromKind(item);      // "activity" | "event"
-                        final targetId   = int.tryParse(item.id) ?? -1; // si id est String dans le domain
+                        final targetType =
+                        _typeFromKind(item); // "activity" | "event"
+                        final targetId = int.tryParse(item.id) ??
+                            -1; // si id est String dans le domain
                         final targetName = item.name;
                         final durationMin = _defaultDurationMinFor(item);
-                        final primaryIcon = item.primaryCategory;    // clé FA "fa-xxx" si dispo
-                        final otherIcons  = _otherIconKeysOf(item);  // autres clés FA
+                        final primaryIcon =
+                            item.primaryCategory; // clé FA "fa-xxx" si dispo
+                        final otherIcons =
+                        _otherIconKeysOf(item); // autres clés FA
                         final lat = item.latitude;
                         final lng = item.longitude;
 
-                        await (context.read<PlanningOverlayCubit>() as dynamic).createTripStepFromTarget(
+                        await (context.read<PlanningOverlayCubit>() as dynamic)
+                            .createTripStepFromTarget(
                           tripId: tripId,
                           tripDayId: tripDayId,
                           startHour: startTime.hour,
@@ -314,6 +322,71 @@ class _PlanningOverlayState extends State<PlanningOverlay> {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Bandeau full-width avec fond blanc 90% et double bordure
+class TripStripBand extends StatelessWidget {
+  final double height;
+  final Widget child;
+  final EdgeInsetsGeometry margin; // ⬅️ nouveau
+
+  const TripStripBand({
+    super.key,
+    required this.height,
+    required this.child,
+    this.margin = const EdgeInsets.symmetric(vertical: 8),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // withValues nécessite Flutter 3.22+
+    final Color bg = Colors.white.withValues(alpha: 0.90);
+
+    return Container(
+      margin: margin, // ⬅️ applique la marge externe
+      width: double.infinity,
+      height: height,
+      child: Stack(
+        children: [
+          // Fond + bordures extérieures épaisses (4px)
+          Container(
+            width: double.infinity,
+            height: height,
+            foregroundDecoration: BoxDecoration(
+              color: bg, // alpha 0.90
+              border: const Border(
+                top: BorderSide(color: AppColors.texasBlue, width: 4),
+                bottom: BorderSide(color: AppColors.texasBlue, width: 4),
+              ),
+            ),
+          ),
+
+          // Bordures intérieures fines (1px), décalées vers l'intérieur
+          const Positioned(
+            top: 6, left: 0, right: 0,
+            child: SizedBox(
+              height: 1,
+              child: DecoratedBox(
+                decoration: BoxDecoration(color: AppColors.texasBlue),
+              ),
+            ),
+          ),
+          const Positioned(
+            bottom: 6, left: 0, right: 0,
+            child: SizedBox(
+              height: 1,
+              child: DecoratedBox(
+                decoration: BoxDecoration(color: AppColors.texasBlue),
+              ),
+            ),
+          ),
+
+          // Contenu centré
+          Center(child: child),
+        ],
+      ),
     );
   }
 }

@@ -17,7 +17,7 @@ class PlanningScrimLayer extends StatelessWidget {
     super.key,
     this.color = Colors.black,
     this.expandedOpacity = 0.72,
-    this.collapsedOpacity = 0.62,
+    this.collapsedOpacity = 0.22,
     this.duration = const Duration(milliseconds: 180),
     this.curve = Curves.easeOutCubic,
     this.absorbGestures = false, // false = laisse passer les gestes (IgnorePointer)

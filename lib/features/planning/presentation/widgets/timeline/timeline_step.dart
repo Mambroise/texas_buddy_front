@@ -62,6 +62,8 @@ class StepCard extends StatelessWidget {
   final double? latitude;
   final double? longitude;
   final bool selected;
+  final Color? bgColor;       // NEW
+  final Color? borderColor;
 
   const StepCard({
     super.key,
@@ -72,17 +74,24 @@ class StepCard extends StatelessWidget {
     this.latitude,
     this.longitude,
     this.selected = false,
+    this.bgColor,            // NEW
+    this.borderColor,
   });
 
   @override
   Widget build(BuildContext context) {
+    final Color resolvedBg = bgColor ??
+        (selected ? const Color(0xFFFFF3F3) : Colors.white);
+    final Color resolvedBorder = borderColor ??
+        (selected ? AppColors.texasRedGlow : AppColors.texasBlue);
+
     return Container(
       clipBehavior: Clip.hardEdge,
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
       decoration: BoxDecoration(
-        color: selected ? const Color(0xFFFFF3F3) : Colors.white,
+        color: resolvedBg,                 // <-- utilise la couleur override
         border: Border.all(
-          color: selected ? AppColors.texasRedGlow : AppColors.texasBlue,
+          color: resolvedBorder,           // <-- et la bordure override
           width: selected ? 2 : 1,
         ),
         boxShadow: const [
