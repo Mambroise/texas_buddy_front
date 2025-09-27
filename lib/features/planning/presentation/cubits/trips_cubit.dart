@@ -41,12 +41,16 @@ class TripsCubit extends Cubit<TripsState> {
   }) : super(const TripsState());
 
   Future<void> fetchAll({bool force = false}) async {
-    if (!force && state.fetchStatus == TripFetchStatus.ready) return;
+    // Ne bloque que si déjà en cours
+    if (!force && state.fetchStatus == TripFetchStatus.loading) return;
+
     emit(state.copyWith(fetchStatus: TripFetchStatus.loading, error: null));
     try {
+      print("================================================= dans le fetchall try");
       final items = await listTripsUsecase();
       emit(state.copyWith(trips: items, fetchStatus: TripFetchStatus.ready));
     } catch (e) {
+      print('[TripsCubit] fetchAll ERROR: $e');
       emit(state.copyWith(fetchStatus: TripFetchStatus.failure, error: e.toString()));
     }
   }

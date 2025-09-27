@@ -17,6 +17,7 @@ import 'package:texas_buddy/features/planning/presentation/cubits/planning_overl
 
 // 👇 nos deux sous-vues
 import 'package:texas_buddy/features/planning/presentation/widgets/trip_strip/trips_cards_strip.dart';
+import 'package:texas_buddy/features/planning/presentation/widgets/sheets/address_search_sheet.dart';
 import 'package:texas_buddy/features/planning/presentation/widgets/trip_strip/trips_days_wheel.dart';
 
 // Bottom sheets wrappers
@@ -112,7 +113,7 @@ class _TripsStripState extends State<TripsStrip> {
       setState(() => _loading = false);
       // fallback sans dépendre d'une clé i18n manquante
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Une erreur est survenue.')),
+        const SnackBar(content: Text('error occured.')),
       );
     }
   }
@@ -147,7 +148,32 @@ class _TripsStripState extends State<TripsStrip> {
               onCenteredDayChanged: (d) {
                 context.read<PlanningOverlayCubit>().selectDay(d);
               },
+              onAddressTap: (date, tripDayId) async {
+                if (tripDayId == null || tripDayId <= 0) return; // besoin d’un id valide
+                final tripId = _focusedTrip!.id;
+
+                await showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  useSafeArea: true,
+                  backgroundColor: Colors.white,
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                  ),
+                  builder: (ctx) => BlocProvider.value(
+                    value: context.read<PlanningOverlayCubit>(),
+                    child: Padding(
+                      padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+                      child: AddressSearchSheet(
+                        tripId: tripId,
+                        tripDayId: tripDayId,
+                      ),
+                    ),
+                  ),
+                );
+              },
             );
+
           }
 
           return TripCardsStrip(

@@ -21,6 +21,8 @@ import 'package:texas_buddy/features/map/presentation/cubits/category_filter_cub
 import 'package:texas_buddy/features/map/presentation/cubits/map_mode_cubit.dart';
 import 'package:texas_buddy/features/map/presentation/widgets/map_mode_menu_sheet.dart';
 import 'package:texas_buddy/features/map/presentation/cubits/map_focus_cubit.dart';
+import 'package:texas_buddy/features/planning/presentation/blocs/trips/trips_state.dart';
+
 
 import 'package:texas_buddy/features/map/presentation/blocs/detail/detail_panel_bloc.dart';
 import 'package:texas_buddy/features/map/domain/usecases/get_activity_detail.dart';
@@ -79,7 +81,6 @@ class _LandingScaffoldState extends State<LandingScaffold> {
         BlocProvider<PlanningOverlayCubit>(
           create: (_) => getIt<PlanningOverlayCubit>(),
         ),
-        BlocProvider<TripsCubit>(create: (_) => getIt<TripsCubit>()),
         BlocProvider<NearbyBloc>(create: (_) => getIt<NearbyBloc>()),
         BlocProvider<AllEventsBloc>(create: (_) => getIt<AllEventsBloc>()),
         BlocProvider<MapModeCubit>(create: (_) => MapModeCubit()),
@@ -90,20 +91,33 @@ class _LandingScaffoldState extends State<LandingScaffold> {
           ),
         ),
         BlocProvider<TripsCubit>(
-          create: (_) => getIt<TripsCubit>()..fetchAll(),
+          create: (_) => getIt<TripsCubit>(),
         ),
 
       ],
       child: Builder(
         builder: (ctx) {
+          // ⚑ Assure le fetch quand le contexte est prêt et le token dispo
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            final cubit = ctx.read<TripsCubit>();
+            final st = cubit.state;
+            final isLoading = st.fetchStatus == TripFetchStatus.loading;
+
+            // Filet de sécurité: relance si vide & pas déjà en cours
+            if (!isLoading && st.trips.isEmpty) {
+              cubit.fetchAll(force: true);
+            }
+          });
+
           return PopScope(
             canPop: !(() {
               final hasInnerPop = _navKeys[_currentIndex].currentState?.canPop() ?? false;
               final overlayVisible = ctx.read<PlanningOverlayCubit>().state.visible;
               return overlayVisible || hasInnerPop;
             }()),
-            onPopInvoked: (didPop) {
+            onPopInvokedWithResult: (didPop, result) {
               if (didPop) return;
+
               final cubit = ctx.read<PlanningOverlayCubit>();
               final overlayVisible = cubit.state.visible;
               final currentNavigator = _navKeys[_currentIndex].currentState;

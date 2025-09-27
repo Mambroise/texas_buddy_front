@@ -5,23 +5,28 @@
 // Author : Morice
 //---------------------------------------------------------------------------
 
-
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:texas_buddy/core/theme/app_colors.dart';
 import 'package:texas_buddy/features/planning/domain/entities/trip.dart';
 import 'package:texas_buddy/features/planning/domain/entities/trip_day.dart';
-
 import 'package:texas_buddy/features/map/presentation/cubits/map_focus_cubit.dart';
 // + i18n sugar
 import 'package:texas_buddy/core/l10n/l10n_ext.dart';
 
+const double _kChevronWidth = 56.0; // largeur des gros chevrons
 
+/// Affichage bandeau d’un seul TripDay à la fois, plein centre,
+/// avec navigation par swipe + gros chevrons.
 class TripDaysStrip extends StatefulWidget {
   final double height;
   final Trip trip;
   final VoidCallback onBack;
+
+  /// Notifie l’extérieur lorsque le jour visible change.
   final ValueChanged<DateTime>? onCenteredDayChanged;
+
+  /// Appelé quand l’utilisateur veut ajouter/modifier l’adresse du jour courant.
   final void Function(DateTime date, int? tripDayId)? onAddressTap;
 
   const TripDaysStrip({
@@ -39,8 +44,11 @@ class TripDaysStrip extends StatefulWidget {
 
 class _TripDaysStripState extends State<TripDaysStrip> {
   late final PageController _ctl;
-  late List<_Item> _items; // [arrival] + days + [departure]
-  double _page = 1.0;
+  late List<TripDay> _days;
+  double _page = 0.0;
+
+  int? _lastFocusedTripDayId;
+  bool _didInitialFocus = false;
 
   int? _lastFocusedTripDayId;
   bool _didInitialFocus = false;
@@ -48,8 +56,8 @@ class _TripDaysStripState extends State<TripDaysStrip> {
   @override
   void initState() {
     super.initState();
-    _items = _buildItems(widget.trip);
-    _ctl = PageController(viewportFraction: 0.26, initialPage: 1);
+    _days = _buildDays(widget.trip);
+    _ctl = PageController(viewportFraction: 1.0, initialPage: 0);
     _ctl.addListener(_onScroll);
 
     WidgetsBinding.instance.addPostFrameCallback((_) => _ensureInitialFocus());
@@ -59,39 +67,33 @@ class _TripDaysStripState extends State<TripDaysStrip> {
   void didUpdateWidget(covariant TripDaysStrip oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.trip != widget.trip) {
-      // mémorise le jour centré actuellement (si c’est un “day”)
-      final int curIdx = (_ctl.page ?? 1.0).round().clamp(0, _items.length - 1);
-      DateTime? curDate;
-      if (_items[curIdx].type == _ItemType.day) {
-        curDate = _items[curIdx].day!.date;
-      }
+      // Mémoriser la date actuellement visible pour se recaler après mise à jour.
+      final int curIdx = (_ctl.page ?? 0.0).round().clamp(0, _days.length - 1);
+      DateTime? curDate = _days.isNotEmpty ? _days[curIdx].date : null;
 
-      // régénère les items à partir du NOUVEAU trip
-      _items = _buildItems(widget.trip);
+      // Régénère la liste de jours
+      _days = _buildDays(widget.trip);
 
-      // essaie de se recaler sur le même jour
+      // Revenir sur la même date si possible
       if (curDate != null) {
-        final newIdx = _items.indexWhere(
-              (it) => it.type == _ItemType.day &&
-              _isSameYMD(it.day!.date, curDate!),
-        );
-        if (newIdx != -1) {
-          // jump pour éviter une anim visible
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) _ctl.jumpToPage(newIdx);
-          });
-        }
+        final newIdx = _days.indexWhere((d) => _isSameYMD(d.date, curDate));
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          if (newIdx != -1) {
+            _ctl.jumpToPage(newIdx);
+          } else {
+            _ctl.jumpToPage(0);
+          }
+          setState(() {});
+        });
+      } else {
+        setState(() {});
       }
 
-      // force le rebuild pour refléter la nouvelle adresse
-      setState(() {});
       _didInitialFocus = false;
       WidgetsBinding.instance.addPostFrameCallback((_) => _ensureInitialFocus());
     }
   }
-
-  bool _isSameYMD(DateTime a, DateTime b) =>
-      a.year == b.year && a.month == b.month && a.day == b.day;
 
   @override
   void dispose() {
@@ -100,52 +102,11 @@ class _TripDaysStripState extends State<TripDaysStrip> {
     super.dispose();
   }
 
-  void _ensureInitialFocus() {
-    if (_didInitialFocus || _items.isEmpty) return;
 
-    // trouve le 1er item de type "day" (souvent index 1)
-    final firstDayIdx = _items.indexWhere((it) => it.type == _ItemType.day);
-    if (firstDayIdx == -1) return;
-
-    final day = _items[firstDayIdx].day!;
-    final hasAddress = (day.address != null && day.address!.trim().isNotEmpty);
-    final hasGeo = (day.latitude != null && day.longitude != null);
-
-    if (hasAddress && hasGeo) {
-      _lastFocusedTripDayId = day.id;
-      _didInitialFocus = true;
-      context.read<MapFocusCubit>().focusTripDay(day.latitude!, day.longitude!, zoom: 14);
-    }
-  }
-  void _onScroll() {
-    final p = _ctl.page ?? 0.0;
-    if (p == _page) return;
-    setState(() => _page = p);
-
-    final idx = p.round().clamp(0, _items.length - 1);
-    final it = _items[idx];
-
-    if (it.type == _ItemType.day) {
-      final day = it.day!;
-      // expose à l’extérieur si tu en as besoin
-      widget.onCenteredDayChanged?.call(day.date);
-
-      // ❗️critère demandé : adresse non nulle ET coords présentes
-      final hasAddress = (day.address != null && day.address!.trim().isNotEmpty);
-      final hasGeo = (day.latitude != null && day.longitude != null);
-      final notSame = (_lastFocusedTripDayId != day.id);
-
-      if (hasAddress && hasGeo && notSame) {
-        _lastFocusedTripDayId = day.id;
-        context.read<MapFocusCubit>().focusTripDay(day.latitude!, day.longitude!, zoom: 14);
-      }
-    }
-  }
-
-  List<_Item> _buildItems(Trip t) {
+  List<TripDay> _buildDays(Trip t) {
     List<TripDay> days = t.days;
 
-    // fallback si l’API ne renvoie pas encore 'days'
+    // Fallback si l’API ne renvoie pas encore 'days'
     if (days.isEmpty) {
       final start = DateTime(t.startDate.year, t.startDate.month, t.startDate.day);
       final end   = DateTime(t.endDate.year, t.endDate.month, t.endDate.day);
@@ -155,29 +116,65 @@ class _TripDaysStripState extends State<TripDaysStrip> {
         return TripDay(id: -1, date: d); // id inconnu côté client
       });
     }
-
-    return [
-      const _Item.arrival(),
-      ...days.map(_Item.dayFrom),
-      const _Item.departure(),
-    ];
+    return days;
   }
 
-  double _scaleFor(int index) {
-    final dist = (index - _page).abs();
-    final isMarker = _items[index].type != _ItemType.day;
-    if (isMarker) {
-      if (dist < 0.5) return 1.0;
-      if (dist < 1.5) return 1.0;
-      return 1.0;
-    } else {
-      if (dist < 0.5) return 1.6;   // centre
-      if (dist < 1.5) return 0.8;   // voisins
-      return 0.6;                   // autres
+  bool _isSameYMD(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
+  void _ensureInitialFocus() {
+    if (_didInitialFocus || _days.isEmpty) return;
+
+    final day = _days[(_ctl.page ?? 0.0).round().clamp(0, _days.length - 1)];
+    final hasAddress = (day.address != null && day.address!.trim().isNotEmpty);
+    final hasGeo = (day.latitude != null && day.longitude != null);
+
+    if (hasAddress && hasGeo) {
+      _lastFocusedTripDayId = day.id;
+      _didInitialFocus = true;
+      context.read<MapFocusCubit>().focusTripDay(day.latitude!, day.longitude!, zoom: 14);
     }
   }
 
-  String _fmt(DateTime d) => MaterialLocalizations.of(context).formatShortMonthDay(d);
+  void _onScroll() {
+    final p = _ctl.page ?? 0.0;
+    if (p == _page) return;
+    setState(() => _page = p);
+
+    final idx = p.round().clamp(0, _days.length - 1);
+    final day = _days[idx];
+
+    // Notifie à l’extérieur
+    widget.onCenteredDayChanged?.call(day.date);
+
+    // Focus carte si on a une adresse + coords
+    final hasAddress = (day.address != null && day.address!.trim().isNotEmpty);
+    final hasGeo = (day.latitude != null && day.longitude != null);
+    final notSame = (_lastFocusedTripDayId != day.id);
+
+    if (hasAddress && hasGeo && notSame) {
+      _lastFocusedTripDayId = day.id;
+      context.read<MapFocusCubit>().focusTripDay(day.latitude!, day.longitude!, zoom: 14);
+    }
+  }
+
+  String _fmtDate(DateTime d) =>
+      MaterialLocalizations.of(context).formatShortMonthDay(d);
+
+  // Navigation par boutons
+  void _goPrev() {
+    final idx = (_ctl.page ?? 0.0).round();
+    if (idx > 0) {
+      _ctl.animateToPage(idx - 1, duration: const Duration(milliseconds: 220), curve: Curves.easeOutCubic);
+    }
+  }
+
+  void _goNext() {
+    final idx = (_ctl.page ?? 0.0).round();
+    if (idx < _days.length - 1) {
+      _ctl.animateToPage(idx + 1, duration: const Duration(milliseconds: 220), curve: Curves.easeOutCubic);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -185,75 +182,47 @@ class _TripDaysStripState extends State<TripDaysStrip> {
 
     return SizedBox(
       height: h,
-      child: Column(
+      // On garde PageView pour supporter le swipe horizontal naturellement.
+      child: Stack(
+        fit: StackFit.expand,
         children: [
-          // header
-          Padding(
-            padding: const EdgeInsets.symmetric( vertical: 6),
-            child: Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back),
-                  color: AppColors.fog,
-                  onPressed: widget.onBack,
-                ),
-                const SizedBox(width: 1),
-                Expanded(
-                  child: Text(
-                    widget.trip.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppColors.fog,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ],
+          PageView.builder(
+            controller: _ctl,
+            itemCount: _days.length,
+            physics: const BouncingScrollPhysics(),
+            itemBuilder: (ctx, index) {
+              final day = _days[index];
+              final hasAddress = (day.address != null && day.address!.trim().isNotEmpty);
+              final addressText = hasAddress ? day.address! : context.l10n.tripNoAddress;
+
+              return _DayBandContent(
+                tripTitle: widget.trip.title,               // ⬅️ titre du voyage en haut
+                centeredDateLabel: _fmtDate(day.date),      // ⬅️ date au centre
+                address: addressText,
+                hasAddress: hasAddress,
+                onBack: widget.onBack,
+                onAddressTap: widget.onAddressTap == null
+                    ? null
+                    : () => widget.onAddressTap!.call(day.date, day.id == -1 ? null : day.id),
+              );
+            },
+          ),
+
+          // Gros chevron gauche
+          Align(
+            alignment: Alignment.centerLeft,
+            child: _NavChevron(
+              icon: Icons.chevron_left_rounded,
+              onTap: _goPrev,
             ),
           ),
 
-          // liste horizontale avec effet scale (date visible)
-          Expanded(
-            child: PageView.builder(
-              controller: _ctl,
-              itemCount: _items.length,
-              physics: const BouncingScrollPhysics(),
-              padEnds: true,
-              itemBuilder: (ctx, index) {
-                final it = _items[index];
-                final scale = _scaleFor(index);
-
-                // NEW: considéré sélectionné si proche du centre
-                final bool isCentered = (index - _page).abs() < 0.5;
-
-                return GestureDetector(
-                  onTap: () => _ctl.animateToPage(
-                    index,
-                    duration: const Duration(milliseconds: 220),
-                    curve: Curves.easeOutCubic,
-                  ),
-                  child: Align(
-                    child: switch (it.type) {
-                      _ItemType.arrival   => _MarkerIcon(icon: Icons.flight_land,   scale: scale),
-                      _ItemType.departure => _MarkerIcon(icon: Icons.flight_takeoff, scale: scale),
-                      _ItemType.day => _DayColumnItem(
-                        dateLabel: _fmt(it.day!.date),
-                        address: it.day!.address,
-                        scale: scale,
-                        isSelected: isCentered, // ✅ passe le flag ici
-                        onAddAddress: widget.onAddressTap == null
-                            ? null
-                            : () => widget.onAddressTap!(
-                          it.day!.date,
-                          it.day!.id == -1 ? null : it.day!.id,
-                        ),
-                      ),
-                    },
-                  ),
-                );
-              },
-
+          // Gros chevron droit
+          Align(
+            alignment: Alignment.centerRight,
+            child: _NavChevron(
+              icon: Icons.chevron_right_rounded,
+              onTap: _goNext,
             ),
           ),
         ],
@@ -262,143 +231,151 @@ class _TripDaysStripState extends State<TripDaysStrip> {
   }
 }
 
-// --- types internes UI -----------------------------------------------------
+/// Contenu visuel du bandeau pour un jour.
+/// - Back (haut gauche)
+/// - Titre du voyage centré en haut
+/// - Date en GRAND au centre (pile entre les chevrons)
+/// - Icône hôtel + adresse centrés en bas
+class _DayBandContent extends StatelessWidget {
+  final String tripTitle;
+  final String centeredDateLabel;
+  final String address;
+  final bool hasAddress;
+  final VoidCallback onBack;
+  final VoidCallback? onAddressTap;
 
-enum _ItemType { arrival, day, departure }
-
-class _Item {
-  final _ItemType type;
-  final TripDay? day;
-
-  const _Item._(this.type, this.day);
-
-  const _Item.arrival()   : this._(_ItemType.arrival, null);
-  const _Item.departure() : this._(_ItemType.departure, null);
-  const _Item.day(TripDay d) : this._(_ItemType.day, d);
-
-  static _Item dayFrom(TripDay d) => _Item.day(d);
-}
-
-// ── Icône “marqueur”, on applique le scale ici aussi ───────────────────────
-class _MarkerIcon extends StatelessWidget {
-  const _MarkerIcon({required this.icon, required this.scale});
-  final IconData icon;
-  final double scale;
+  const _DayBandContent({
+    required this.tripTitle,
+    required this.centeredDateLabel,
+    required this.address,
+    required this.hasAddress,
+    required this.onBack,
+    this.onAddressTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 84,
-      height: 150,
-      child: Center(
-        child: Transform.scale(
-          scale: scale,
-          alignment: Alignment.center,
-          child: Icon(
-            icon,                // ✅ on utilise bien le paramètre
-            size: 44,            // un peu plus grand
-            color: AppColors.fog,
+    return Padding(
+      // léger padding interne
+      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 6.0),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Back (haut gauche)
+          Align(
+            alignment: Alignment.topLeft,
+            child: IconButton(
+              icon: const Icon(Icons.arrow_back_rounded),
+              color: AppColors.texasBlue,
+              onPressed: onBack,
+            ),
           ),
-        ),
+
+          // Titre du voyage (haut centre)
+          Align(
+            alignment: Alignment.topCenter,
+            child: Text(
+              tripTitle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: AppColors.texasBlue,
+                fontWeight: FontWeight.w800,
+                fontSize: 16,
+                height: 1.2,
+              ),
+            ),
+          ),
+
+          // Date en grand (centre), avec padding horizontal = largeur des chevrons
+          Align(
+            alignment: Alignment.center,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: _kChevronWidth + 8),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  centeredDateLabel,
+                  maxLines: 1,
+                  style: const TextStyle(
+                    color: AppColors.texasBlue,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 26, // "en grand"
+                    height: 1.0,
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Hôtel + adresse (bas centre)
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: _HotelAddress(
+              address: address,
+              hasAddress: hasAddress,
+              onTap: onAddressTap,
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-// ── Colonne jour : date (non-scalée) + corps (scalé) ───────────────────────
-class _DayColumnItem extends StatelessWidget {
-  final String dateLabel;
-  final String? address;
-  final VoidCallback? onAddAddress;
-  final double scale;
-  final bool isSelected;
+class _HotelAddress extends StatelessWidget {
+  final String address;
+  final bool hasAddress;
+  final VoidCallback? onTap;
 
-  const _DayColumnItem({
-    required this.dateLabel,
+  const _HotelAddress({
     required this.address,
-    required this.scale,
-    this.onAddAddress,
-    this.isSelected = false,
+    required this.hasAddress,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final hasAddress = (address != null && address!.trim().isNotEmpty);
-
-    final s = scale.clamp(1.0, 1.6);
-    final dateFontSize = 11.0 + (s - 1.0) * 3.5;
-    final dateWeight   = s > 1.35 ? FontWeight.w700 : FontWeight.w600;
-
-    // ✅ rouge quand sélectionné, sinon gris (fog)
-    final Color accent = isSelected ? AppColors.texasRedGlow80 : AppColors.fog;
-
-    return SizedBox(
-      width: 110,
-      height: 170,
-      child: Column(
-        children: [
-          Text(
-            dateLabel,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              fontSize: dateFontSize,
-              fontWeight: dateWeight,
-              color: AppColors.fog,
-              height: 1.1,
+    if (!hasAddress) {
+      // 👉 Même bouton que dans TimelinePane
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 8.0),
+        child: TextButton.icon(
+          onPressed: onTap,
+          icon: const Icon(Icons.add_location_alt, size: 12),
+          label: Text(context.l10n.addHotelAddress),
+          style: TextButton.styleFrom(
+            foregroundColor: AppColors.texasBlue,
+            backgroundColor: AppColors.whiteGlow,
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+              side: const BorderSide(color: AppColors.texasBlue, width: 1),
             ),
           ),
-          const SizedBox(height: 6),
+        ),
+      );
+    }
 
-          Expanded(
-            child: Transform.scale(
-              scale: s,
-              alignment: Alignment.topCenter,
-              child: Column(
-                children: [
-                  Icon( // ← juste cette couleur change
-                    Icons.home_rounded,
-                    color: accent,               // ✅ ici
-                    size: 32,
-                  ),
-                  const SizedBox(height: 6),
-                  Expanded(
-                    child: Align(
-                      alignment: Alignment.topCenter,
-                      child: hasAddress
-                          ? Text(
-                        address!,
-                        textAlign: TextAlign.center,
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 6,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.fog,
-                          height: 1.2,
-                        ),
-                      )
-                          : TextButton.icon(
-                        onPressed: onAddAddress,
-                        icon: const Icon(Icons.add, size: 8, color: AppColors.fog),
-                        label: Text(
-                          context.l10n.tripNoAddress, // ⬅️ i18n
-                          style: const TextStyle(
-                            fontSize: 8,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.fog,
-                          ),
-                        ),
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                          minimumSize: Size.zero,
-                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                          foregroundColor: AppColors.fog,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+    // Adresse affichée (avec icône hôtel)
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8.0),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.hotel_rounded, size: 20, color: AppColors.texasBlue),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              address,
+              textAlign: TextAlign.left,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+                height: 1.2,
               ),
             ),
           ),
@@ -408,3 +385,34 @@ class _DayColumnItem extends StatelessWidget {
   }
 }
 
+
+class _NavChevron extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _NavChevron({
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: _kChevronWidth,
+      height: _kChevronWidth,
+      child: Material(
+        type: MaterialType.transparency,
+        child: InkResponse(
+          onTap: onTap,
+          radius: 40,
+          highlightShape: BoxShape.circle,
+          child: Icon(
+            icon,
+            size: 48,
+            color: AppColors.texasBlue,
+          ),
+        ),
+      ),
+    );
+  }
+}

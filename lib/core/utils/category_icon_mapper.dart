@@ -44,6 +44,7 @@ class CategoryIconMapper {
     if (_containsAny(k, ['vie nocturne', 'night life', 'music/concert'])) return FontAwesomeIcons.cloudMoon;
     if (_containsAny(k, ['bar/cocktails', 'bar/cocteles'])) return FontAwesomeIcons.martiniGlassCitrus;
     if (_containsAny(k, ['juego/fun', 'jeu/fun', 'game/fun'])) return FontAwesomeIcons.gamepad;
+    if (_containsAny(k, ['divertissement', 'entretemiento', 'entertainment'])) return FontAwesomeIcons.tv;
 
     // 3) Fallback final
     return Icons.place;
@@ -64,6 +65,7 @@ class CategoryIconMapper {
     'fa-utensils': FontAwesomeIcons.utensils,
     'fa-guitar': FontAwesomeIcons.guitar,
     'fa-leaf': FontAwesomeIcons.leaf,
+    'fa-tv': FontAwesomeIcons.tv,
     'fa-binoculars': FontAwesomeIcons.binoculars,
     'fa-pepper-hot': FontAwesomeIcons.pepperHot,
     'fa-plate-wheat': FontAwesomeIcons.bowlFood,

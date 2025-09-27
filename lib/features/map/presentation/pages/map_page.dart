@@ -512,7 +512,7 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
               // ⬇️ SCRIM VISUEL (dimming.ne bloque pas la carte) voile sur carte
               const PlanningScrimLayer(
                 expandedOpacity: 0.78,   // ex: plus sombre en expanded
-                collapsedOpacity: 0.68,  // ex: plus sombre en collapsed
+                collapsedOpacity: 0.22,  // ex: plus sombre en collapsed
                 // absorbGestures: true,  // si un jour tu veux bloquer la map sous le voile
               ),
 
