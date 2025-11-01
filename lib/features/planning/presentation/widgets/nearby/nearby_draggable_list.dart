@@ -11,6 +11,7 @@ import 'package:texas_buddy/core/theme/app_colors.dart';
 import 'package:texas_buddy/features/map/domain/entities/nearby_item.dart';
 import 'package:texas_buddy/features/map/presentation/blocs/nearby/nearby_bloc.dart';
 
+
 class NearbyDraggableList extends StatefulWidget {
   final double maxCardWidth;
   const NearbyDraggableList({super.key, required this.maxCardWidth});

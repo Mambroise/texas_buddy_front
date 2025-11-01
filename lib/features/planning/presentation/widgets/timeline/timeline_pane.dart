@@ -41,6 +41,7 @@ class TimelinePane extends StatefulWidget {
     required this.onRequestExpanded,
     this.stripeFraction = 0.20,
 
+
     // nouveaux
     this.steps = const <TripStepVm>[],
     this.hasAddress = true,
@@ -179,6 +180,7 @@ class _TimelinePaneState extends State<TimelinePane> {
       minute: minutes.clamp(0, 45),
     );
   }
+
 
   double _timeToY(TimeOfDay t) {
     final h = (t.hour - widget.firstHour).toDouble();
