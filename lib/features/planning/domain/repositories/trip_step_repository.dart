@@ -13,16 +13,19 @@ abstract class TripStepRepository {
   Future<TripStep> create({
     required int tripId,
     required int tripDayId,
-    required String targetType, // "activity" | "event"
-    required int targetId,
-    required String targetName,
     required int startHour,
     required int startMinute,
     required int estimatedDurationMinutes,
+    required String targetType,
+    required int targetId,
+    required String targetName,
     String? primaryIcon,
-    List<String> otherIcons,
+    List<String> otherIcons = const [],
     String? placeId,
     double? latitude,
     double? longitude,
+    int? travelDurationMinutes,
+    int? travelDistanceMeters,
+    String travelMode = 'driving',
   });
 }

@@ -22,6 +22,7 @@ class AuthNotifier extends ChangeNotifier {
 
   Future<void> init() async {
     _isLoggedIn = await _checkSessionUseCase();
+
     _initialized = true;
     notifyListeners();
   }

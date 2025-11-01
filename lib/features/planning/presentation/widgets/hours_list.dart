@@ -56,7 +56,7 @@ class HoursList extends StatelessWidget {
                 _labelForHour(h),
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
-                  fontSize: 12,
+                  fontSize: 9,
                   color: textColor,
                 ),
               ),

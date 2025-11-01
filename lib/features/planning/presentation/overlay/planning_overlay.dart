@@ -173,6 +173,7 @@ class _PlanningOverlayState extends State<PlanningOverlay> {
           title: s.target.name,
           latitude: (s.target.latitude == 0) ? null : s.target.latitude,
           longitude: (s.target.longitude == 0) ? null : s.target.longitude,
+          travelDurationMinutes: s.travelDurationMinutes,
           primaryIcon: primaryIconData,
           otherIcons: otherIconDatas,
         );
@@ -225,7 +226,7 @@ class _PlanningOverlayState extends State<PlanningOverlay> {
                         final c = context.read<PlanningOverlayCubit>();
                         expand ? c.expand() : c.collapse();
                       },
-                      stripeFraction: 0.20,
+                      stripeFraction: 0.15,
 
                       // --- données réelles pour la timeline ---
                       steps: stepsVm,
@@ -273,6 +274,8 @@ class _PlanningOverlayState extends State<PlanningOverlay> {
                         required int tripDayId,
                         required DateTime day,
                         required TimeOfDay startTime,
+                        int? travelDurationMinutes,
+                        int? travelDistanceMeters,
                       }) async {
                         final tripId =
                             context.read<PlanningOverlayCubit>().state.selectedTrip?.id;
@@ -305,6 +308,8 @@ class _PlanningOverlayState extends State<PlanningOverlay> {
                           otherIcons: otherIcons,
                           latitude: lat,
                           longitude: lng,
+                          travelDurationMinutes: travelDurationMinutes,
+                          travelDistanceMeters: travelDistanceMeters,
                         );
                       },
                     );
@@ -357,7 +362,7 @@ class TripStripBand extends StatelessWidget {
             foregroundDecoration: BoxDecoration(
               color: bg, // alpha 0.90
               border: const Border(
-                top: BorderSide(color: AppColors.texasBlue, width: 4),
+                top: BorderSide(color: AppColors.texasBlue, width: 2),
                 bottom: BorderSide(color: AppColors.texasBlue, width: 4),
               ),
             ),
@@ -365,9 +370,9 @@ class TripStripBand extends StatelessWidget {
 
           // Bordures intérieures fines (1px), décalées vers l'intérieur
           const Positioned(
-            top: 6, left: 0, right: 0,
+            top: 4, left: 0, right: 0,
             child: SizedBox(
-              height: 1,
+              height: 0,
               child: DecoratedBox(
                 decoration: BoxDecoration(color: AppColors.texasBlue),
               ),

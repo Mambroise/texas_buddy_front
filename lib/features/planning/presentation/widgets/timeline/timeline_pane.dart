@@ -5,19 +5,24 @@
 // Author : Morice
 //---------------------------------------------------------------------------
 
-import 'dart:math' as math;
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:texas_buddy/core/theme/app_colors.dart';
 import 'package:texas_buddy/core/l10n/l10n_ext.dart';
-import 'package:texas_buddy/features/planning/presentation/widgets/hours_list.dart';
+import 'package:texas_buddy/core/theme/app_colors.dart';
 import 'package:texas_buddy/features/map/domain/entities/nearby_item.dart';
 import 'package:texas_buddy/features/map/presentation/cubits/map_focus_cubit.dart';
-
-// ⬇️ fichier extrait
+import 'package:texas_buddy/features/planning/presentation/cubits/planning_overlay_cubit.dart';
+import 'package:texas_buddy/features/planning/presentation/widgets/hours_list.dart';
+// ⬇️ fichiers extraits
 import 'package:texas_buddy/features/planning/presentation/widgets/timeline/timeline_step.dart';
+import 'package:texas_buddy/features/planning/presentation/widgets/timeline/add_address_button.dart';
+import 'package:texas_buddy/features/planning/presentation/widgets/timeline/travel_badge.dart';
+import 'package:texas_buddy/features/planning/presentation/widgets/timeline/no_glow_scroll.dart';
+import 'package:texas_buddy/features/planning/presentation/widgets/timeline/timeline_auto_scroller.dart';
+
 
 class TimelinePane extends StatefulWidget {
   final int? selectedTripDayId;
@@ -88,6 +93,14 @@ class _TimelinePaneState extends State<TimelinePane> {
   double? _hoverY;
   NearbyItem? _hoverItem;
 
+  // Estimation trajet pour le hover courant
+  int? _hoverTravelMin;
+  int? _hoverTravelMeters;
+  TimeOfDay? _hoverMinStart;
+  Timer? _travelDebounce;
+  bool _didWarnNoHotel = false;      // SnackBar unique si pas d’ancre
+  bool _didHapticConstraint = false; // haptique unique quand contrainte s’applique
+
   // ✅ durée proposée pour l’item en hover (60’ par défaut)
   int _hoverDurationMin = 60;
   // ✅ le créneau est-il libre ?
@@ -102,18 +115,43 @@ class _TimelinePaneState extends State<TimelinePane> {
   TimeOfDay? _pendingStart;
 
   // AutoScroll
-  Timer? _autoScrollTimer;
-  static const double _kAutoScrollEdge = 80.0;
-  static const double _kAutoScrollMaxSpeed = 900.0;
+  late final TimelineAutoScroller _autoScroller;
+
+  // UI constants
+  static const double _kLineToGhostGap = 4.0; // ghost juste sous la ligne
+  static const double _kBadgeHalfHeight = 10.0;
 
   // ---- Helpers temps <-> pixels ------------------------------------------
+  @override
+  void initState() {
+    super.initState();
+    _autoScroller = TimelineAutoScroller(
+      controller: _scrollController,
+      viewportHeight: () => widget.height,
+      hoverY: () => _hoverY,
+      onTick: () { if (mounted) setState(() {}); },
+      // edge et maxSpeed par défaut = 80 / 900 (identiques à avant)
+    );
+  }
+
+  String _langOf(BuildContext context) {
+    final locale = Localizations.maybeLocaleOf(context);
+    return locale?.languageCode.toLowerCase() ?? 'en';
+  }
+
+  @override
+  void dispose() {
+    _autoScroller.dispose();
+    _travelDebounce?.cancel();
+    super.dispose();
+  }
 
   void _focusTripDayIfPossible() {
     if (widget.hasAddress &&
         widget.tripDayLatitude != null &&
         widget.tripDayLongitude != null) {
       context.read<MapFocusCubit>().focusTripDay(
-        widget.tripDayLatitude!, widget.tripDayLongitude!, zoom: 14,
+        widget.tripDayLatitude!, widget.tripDayLongitude!, zoom: 12,
       );
     }
   }
@@ -155,7 +193,7 @@ class _TimelinePaneState extends State<TimelinePane> {
   double _localY(Offset globalOffset) {
     final rb = _dropKey.currentContext!.findRenderObject() as RenderBox;
     final local = rb.globalToLocal(globalOffset);
-    return local.dy + _scrollController.offset;
+    return local.dy;
   }
 
   // ✅ Nearby → durée proposée (même logique que côté overlay)
@@ -172,6 +210,10 @@ class _TimelinePaneState extends State<TimelinePane> {
 
   // ✅ utilitaires minutes depuis minuit
   int _toMin(TimeOfDay t) => t.hour * 60 + t.minute;
+  TimeOfDay _fromMin(int m) =>
+      TimeOfDay(hour: (m ~/ 60).clamp(0, 23), minute: (m % 60).clamp(0, 59));
+  TimeOfDay _minusMinutes(TimeOfDay t, int m) =>
+      _fromMin((_toMin(t) - m).clamp(0, 23 * 60 + 59));
 
   // ✅ check overlap avec steps existants (fenêtre bloquée actuelle = [start ; start+dur])
   bool _hasOverlap(TimeOfDay start, int durationMin) {
@@ -186,20 +228,74 @@ class _TimelinePaneState extends State<TimelinePane> {
     return false;
   }
 
+  Future<void> _estimateForHover({
+    required TimeOfDay intendedStart,
+    required NearbyItem item,
+  }) async {
+    if (widget.selectedTripDayId == null) return;
+    final lat = item.latitude;
+    final lng = item.longitude;
+    if (lat == null || lng == null) {
+      setState(() { _hoverTravelMin = null; _hoverTravelMeters = null; _hoverMinStart = null; });
+      return;
+    }
+    // Lang de l’UI si dispo
+    final String lang =_langOf(context);
+
+    final cubit = context.read<PlanningOverlayCubit>();
+    final info = await cubit.estimateTravelForHover(
+      tripDayId: widget.selectedTripDayId!,
+      intendedStart: intendedStart,
+      destLat: lat,
+      destLng: lng,
+      mode: 'driving',
+      lang: lang,
+    );
+    if (!mounted) return;
+    if (info == null) {
+      setState(() { _hoverTravelMin = null; _hoverTravelMeters = null; _hoverMinStart = null; });
+    } else {
+      setState(() {
+        _hoverTravelMin = info.minutes;
+        _hoverTravelMeters = info.meters;
+        _hoverMinStart = info.minStart;
+      });
+
+      // Info discrète si pas d’hôtel ⇒ pas d’ancre pour un minStart
+      if ((_hoverTravelMin ?? 0) == 0 && _hoverMinStart == null && !widget.hasAddress && !_didWarnNoHotel) {
+        _didWarnNoHotel = true;
+        final txt = context.l10n.addHotelAddress; // “Ajouter l’adresse de l’hôtel”
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(txt),
+            backgroundColor: Colors.black87,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
   // ✅ met à jour hover + calcul disponibilité
   void _updateHover(DragTargetDetails<NearbyItem> d) {
     final y = _localY(d.offset);
     final snappedY = _snapY15(y);
 
     final item = d.data;
-    final dur  = _proposedDurationFor(item);       // ← durée réelle (60' par défaut, sinon event)
+    final dur  = _proposedDurationFor(item); // durée réelle (60' par défaut, sinon event)
     final t    = _yToTime(snappedY);
 
     setState(() {
       _hoverY = y;
       _hoverItem = item;
-      _hoverDurationMin = dur;                      // ← la hauteur du ghost dépend de ça
-      _canDropHere = !_hasOverlap(t, dur);         // ← calcule l’overlap
+      _hoverDurationMin = dur;
+      _canDropHere = !_hasOverlap(t, dur);
+    });
+
+    // Debounce pour éviter de spammer le backend pendant les micro-mouvements
+    _travelDebounce?.cancel();
+    _travelDebounce = Timer(const Duration(milliseconds: 120), () {
+      _estimateForHover(intendedStart: t, item: item);
     });
   }
 
@@ -218,7 +314,7 @@ class _TimelinePaneState extends State<TimelinePane> {
     });
 
     if (s.hasCoords) {
-      context.read<MapFocusCubit>().focusTripStep(s.latitude!, s.longitude!, zoom: 16);
+      context.read<MapFocusCubit>().focusTripStep(s.latitude!, s.longitude!, zoom: 12);
     } else {
       _focusTripDayIfPossible();
     }
@@ -261,55 +357,28 @@ class _TimelinePaneState extends State<TimelinePane> {
     }
   }
 
-  // AutoScroll when dragging
-  void _startAutoScroll() {
-    _autoScrollTimer ??= Timer.periodic(const Duration(milliseconds: 16), (_) {
-      if (_hoverY == null || !_scrollController.hasClients) return;
-      final viewportY = _hoverY! - _scrollController.offset;
-      final viewportH = widget.height;
+  // Helpers d'accès dynamiques ---------------------------------------------
 
-      double dyPerSec = 0.0;
-      if (viewportY < _kAutoScrollEdge) {
-        final t = (_kAutoScrollEdge - viewportY).clamp(0, _kAutoScrollEdge) / _kAutoScrollEdge;
-        dyPerSec = -_kAutoScrollMaxSpeed * t;
-      } else if (viewportH - viewportY < _kAutoScrollEdge) {
-        final t = (_kAutoScrollEdge - (viewportH - viewportY)).clamp(0, _kAutoScrollEdge) / _kAutoScrollEdge;
-        dyPerSec = _kAutoScrollMaxSpeed * t;
-      }
-
-      if (dyPerSec == 0.0) {
-        _stopAutoScroll();
-        return;
-      }
-
-      final dy = dyPerSec * (16 / 1000);
-      final pos = _scrollController.position;
-      final target = (pos.pixels + dy).clamp(0.0, pos.maxScrollExtent);
-      _scrollController.jumpTo(target);
-      setState(() {});
-    });
-  }
-
-  void _stopAutoScroll() {
-    _autoScrollTimer?.cancel();
-    _autoScrollTimer = null;
-  }
-
-  void _updateAutoScroll() {
-    if (_hoverY == null || !_scrollController.hasClients) {
-      _stopAutoScroll();
-      return;
+  int _extractTravelDurationFromStepVm(TripStepVm s) {
+    // 1) si le VM le connaît nativement → on prend
+    if (s.travelDurationMinutes != null) {
+      return s.travelDurationMinutes!;
     }
-    final viewportY = _hoverY! - _scrollController.offset;
-    final viewportH = widget.height;
-    final nearTop = viewportY < _kAutoScrollEdge;
-    final nearBottom = (viewportH - viewportY) < _kAutoScrollEdge;
-    if (nearTop || nearBottom) {
-      _startAutoScroll();
-    } else {
-      _stopAutoScroll();
-    }
+
+    // 2) fallback dynamiques (au cas où le parent passerait un autre type que TripStepVm)
+    try {
+      final dyn = s as dynamic;
+      final v1 = dyn.travelDurationMinutes as int?;
+      if (v1 != null) return v1;
+      final v2 = dyn.travel_duration_minutes as int?;
+      if (v2 != null) return v2;
+      final v3 = dyn.travelDurationMin as int?;
+      if (v3 != null) return v3;
+    } catch (_) {}
+
+    return 0;
   }
+
 
   // ------------------------------------------------------------------------
 
@@ -354,7 +423,7 @@ class _TimelinePaneState extends State<TimelinePane> {
                 return false;
               },
               child: ScrollConfiguration(
-                behavior: const _NoGlowScroll(),
+                behavior: const NoGlowScroll(),
                 child: SingleChildScrollView(
                   controller: _scrollController,
                   physics: const BouncingScrollPhysics(),
@@ -376,7 +445,7 @@ class _TimelinePaneState extends State<TimelinePane> {
                                 child: DragTarget<NearbyItem>(
                                   onWillAcceptWithDetails: (d) {
                                     _updateHover(d);
-                                    _updateAutoScroll();
+                                    _autoScroller.update();
                                     // ✅ bloque l’accept si overlap détecté
                                     return widget.onCreateStep != null &&
                                         widget.selectedDay != null &&
@@ -384,31 +453,48 @@ class _TimelinePaneState extends State<TimelinePane> {
                                   },
                                   onMove: (d) {
                                     _updateHover(d);
-                                    _updateAutoScroll();
+                                    _autoScroller.update();
                                   },
-                                  onLeave: (_) => setState(() {
-                                    _hoverY = null;
-                                    _hoverItem = null;
-                                    _canDropHere = true;
-                                    _stopAutoScroll();
-                                  }),
+                                  onLeave: (_) {
+                                    _travelDebounce?.cancel();
+                                    setState(() {
+                                      _hoverY = null;
+                                      _hoverItem = null;
+                                      _canDropHere = true;
+                                      _hoverTravelMin = null;
+                                      _hoverTravelMeters = null;
+                                      _hoverMinStart = null;
+                                      _didWarnNoHotel = false;
+                                      _didHapticConstraint = false;
+                                      _autoScroller.stop();
+                                    });
+                                  },
                                   onAcceptWithDetails: (d) async {
                                     if (widget.onCreateStep == null || widget.selectedDay == null) return;
 
-                                    // 🧠 recalcul fiable du temps visé (en tenant compte du ghost au-dessus)
+                                    // on capture TOUT ce qui dépend du context AVANT l'await
+                                    final mapFocusCubit = context.read<MapFocusCubit>();
+
+                                    // 🧠 positionnement : la "ligne" suit le doigt (snap 15')
                                     final rawY = _localY(d.offset);
+                                    final snappedLine = _snapY15(rawY);
+
+                                    TimeOfDay t = _yToTime(snappedLine + _kLineToGhostGap);
+
                                     final item = d.data;
-                                    final dur  = _proposedDurationFor(item);         // durée réelle du drop
-                                    final ghostH = _durationToHeight(dur);           // ✅ aligne avec le visuel du ghost
-                                    const spacing = 4.0;
-                                    final adjustedY = (rawY - ghostH - spacing).clamp(0.0, _contentHeight() - 1.0);
-                                    final snapped = _snapY15(adjustedY);
-                                    final t = _yToTime(snapped);
+                                    final dur  = _proposedDurationFor(item);
+
+                                    if (_hoverMinStart != null) {
+                                      final newMin = _toMin(_hoverMinStart!);
+                                      final cur    = _toMin(t);
+                                      if (cur < newMin) t = _hoverMinStart!;
+                                    }
+
                                     if (_hasOverlap(t, dur)) {
                                       HapticFeedback.heavyImpact();
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         SnackBar(
-                                          content: Text(context.l10n.genericError ?? "Time slot is already used."),
+                                          content: Text(context.l10n.genericError),
                                           backgroundColor: Colors.red.shade700,
                                         ),
                                       );
@@ -416,141 +502,261 @@ class _TimelinePaneState extends State<TimelinePane> {
                                         _hoverY = null;
                                         _hoverItem = null;
                                         _canDropHere = true;
-                                        _stopAutoScroll();
+                                        _hoverTravelMin = null;
+                                        _hoverTravelMeters = null;
+                                        _hoverMinStart = null;
+                                        _didWarnNoHotel = false;
+                                        _didHapticConstraint = false;
+                                        _autoScroller.stop();
                                       });
                                       return;
                                     }
 
+                                    // couper le ghost tout de suite
                                     setState(() {
                                       _hoverY = null;
                                       _hoverItem = null;
-                                      _canDropHere = true;
-                                      _stopAutoScroll();
                                     });
-
-                                    // ➕ mémorise la "clé" attendue pour auto-select au prochain rebuild
-                                    _pendingTitle = item.name;
-                                    _pendingStart = t;
 
                                     HapticFeedback.lightImpact();
 
+                                    // ⬇️ appel async
                                     await widget.onCreateStep!(
                                       item: item,
                                       tripDayId: widget.selectedTripDayId!,
                                       day: widget.selectedDay!,
                                       startTime: t,
+                                      travelDurationMinutes: _hoverTravelMin,
+                                      travelDistanceMeters: _hoverTravelMeters,
                                     );
+
+                                    // après l'await : on protège les setState
+                                    if (!mounted) return;
+
+                                    // focus carte SANS réutiliser context.read(...)
+                                    if (hasValidCoords(item.latitude, item.longitude)) {
+                                      mapFocusCubit.focusTripStep(
+                                        item.latitude, item.longitude, zoom: 16,
+                                      );
+                                    }
+
+                                    setState(() {
+                                      _canDropHere = true;
+                                      _hoverTravelMin = null;
+                                      _hoverTravelMeters = null;
+                                      _hoverMinStart = null;
+                                      _didWarnNoHotel = false;
+                                      _didHapticConstraint = false;
+                                      _autoScroller.stop();
+                                    });
+
+                                    _pendingTitle = item.name;
+                                    _pendingStart = t;
                                   },
                                   builder: (_, __, ___) {
-                                    return Container(
-                                      decoration: const BoxDecoration(
-                                        color: Colors.white,
-                                        border: Border(
-                                          top: BorderSide(color: AppColors.texasBlue, width: 1),
+                                    // On construit la pile de widgets dynamiquement pour pouvoir
+                                    // insérer les badges entre steps.
+                                    final List<Widget> children = [];
+
+                                    // Fond / cadre
+                                    children.add(
+                                      Container(
+                                        decoration: const BoxDecoration(
+                                          color: Colors.white,
+                                          border: Border(
+                                            top: BorderSide(color: AppColors.texasBlue, width: 1),
+                                          ),
                                         ),
-                                      ),
-                                      padding: EdgeInsets.only(bottom: extraScroll),
-                                      alignment: Alignment.topLeft,
-                                      child: Stack(
-                                        children: [
-                                          // Bouton "Ajouter une adresse"
-                                          if (widget.onAddAddress != null &&
-                                              widget.selectedDay != null &&
-                                              !widget.hasAddress)
-                                            Positioned(
-                                              top: 8,
-                                              left: 8,
-                                              child: TextButton.icon(
-                                                onPressed: widget.onAddAddress,
-                                                icon: const Icon(Icons.add_location_alt, size: 12),
-                                                label: Text(context.l10n.addHotelAddress),
-                                                style: TextButton.styleFrom(
-                                                  foregroundColor: AppColors.whiteGlow,
-                                                  backgroundColor: AppColors.texasBlue,
-                                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                                  shape: RoundedRectangleBorder(
-                                                    borderRadius: BorderRadius.circular(8),
-                                                    side: const BorderSide(color: AppColors.texasBlue, width: 1),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-
-                                          // Steps existants
-                                          ...widget.steps.map((s) {
-                                            final top = _timeToY(s.start);
-                                            final height = _durationToHeight(s.durationMin);
-                                            final isSelected = _isSelected(s);
-                                            return Positioned(
-                                              top: top,
-                                              left: 0,
-                                              right: 0,
-                                              height: height,
-                                              child: GestureDetector(
-                                                onTap: () => _toggleStepSelection(s),
-                                                child: StepCard(
-                                                  title: s.title,
-                                                  primaryIcon: s.primaryIcon,
-                                                  otherIcons: s.otherIcons,
-                                                  durationMin: s.durationMin,
-                                                  latitude: s.latitude,
-                                                  longitude: s.longitude,
-                                                  selected: isSelected,
-                                                ),
-                                              ),
-                                            );
-                                          }),
-
-                                          // --- Guide de drop (ligne + ghost durée réelle) ---
-                                          if (_hoverY != null)
-                                            Builder(builder: (_) {
-                                              final snapped  = _snapY15(_hoverY!);
-                                              final ghostH   = _durationToHeight(_hoverDurationMin); // hauteur = durée réelle
-                                              const spacing  = 4.0;
-
-                                              final Color borderCol = _canDropHere ? AppColors.texasBlue : Colors.red;
-                                              final Color bgCol     = _canDropHere ? Colors.white       : const Color(0xFFF2F2F4);
-
-                                              return Positioned(
-                                                top: math.max(0.0, snapped - ghostH - spacing), // ghost au-dessus de la ligne
-                                                left: 0,
-                                                right: 0,
-                                                child: Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                                                  children: [
-                                                    if (_hoverItem != null)
-                                                      Opacity(
-                                                        opacity: .95,
-                                                        child: SizedBox(
-                                                          height: ghostH,
-                                                          child: StepCard(
-                                                            title: _hoverItem!.name,
-                                                            durationMin: _hoverDurationMin, // affiche la durée dans le ghost
-                                                            bgColor: bgCol,                  // <-- fond gris si overlap
-                                                            borderColor: borderCol,          // <-- bord rouge si overlap
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    const SizedBox(height: spacing),
-                                                    Container(
-                                                      height: 2,
-                                                      color: _canDropHere
-                                                          ? AppColors.texasBlue.withValues(alpha: .55)
-                                                          : Colors.red.withValues(alpha: .65),
-                                                    ),
-                                                  ],
-                                                ),
-                                              );
-                                            }),
-
-                                        ],
+                                        alignment: Alignment.topLeft,
+                                        padding: EdgeInsets.only(bottom: widget.height * 0.50),
                                       ),
                                     );
+
+                                    // Bouton "Ajouter une adresse"
+                                    if (widget.onAddAddress != null &&
+                                        widget.selectedDay != null &&
+                                        !widget.hasAddress) {
+                                      children.add(
+                                        Positioned(
+                                          top: 8,
+                                          left: 8,
+                                          child: AddAddressButton(onPressed: widget.onAddAddress),
+                                        ),
+                                      );
+                                    }
+
+
+                                    // Steps existants + badge persistant de trajet entre steps (depuis BDD)
+                                    for (int i = 0; i < widget.steps.length; i++) {
+                                      final s = widget.steps[i];
+                                      final top = _timeToY(s.start);
+                                      final height = _durationToHeight(s.durationMin);
+                                      final isSelected = _isSelected(s);
+
+                                      // 1. on pose la carte du step
+                                      children.add(
+                                        Positioned(
+                                          top: top,
+                                          left: 0,
+                                          right: 0,
+                                          height: height,
+                                          child: GestureDetector(
+                                            onTap: () => _toggleStepSelection(s),
+                                            child: StepCard(
+                                              title: s.title,
+                                              primaryIcon: s.primaryIcon,
+                                              otherIcons: s.otherIcons,
+                                              durationMin: s.durationMin,
+                                              latitude: s.latitude,
+                                              longitude: s.longitude,
+                                              selected: isSelected,
+                                            ),
+                                          ),
+                                        ),
+                                      );
+
+                                      // 2. on regarde la durée de trajet portée par CE step
+                                      final int travelMin = _extractTravelDurationFromStepVm(s);
+
+                                      // 2.a CAS NORMAL (step i > 0) : trajet depuis le step précédent
+                                      if (i > 0 && travelMin > 0) {
+                                        final p = widget.steps[i - 1];
+                                        final prevEndY = _timeToY(p.start) + _durationToHeight(p.durationMin);
+                                        final curTopY  = top;
+                                        final midY     = prevEndY + (curTopY - prevEndY) / 2.0;
+
+                                        children.add(
+                                          Positioned(
+                                            top: math.max(0.0, midY - _kBadgeHalfHeight),
+                                            left: 4,
+                                            child: TravelBadge(minutes: travelMin),
+                                          ),
+                                        );
+                                      }
+
+                                      // 2.b 🔥 NOUVEAU CAS : premier step de la journée
+                                      // si le TripDay a une adresse (hasAddress == true) ET que ce premier step
+                                      // a bien une durée de trajet (depuis l’hôtel) alors on l’affiche tout en haut
+                                      if (i == 0 && widget.hasAddress && travelMin > 0) {
+                                        // on prend un point entre le haut et le top du premier step
+                                        final midY = top / 2.0;
+
+                                        children.add(
+                                          Positioned(
+                                            top: math.max(0.0, midY - _kBadgeHalfHeight),
+                                            left: 4,
+                                            child: TravelBadge(minutes: travelMin),
+                                          ),
+                                        );
+                                      }
+                                    }
+
+
+                                    // --- Guide de drop (ghost + ligne + badge au-dessus) ---
+                                    if (_hoverY != null) {
+                                      final snappedLine = _snapY15(_hoverY!);
+
+                                      // 👉 Ghost top = ligne snap + gap (ghost collé SOUS le doigt)
+                                      double ghostTop = snappedLine + _kLineToGhostGap;
+
+                                      // 1) CAS NORMAL : on a un minStart calculé (step précédent connu)
+                                      if (_hoverMinStart != null) {
+                                        final minY = _timeToY(_hoverMinStart!);
+                                        final before = ghostTop;
+                                        ghostTop = math.max(ghostTop, minY);
+                                        if (!_didHapticConstraint && ghostTop > before) {
+                                          HapticFeedback.selectionClick();
+                                          _didHapticConstraint = true;
+                                        }
+                                      }
+                                      // 2) 🆕 CAS “PREMIER STEP” : pas de minStart mais on a l’hôtel + une durée de trajet
+                                      else if (widget.hasAddress && (_hoverTravelMin ?? 0) > 0) {
+                                        // on force au moins après le "trajet" depuis l'hôtel
+                                        // (on convertit la durée de trajet en hauteur, même si on ne dessine pas le trajet)
+                                        final hotelY = _gridTopInset; // le haut de la journée
+                                        final minY = hotelY + _durationToHeight(_hoverTravelMin!);
+                                        final before = ghostTop;
+                                        ghostTop = math.max(ghostTop, minY);
+                                        if (!_didHapticConstraint && ghostTop > before) {
+                                          HapticFeedback.selectionClick();
+                                          _didHapticConstraint = true;
+                                        }
+                                      }
+
+                                      final ghostH = _durationToHeight(_hoverDurationMin);
+
+                                      // 🔽 ici on calcule le badge
+                                      double? badgeTop;
+
+                                      if ((_hoverTravelMin ?? 0) > 0) {
+                                        if (_hoverMinStart != null) {
+                                          // ✅ cas existant : step précédent connu
+                                          final prevEnd = _minusMinutes(_hoverMinStart!, _hoverTravelMin!);
+                                          final yPrevEnd = _timeToY(prevEnd);
+                                          final mid = yPrevEnd + (ghostTop - yPrevEnd) / 2.0;
+                                          badgeTop = math.max(0.0, mid - _kBadgeHalfHeight);
+                                        } else if (widget.hasAddress) {
+                                          // ✅ 🆕 cas hôtel → premier step
+                                          final hotelY = _gridTopInset; // ancre hôtel
+                                          final mid = hotelY + (ghostTop - hotelY) / 2.0;
+                                          badgeTop = math.max(0.0, mid - _kBadgeHalfHeight);
+                                        }
+                                      }
+
+                                      final Color borderCol = _canDropHere ? AppColors.texasBlue : Colors.red;
+                                      final Color bgCol     = _canDropHere ? Colors.white       : const Color(0xFFF2F2F4);
+
+                                      children.addAll([
+                                        // Ghost (carte) + ligne juste au-dessus
+                                        Positioned(
+                                          top: ghostTop,
+                                          left: 0,
+                                          right: 0,
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                                            children: [
+                                              if (_hoverItem != null)
+                                                Opacity(
+                                                  opacity: .95,
+                                                  child: SizedBox(
+                                                    height: ghostH,
+                                                    child: StepCard(
+                                                      title: _hoverItem!.name,
+                                                      durationMin: _hoverDurationMin,
+                                                      bgColor: bgCol,
+                                                      borderColor: borderCol,
+                                                    ),
+                                                  ),
+                                                ),
+                                              const SizedBox(height: _kLineToGhostGap),
+                                              Container(
+                                                height: 2,
+                                                color: _canDropHere
+                                                    ? AppColors.texasBlue.withValues(alpha: .55)
+                                                    : Colors.red.withValues(alpha: .65),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+
+                                        // Badge ghost (estimate) au midpoint, au-dessus du ghost
+                                        if (badgeTop != null)
+                                          Positioned(
+                                            top: badgeTop,
+                                            left: 4,
+                                            child: TravelBadge(minutes: _hoverTravelMin!),
+                                          ),
+                                      ]);
+                                    }
+
+
+                                    return Stack(children: children);
                                   },
                                 ),
                               ),
                             ),
                           ),
+
 
                           // 2) Stripe heures (droite)
                           Align(
@@ -605,8 +811,3 @@ class _TimelinePaneState extends State<TimelinePane> {
   }
 }
 
-class _NoGlowScroll extends ScrollBehavior {
-  const _NoGlowScroll();
-  @override
-  Widget buildOverscrollIndicator(BuildContext context, Widget child, ScrollableDetails details) => child;
-}
