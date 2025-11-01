@@ -31,14 +31,16 @@ class _SplashPageState extends State<SplashPage> {
   @override
   void initState() {
     super.initState();
+    print('[Splash] =================================================================================initState');
     _initSession();
   }
 
   Future<void> _initSession() async {
+    print('[Splash]==dans initsassion start====================================================================');
     try {
       final isLoggedIn = await _checkSessionUseCase();
       if (!mounted) return;
-
+      print("5splash après le mounted========================");
       if (isLoggedIn) {
         try {
           await _fetchMe();

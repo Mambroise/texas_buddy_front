@@ -69,26 +69,25 @@ class _NearbyDraggableListState extends State<NearbyDraggableList> {
                   final cardWidth  = widget.maxCardWidth;
                   const cardHeight = 88.0;
 
-                  // poignée de drag (GAUCHE) — inchangée
-                  final handle = Draggable<NearbyItem>(
+                  final card = _NearbyCard(
+                    item: it,
+                    dimmed: _draggingIndex == i,
+                  );
+
+                  return LongPressDraggable<NearbyItem>(
                     data: it,
                     dragAnchorStrategy: pointerDragAnchorStrategy,
                     feedback: Transform.translate(
-                      offset: Offset(-cardWidth / 2, -cardHeight / 2),   // doigt au centre
+                      offset: Offset(-cardWidth / 2, -cardHeight / 2), // doigt au centre
                       child: _DragFeedbackCard(item: it, width: cardWidth, height: cardHeight),
                     ),
-                    child: const _DragHandleIcon(),
-                    childWhenDragging: const _DragHandleIcon(dimmed: true),
+                    child: card,
+                    childWhenDragging: const _NearbyCardPlaceholder(), // visuel “vide” pendant drag
                     onDragStarted: () => setState(() => _draggingIndex = i),
                     onDragEnd: (_) => setState(() => _draggingIndex = null),
                   );
-
-                  return _NearbyCard(
-                    item: it,
-                    dimmed: _draggingIndex == i, // assombrir la carte pendant le drag
-                    leading: handle,             // ✅ poignée à GAUCHE
-                  );
                 },
+
               ),
             );
           },
@@ -106,13 +105,11 @@ class _NoGlowScroll extends ScrollBehavior {
 
 class _NearbyCard extends StatelessWidget {
   final NearbyItem item;
-  final Widget? leading;   // ✅ poignée / avatar / etc. à gauche
   final Widget? trailing;  // (non utilisé ici, conservé pour flexibilité)
   final bool dimmed;
 
   const _NearbyCard({
     required this.item,
-    this.leading,
     this.trailing,
     this.dimmed = false,
   });
@@ -133,10 +130,6 @@ class _NearbyCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12),
         child: Row(
           children: [
-            if (leading != null) ...[
-              SizedBox(width: 32, child: Center(child: leading)),
-              const SizedBox(width: 8),
-            ],
             const Icon(Icons.place, color: AppColors.texasBlue),
             const SizedBox(width: 10),
             Expanded(
@@ -206,16 +199,22 @@ class _DragFeedbackCard extends StatelessWidget {
   }
 }
 
-class _DragHandleIcon extends StatelessWidget {
-  final bool dimmed;
-  const _DragHandleIcon({this.dimmed = false});
+class _NearbyCardPlaceholder extends StatelessWidget {
+  const _NearbyCardPlaceholder();
 
   @override
   Widget build(BuildContext context) {
-    return Icon(
-      Icons.drag_indicator_rounded,
-      color: dimmed ? Colors.black26 : AppColors.texasBlue,
-      size: 22,
+    return Opacity(
+      opacity: .35,
+      child: Container(
+        margin: const EdgeInsets.only(top: 12),
+        height: 88,
+        decoration: BoxDecoration(
+          color: AppColors.fog,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.texasBlue, width: 1),
+        ),
+      ),
     );
   }
 }

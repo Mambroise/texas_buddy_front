@@ -20,7 +20,10 @@ class TripStepVm {
   final double? latitude;
   final double? longitude;
 
-  /// Icônes déjà résolues (plus de mapping ici)
+  /// durée de trajet DEPUIS le step précédent (si connue)
+  final int? travelDurationMinutes; // 👈 NEW
+
+  /// Icônes déjà résolues
   final IconData? primaryIcon;
   final List<IconData> otherIcons;
 
@@ -31,6 +34,7 @@ class TripStepVm {
     required this.title,
     this.latitude,
     this.longitude,
+    this.travelDurationMinutes,     // 👈 NEW
     this.primaryIcon,
     this.otherIcons = const <IconData>[],
   });
@@ -42,6 +46,8 @@ required NearbyItem item,
 required int tripDayId,
 required DateTime day,
 required TimeOfDay startTime,
+int? travelDurationMinutes,
+int? travelDistanceMeters,
 });
 
 /// Helpers
