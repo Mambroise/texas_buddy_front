@@ -11,6 +11,7 @@ import 'package:texas_buddy/core/theme/app_colors.dart';
 import 'package:texas_buddy/features/map/domain/entities/nearby_item.dart';
 import 'package:texas_buddy/features/map/presentation/blocs/nearby/nearby_bloc.dart';
 
+
 // ⬇️ nouveau: helpers + widget de distance
 import 'package:texas_buddy/features/planning/presentation/widgets/nearby/distance_label.dart';
 
