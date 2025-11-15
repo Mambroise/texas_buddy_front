@@ -163,6 +163,7 @@ class _TripDaysStripState extends State<TripDaysStrip> {
     }
   }
 
+
   String _fmtDate(DateTime d) =>
       MaterialLocalizations.of(context).formatShortMonthDay(d);
 

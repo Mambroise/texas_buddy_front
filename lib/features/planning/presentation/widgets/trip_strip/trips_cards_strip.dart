@@ -12,7 +12,9 @@ import 'package:texas_buddy/features/planning/domain/entities/trip.dart';
 
 // util / widgets que tu as déjà extraits
 import 'package:texas_buddy/core/utils/outside_dismiss_barrier.dart';
-import 'package:texas_buddy/features/planning/presentation/widgets/trip_strip/action_icon_button.dart';
+import 'package:texas_buddy/features/planning/presentation/widgets/action_icon_button.dart';
+import 'package:texas_buddy/features/planning/presentation/widgets/sheets/confirm_action_sheet.dart';
+
 
 class TripCardsStrip extends StatefulWidget {
   final double height;
@@ -110,54 +112,7 @@ class _TripCardsStripState extends State<TripCardsStrip> {
     return '${ml.formatShortMonthDay(t.startDate)} – ${ml.formatShortMonthDay(t.endDate)}';
   }
 
-  Future<bool?> _confirmDeleteSheet(Trip t) {
-    return showModalBottomSheet<bool>(
-      context: context,
-      useSafeArea: true,
-      showDragHandle: true,
-      backgroundColor: Colors.white,
-      builder: (ctx) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 8),
-            Text(context.l10n.trips_delete_title,
-                style: Theme.of(ctx).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
-            const SizedBox(height: 8),
-            Text(
-              context.l10n.trips_delete_message(t.title),
-              textAlign: TextAlign.center,
-              style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(color: Colors.black54),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(ctx).pop(false),
-                    child: Text(context.l10n.common_cancel),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: FilledButton.tonal(
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Colors.red.shade50,
-                      foregroundColor: Colors.red.shade800,
-                    ),
-                    onPressed: () => Navigator.of(ctx).pop(true),
-                    child: Text(context.l10n.trips_delete_confirm),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-  }
+
 
   Widget _tripCard(Trip t) => Container(
     width: 160,
@@ -226,8 +181,18 @@ class _TripCardsStripState extends State<TripCardsStrip> {
                     onTap: () async {
                       // IMPORTANT : fermer la barrière avant d’ouvrir le bottom sheet
                       _outsideBarrier.pause();
-                      final ok = await _confirmDeleteSheet(t);
+                      final ok = await showConfirmActionSheet(
+                        context,
+                        title: context.l10n.trips_delete_title,
+                        message: context.l10n.trips_delete_message(t.title),
+                        cancelLabel: context.l10n.common_cancel,
+                        confirmLabel: context.l10n.trips_delete_confirm,
+                        icon: Icons.warning_amber_rounded,
+                        confirmBg: Colors.red.shade50,
+                        confirmFg: Colors.red.shade800,
+                      );
                       _outsideBarrier.resume();
+
 
                       if (ok == true && mounted) {
                         final success = await widget.onDeleteTap(t);

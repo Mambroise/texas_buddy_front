@@ -5,7 +5,6 @@
 // Author : Morice
 //---------------------------------------------------------------------------
 
-
 import '../entities/trip_step.dart';
 
 abstract class TripStepRepository {
@@ -27,5 +26,24 @@ abstract class TripStepRepository {
     int? travelDurationMinutes,
     int? travelDistanceMeters,
     String travelMode = 'driving',
+  });
+
+  Future<void> delete(int id);
+
+  /// Met à jour un TripStep côté backend et retourne l'entité à jour.
+  ///
+  /// Tous les paramètres sont optionnels sauf [id] : seuls les champs non nuls
+  /// seront envoyés au backend (PATCH).
+  Future<TripStep> update({
+    required int id,
+    int? tripDayId,
+    int? startHour,
+    int? startMinute,
+    int? estimatedDurationMinutes,
+    String? travelMode,
+    int? travelDurationMinutes,
+    int? travelDistanceMeters,
+    String? targetType, // "activity" | "event"
+    int? targetId,
   });
 }

@@ -84,6 +84,8 @@ import 'package:texas_buddy/features/planning/domain/usecases/address_search/sel
 import 'package:texas_buddy/features/planning/domain/usecases/trips/update_tripday_address_usecase.dart';
 
 import 'package:texas_buddy/features/planning/domain/usecases/trips/create_trip_step.dart';
+import 'package:texas_buddy/features/planning/domain/usecases/trips/delete_trip_step.dart';
+import 'package:texas_buddy/features/planning/domain/usecases/trips/update_trip_step.dart';
 
 // Caches
 import 'package:texas_buddy/features/map/data/cache/nearby_memory_cache.dart';
@@ -267,6 +269,9 @@ Future<void> setupLocator(Dio dio) async {
   getIt.registerLazySingleton<CreateTripStep>(
         () => CreateTripStep(getIt<TripStepRepository>()),
   );
+  getIt.registerLazySingleton(() => DeleteTripStep(getIt<TripStepRepository>()));
+
+  getIt.registerLazySingleton(() => UpdateTripStep(getIt<TripStepRepository>()));
 
   // ── App State (router) ───────────────────────────────────────────────────
   getIt.registerLazySingleton<AuthNotifier>(() => AuthNotifier(getIt<CheckSessionUseCase>()));
@@ -328,7 +333,11 @@ Future<void> setupLocator(Dio dio) async {
   ));
 
 // après avoir enregistré CreateTripStep
-    getIt.registerFactory<PlanningOverlayCubit>(() => PlanningOverlayCubit(createTripStep: getIt<CreateTripStep>(), computeTravel: getIt<ComputeTravel>(),
+    getIt.registerFactory<PlanningOverlayCubit>(() => PlanningOverlayCubit(
+      createTripStep: getIt<CreateTripStep>(),
+      computeTravel: getIt<ComputeTravel>(),
+      deleteTripStep: getIt<DeleteTripStep>(),
+      updateTripStep: getIt<UpdateTripStep>(),
        ));
 
   getIt.registerFactory<MapFocusCubit>(() => MapFocusCubit());

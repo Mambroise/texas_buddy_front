@@ -45,6 +45,8 @@ class CategoryIconMapper {
     if (_containsAny(k, ['bar/cocktails', 'bar/cocteles'])) return FontAwesomeIcons.martiniGlassCitrus;
     if (_containsAny(k, ['juego/fun', 'jeu/fun', 'game/fun'])) return FontAwesomeIcons.gamepad;
     if (_containsAny(k, ['divertissement', 'entretemiento', 'entertainment'])) return FontAwesomeIcons.tv;
+    if (_containsAny(k, ['hotel/camping'])) return FontAwesomeIcons.bed;
+    if (_containsAny(k, ['bayou'])) return FontAwesomeIcons.frog;
 
     // 3) Fallback final
     return Icons.place;
@@ -99,6 +101,7 @@ class CategoryIconMapper {
     'fa-cow': FontAwesomeIcons.cow,
     'fa-palette': FontAwesomeIcons.palette,
     'fa-bacon': FontAwesomeIcons.bacon,
+    'fa-frog': FontAwesomeIcons.frog,
 
     'fa-building-columns': FontAwesomeIcons.buildingColumns, // “monument”
     'fa-mask': FontAwesomeIcons.mask,                        // “spectacle”

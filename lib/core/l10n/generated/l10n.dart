@@ -816,6 +816,18 @@ abstract class L10n {
   /// In en, this message translates to:
   /// **'No results found.'**
   String get noResults;
+
+  /// No description provided for @timeline_delete_title.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete step'**
+  String get timeline_delete_title;
+
+  /// Confirmation message shown before deleting a step in the timeline
+  ///
+  /// In en, this message translates to:
+  /// **'Are you sure you want to delete the step \"{stepTitle}\"?'**
+  String timeline_delete_message(String stepTitle);
 }
 
 class _L10nDelegate extends LocalizationsDelegate<L10n> {

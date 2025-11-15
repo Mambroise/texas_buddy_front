@@ -134,6 +134,19 @@
   "fillCityFirst": "Introduce primero la ciudad",
   "typeAtLeast3Chars": "Escribe al menos 3 letras para buscar.",
   "genericError": "Ha ocurrido un error.",
-  "noResults": "Sin resultados."
+  "noResults": "Sin resultados.",
+
+  "timeline_delete_title": "Eliminar etapa",
+  "timeline_delete_message": "¿Estás seguro de que deseas eliminar la etapa \"{stepTitle}\"?",
+  "@timeline_delete_message": {
+    "description": "Mensaje de confirmación antes de eliminar una etapa de la línea de tiempo",
+    "placeholders": {
+      "stepTitle": {
+        "type": "String",
+        "example": "Almuerzo en Austin"
+      }
+    }
+  }
+
 
 }

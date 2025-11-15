@@ -21,7 +21,7 @@ class TripStepVm {
   final double? longitude;
 
   /// durée de trajet DEPUIS le step précédent (si connue)
-  final int? travelDurationMinutes; // 👈 NEW
+  final int? travelDurationMinutes;
 
   /// Icônes déjà résolues
   final IconData? primaryIcon;
@@ -34,7 +34,7 @@ class TripStepVm {
     required this.title,
     this.latitude,
     this.longitude,
-    this.travelDurationMinutes,     // 👈 NEW
+    this.travelDurationMinutes,
     this.primaryIcon,
     this.otherIcons = const <IconData>[],
   });
@@ -68,7 +68,7 @@ class StepCard extends StatelessWidget {
   final double? latitude;
   final double? longitude;
   final bool selected;
-  final Color? bgColor;       // NEW
+  final Color? bgColor;
   final Color? borderColor;
 
   const StepCard({
@@ -80,7 +80,7 @@ class StepCard extends StatelessWidget {
     this.latitude,
     this.longitude,
     this.selected = false,
-    this.bgColor,            // NEW
+    this.bgColor,
     this.borderColor,
   });
 
@@ -96,9 +96,15 @@ class StepCard extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
       decoration: BoxDecoration(
         color: resolvedBg,                 // <-- utilise la couleur override
-        border: Border.all(
-          color: resolvedBorder,           // <-- et la bordure override
-          width: selected ? 2 : 1,
+        border: Border(
+          top: BorderSide(
+            color: resolvedBorder,
+            width: selected ? 2 : 1,
+          ),
+          bottom: BorderSide(
+            color: resolvedBorder,
+            width: selected ? 2 : 1,
+          ),
         ),
         boxShadow: const [
           BoxShadow(blurRadius: 12, offset: Offset(0, 6), color: Color(0x24000000)),
