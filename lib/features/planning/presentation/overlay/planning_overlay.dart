@@ -109,6 +109,8 @@ class _PlanningOverlayState extends State<PlanningOverlay> {
         : Localizations.localeOf(context).languageCode.toLowerCase();
     final bool use24h = !(lang == 'en' || lang == 'es');
 
+    final bool useMiles = (lang == 'en' || lang == 'es');
+
     // === Sélection du state du cubit ===
     final overlayState = context.watch<PlanningOverlayCubit>().state;
     final TripDay? day = overlayState.selectedDay;
@@ -270,7 +272,16 @@ class _PlanningOverlayState extends State<PlanningOverlay> {
                           ),
                         );
                       },
-
+                      onDeleteStep: (step) async {
+                        // appelle ton usecase / cubit de suppression, retourne true si succès
+                        // Exemple si tu as une méthode dédiée :
+                        return await context.read<PlanningOverlayCubit>().deleteStep(step.id!);
+                      },
+                      onEditStep: (step) {
+                        // ouvre ton sheet/modal d’édition du step
+                        // ex: showEditStepSheet(step);
+                      },
+                      
                       // --- création d'un step au drop ---
                       onCreateStep: ({
                         required NearbyItem item,
@@ -322,8 +333,21 @@ class _PlanningOverlayState extends State<PlanningOverlay> {
 
               // ==== COLONNE DROITE : LISTE D'ITEMS DRAGGABLES ====
               Expanded(
-                child: NearbyDraggableList(
-                  maxCardWidth: (widget.width / 2) - 40,
+                child: BlocBuilder<PlanningOverlayCubit, PlanningOverlayState>(
+                  buildWhen: (p, n) => p.expanded != n.expanded,
+                  builder: (context, ovr) {
+                    final bool expanded = ovr.expanded;
+
+                    return AnimatedSlide(
+                      duration: const Duration(milliseconds: 240),
+                      curve: Curves.easeOutCubic,
+                      offset: Offset(expanded ? 0.0 : 0.75, 0.0),
+                      child: NearbyDraggableList(
+                        maxCardWidth: (widget.width / 2) - 40,
+                        useMiles: useMiles, // ⬅️ passe le flag
+                      ),
+                    );
+                  },
                 ),
               ),
             ],

@@ -141,6 +141,19 @@
   "fillCityFirst": "Enter the city first",
   "typeAtLeast3Chars": "Type at least 3 letters to search.",
   "genericError": "An error occurred.",
-  "noResults": "No results found."
+  "noResults": "No results found.",
+
+  "timeline_delete_title": "Delete step",
+  "timeline_delete_message": "Are you sure you want to delete the step \"{stepTitle}\"?",
+  "@timeline_delete_message": {
+    "description": "Confirmation message shown before deleting a step in the timeline",
+    "placeholders": {
+      "stepTitle": {
+        "type": "String",
+        "example": "Lunch at Austin"
+      }
+    }
+}
+
 
 }

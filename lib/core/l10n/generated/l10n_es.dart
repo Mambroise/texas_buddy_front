@@ -385,4 +385,12 @@ class L10nEs extends L10n {
 
   @override
   String get noResults => 'Sin resultados.';
+
+  @override
+  String get timeline_delete_title => 'Eliminar etapa';
+
+  @override
+  String timeline_delete_message(String stepTitle) {
+    return '¿Estás seguro de que deseas eliminar la etapa \"$stepTitle\"?';
+  }
 }

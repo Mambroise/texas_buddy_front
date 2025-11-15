@@ -1,7 +1,7 @@
 //---------------------------------------------------------------------------
 //                           TEXAS BUDDY   ( 2 0 2 5 )
 //---------------------------------------------------------------------------
-// File   : features/planning/presentation/widgets/hours_list.dart
+// File   : features/planning/presentation/widgets/timeline/hours_list.dart
 // Author : Morice
 //---------------------------------------------------------------------------
 

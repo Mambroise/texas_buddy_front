@@ -1,10 +1,6 @@
 //---------------------------------------------------------------------------
-//                           TEXAS BUDDY   ( 2 0 2 5 )
-//---------------------------------------------------------------------------
 // File   : features/map/presentation/cubits/map_focus_cubit.dart
-// Author : Morice
 //---------------------------------------------------------------------------
-
 
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -33,6 +29,10 @@ class MapFocusState extends Equatable {
 class MapFocusCubit extends Cubit<MapFocusState?> {
   MapFocusCubit() : super(null);
 
+  // ⬇️ nouvelle fenêtre anti-"vol de focus" pour TripDay
+  DateTime? _tripDaySuppressedUntil;
+  static const _kTripStepHold = Duration(milliseconds: 700); // ajuste si besoin
+
   MapFocusState _build(
       MapFocusSource src,
       double lat,
@@ -48,16 +48,36 @@ class MapFocusCubit extends Cubit<MapFocusState?> {
     );
   }
 
-  void focusUser(double lat, double lng, {double zoom = 14}) =>
-      emit(_build(MapFocusSource.user, lat, lng, zoom));
+  bool _tripDaySuppressedNow() {
+    final until = _tripDaySuppressedUntil;
+    if (until == null) return false;
+    return DateTime.now().isBefore(until);
+  }
 
-  void focusDallas({double zoom = 12}) =>
-      emit(_build(MapFocusSource.dallas, 32.7767, -96.7970, zoom));
+  // 🔒 Optionnel : visible pour l’UI (utile si tu veux consulter l’état)
+  bool get isTripDaySuppressed => _tripDaySuppressedNow();
 
-  void focusTripDay(double lat, double lng, {double zoom = 14}) =>
-      emit(_build(MapFocusSource.tripDay, lat, lng, zoom));
+  // --- API publique -------------------------------------------------------
 
-  void focusTripStep(double lat, double lng, {double zoom = 16}) =>
-      emit(_build(MapFocusSource.tripStep, lat, lng, zoom));
+  void focusUser(double lat, double lng, {double zoom = 14}) {
+    emit(_build(MapFocusSource.user, lat, lng, zoom));
+  }
+
+  void focusDallas({double zoom = 12}) {
+    emit(_build(MapFocusSource.dallas, 32.7767, -96.7970, zoom));
+  }
+
+  // ⛔ bloque si la fenêtre de suppression TripDay est active
+  void focusTripDay(double lat, double lng, {double zoom = 14}) {
+    if (_tripDaySuppressedNow()) {
+      return; // on ignore poliment
+    }
+    emit(_build(MapFocusSource.tripDay, lat, lng, zoom));
+  }
+
+  // ✅ pose un "hold" explicite sur les prochains focusTripDay
+  void focusTripStep(double lat, double lng, {double zoom = 16}) {
+    _tripDaySuppressedUntil = DateTime.now().add(_kTripStepHold);
+    emit(_build(MapFocusSource.tripStep, lat, lng, zoom));
+  }
 }
-

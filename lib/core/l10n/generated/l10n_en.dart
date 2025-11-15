@@ -385,4 +385,12 @@ class L10nEn extends L10n {
 
   @override
   String get noResults => 'No results found.';
+
+  @override
+  String get timeline_delete_title => 'Delete step';
+
+  @override
+  String timeline_delete_message(String stepTitle) {
+    return 'Are you sure you want to delete the step \"$stepTitle\"?';
+  }
 }

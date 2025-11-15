@@ -12,9 +12,20 @@ import 'package:texas_buddy/features/map/domain/entities/nearby_item.dart';
 import 'package:texas_buddy/features/map/presentation/blocs/nearby/nearby_bloc.dart';
 
 
+// ⬇️ nouveau: helpers + widget de distance
+import 'package:texas_buddy/features/planning/presentation/widgets/nearby/distance_label.dart';
+
 class NearbyDraggableList extends StatefulWidget {
   final double maxCardWidth;
-  const NearbyDraggableList({super.key, required this.maxCardWidth});
+
+  /// true = afficher la distance en miles, false = en km.
+  final bool useMiles;
+
+  const NearbyDraggableList({
+    super.key,
+    required this.maxCardWidth,
+    required this.useMiles,
+  });
 
   @override
   State<NearbyDraggableList> createState() => _NearbyDraggableListState();
@@ -49,12 +60,10 @@ class _NearbyDraggableListState extends State<NearbyDraggableList> {
           return const Center(child: Text("No nearby items."));
         }
 
-        // ⚠️ On calcule un extraScroll proportionnel à la hauteur dispo,
-        // exactement comme dans TimelinePane, pour atteindre la dernière carte.
         return LayoutBuilder(
           builder: (ctx, cons) {
             final bottomSafe = MediaQuery.of(ctx).padding.bottom;
-            final extraScroll = cons.maxHeight * 0.30; // ↩︎ même logique que TimelinePane
+            final extraScroll = cons.maxHeight * 0.30;
 
             return ScrollConfiguration(
               behavior: const _NoGlowScroll(),
@@ -71,6 +80,7 @@ class _NearbyDraggableListState extends State<NearbyDraggableList> {
 
                   final card = _NearbyCard(
                     item: it,
+                    useMiles: widget.useMiles,
                     dimmed: _draggingIndex == i,
                   );
 
@@ -78,16 +88,15 @@ class _NearbyDraggableListState extends State<NearbyDraggableList> {
                     data: it,
                     dragAnchorStrategy: pointerDragAnchorStrategy,
                     feedback: Transform.translate(
-                      offset: Offset(-cardWidth / 2, -cardHeight / 2), // doigt au centre
-                      child: _DragFeedbackCard(item: it, width: cardWidth, height: cardHeight),
+                      offset: Offset(-cardWidth / 2, -cardHeight / 2),
+                      child: _DragFeedbackCard(item: it, width: cardWidth, height: cardHeight, useMiles: widget.useMiles),
                     ),
                     child: card,
-                    childWhenDragging: const _NearbyCardPlaceholder(), // visuel “vide” pendant drag
+                    childWhenDragging: const _NearbyCardPlaceholder(),
                     onDragStarted: () => setState(() => _draggingIndex = i),
                     onDragEnd: (_) => setState(() => _draggingIndex = null),
                   );
                 },
-
               ),
             );
           },
@@ -105,11 +114,13 @@ class _NoGlowScroll extends ScrollBehavior {
 
 class _NearbyCard extends StatelessWidget {
   final NearbyItem item;
-  final Widget? trailing;  // (non utilisé ici, conservé pour flexibilité)
+  final Widget? trailing;
   final bool dimmed;
+  final bool useMiles;
 
   const _NearbyCard({
     required this.item,
+    required this.useMiles,
     this.trailing,
     this.dimmed = false,
   });
@@ -128,26 +139,38 @@ class _NearbyCard extends StatelessWidget {
           boxShadow: const [BoxShadow(blurRadius: 10, offset: Offset(0, 4), color: Color(0x12000000))],
         ),
         padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Row(
+        child: Stack(
           children: [
-            const Icon(Icons.place, color: AppColors.texasBlue),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                item.name,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: AppColors.texasBlue,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12,
+            Row(
+              children: [
+                const Icon(Icons.place, color: AppColors.texasBlue),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    item.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.texasBlue,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 12,
+                    ),
+                  ),
                 ),
-              ),
+                if (trailing != null) ...[
+                  const SizedBox(width: 8),
+                  trailing!,
+                ],
+              ],
             ),
-            if (trailing != null) ...[
-              const SizedBox(width: 8),
-              trailing!,
-            ],
+
+            // Label distance discret en bas à droite
+            if (item.distanceKm != null)
+              Positioned(
+                right: 8,
+                bottom: 8,
+                child: DistanceLabel(km: item.distanceKm!, useMiles: useMiles),
+              ),
           ],
         ),
       ),
@@ -159,7 +182,14 @@ class _DragFeedbackCard extends StatelessWidget {
   final NearbyItem item;
   final double width;
   final double height;
-  const _DragFeedbackCard({required this.item, required this.width, required this.height});
+  final bool useMiles;
+
+  const _DragFeedbackCard({
+    required this.item,
+    required this.width,
+    required this.height,
+    required this.useMiles,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -177,21 +207,32 @@ class _DragFeedbackCard extends StatelessWidget {
           boxShadow: const [BoxShadow(blurRadius: 10, offset: Offset(0, 4), color: Color(0x12000000))],
         ),
         padding: const EdgeInsets.all(12),
-        child: Row(
+        child: Stack(
           children: [
-            const Icon(Icons.place, color: AppColors.texasBlue),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                item.name,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: AppColors.texasBlue,
-                  fontWeight: FontWeight.w700,
+            Row(
+              children: [
+                const Icon(Icons.place, color: AppColors.texasBlue),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    item.name,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.texasBlue,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
-              ),
+              ],
             ),
+
+            if (item.distanceKm != null)
+              Positioned(
+                right: 8,
+                bottom: 8,
+                child: DistanceLabel(km: item.distanceKm!, useMiles: useMiles),
+              ),
           ],
         ),
       ),

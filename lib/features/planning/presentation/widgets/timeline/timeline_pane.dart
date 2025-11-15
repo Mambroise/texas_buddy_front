@@ -15,17 +15,24 @@ import 'package:texas_buddy/core/theme/app_colors.dart';
 import 'package:texas_buddy/features/map/domain/entities/nearby_item.dart';
 import 'package:texas_buddy/features/map/presentation/cubits/map_focus_cubit.dart';
 import 'package:texas_buddy/features/planning/presentation/cubits/planning_overlay_cubit.dart';
-import 'package:texas_buddy/features/planning/presentation/widgets/hours_list.dart';
+import 'package:texas_buddy/features/planning/presentation/widgets/timeline/hours_list.dart';
 // ⬇️ fichiers extraits
 import 'package:texas_buddy/features/planning/presentation/widgets/timeline/timeline_step.dart';
 import 'package:texas_buddy/features/planning/presentation/widgets/timeline/add_address_button.dart';
 import 'package:texas_buddy/features/planning/presentation/widgets/timeline/travel_badge.dart';
 import 'package:texas_buddy/features/planning/presentation/widgets/timeline/no_glow_scroll.dart';
 import 'package:texas_buddy/features/planning/presentation/widgets/timeline/timeline_auto_scroller.dart';
+import 'package:texas_buddy/core/utils/outside_dismiss_barrier.dart';
+import 'package:texas_buddy/features/planning/presentation/widgets/action_icon_button.dart';
+import 'package:texas_buddy/features/planning/presentation/widgets/sheets/confirm_action_sheet.dart';
+
 
 
 class TimelinePane extends StatefulWidget {
   final int? selectedTripDayId;
+  final Future<bool> Function(TripStepVm step)? onDeleteStep; // retourne true si OK domaine
+  final ValueChanged<TripStepVm>? onEditStep;
+
 
   const TimelinePane({
     super.key,
@@ -51,6 +58,8 @@ class TimelinePane extends StatefulWidget {
     this.selectedTripDayId,
     this.tripDayLatitude,
     this.tripDayLongitude,
+    this.onDeleteStep,
+    this.onEditStep,
   });
 
   final double height;
@@ -82,6 +91,12 @@ class _TimelinePaneState extends State<TimelinePane> {
   final _scrollController = ScrollController();
   final _dropKey = GlobalKey();
   bool _isUserScrolling = false;
+
+  // gestion boutons delete et modify tripStep
+  // index du step dont les actions sont visibles
+  int? _actionIndex;
+  final GlobalKey _hostKey = GlobalKey();          // pour OutsideDismissBarrier
+  late final OutsideDismissBarrier _outsideBarrier;
 
   double get _gridTopInset => widget.slotHeight * 0.5;
 
@@ -133,6 +148,10 @@ class _TimelinePaneState extends State<TimelinePane> {
       onTick: () { if (mounted) setState(() {}); },
       // edge et maxSpeed par défaut = 80 / 900 (identiques à avant)
     );
+    _outsideBarrier = OutsideDismissBarrier(
+      hostKey: _hostKey,
+      onDismiss: _closeStepActions,
+    );
   }
 
   String _langOf(BuildContext context) {
@@ -144,6 +163,7 @@ class _TimelinePaneState extends State<TimelinePane> {
   void dispose() {
     _autoScroller.dispose();
     _travelDebounce?.cancel();
+    _outsideBarrier.hide();
     super.dispose();
   }
 
@@ -208,6 +228,16 @@ class _TimelinePaneState extends State<TimelinePane> {
       }
     }
     return 60;
+  }
+  // gestion boutons tripStep
+  void _openStepActions(int index) {
+    setState(() => _actionIndex = index);
+    _outsideBarrier.show(context);
+  }
+
+  void _closeStepActions() {
+    if (_actionIndex != null) setState(() => _actionIndex = null);
+    _outsideBarrier.hide();
   }
 
   // ✅ utilitaires minutes depuis minuit
@@ -412,6 +442,7 @@ class _TimelinePaneState extends State<TimelinePane> {
         }
 
         return SizedBox(
+          key: _hostKey,
           width: leftPaneW,
           height: widget.height,
           child: AnimatedSlide(
@@ -594,33 +625,115 @@ class _TimelinePaneState extends State<TimelinePane> {
                                       final top = _timeToY(s.start);
                                       final height = _durationToHeight(s.durationMin);
                                       final isSelected = _isSelected(s);
+                                      final bool isActionOpen = _actionIndex == i;
 
-                                      // 1. on pose la carte du step
                                       children.add(
                                         Positioned(
                                           top: top,
                                           left: 0,
                                           right: 0,
                                           height: height,
-                                          child: GestureDetector(
-                                            onTap: () => _toggleStepSelection(s),
-                                            child: StepCard(
-                                              title: s.title,
-                                              primaryIcon: s.primaryIcon,
-                                              otherIcons: s.otherIcons,
-                                              durationMin: s.durationMin,
-                                              latitude: s.latitude,
-                                              longitude: s.longitude,
-                                              selected: isSelected,
-                                            ),
+                                          child: Stack(
+                                            clipBehavior: Clip.none,
+                                            fit: StackFit.expand, // ⬅️ très important : la Stack prend toute la largeur
+                                            children: [
+                                              // Carte pleine largeur + gestuelles
+                                              GestureDetector(
+                                                onTap: () {
+                                                  if (isActionOpen) {
+                                                    _closeStepActions();
+                                                  } else {
+                                                    _toggleStepSelection(s);
+                                                  }
+                                                },
+                                                onLongPress: () => _openStepActions(i),
+                                                child: SizedBox.expand(            // ⬅️ remplit toute la zone du Positioned
+                                                  child: StepCard(
+                                                    title: s.title,
+                                                    primaryIcon: s.primaryIcon,
+                                                    otherIcons: s.otherIcons,
+                                                    durationMin: s.durationMin,
+                                                    latitude: s.latitude,
+                                                    longitude: s.longitude,
+                                                    selected: isSelected,
+                                                  ),
+                                                ),
+                                              ),
+
+                                              // Actions flottantes à droite, MAIS dans la zone timeline
+                                              Positioned(
+                                                right: 4, // ⬅️ toujours à l’intérieur de la zone de drop
+                                                top: -8,
+                                                child: AnimatedOpacity(
+                                                  duration: const Duration(milliseconds: 150),
+                                                  opacity: isActionOpen ? 1 : 0,
+                                                  child: AnimatedSlide(
+                                                    duration: const Duration(milliseconds: 180),
+                                                    curve: Curves.easeOut,
+                                                    offset: isActionOpen ? Offset.zero : const Offset(0.3, 0.0),
+                                                    child: Column(
+                                                      children: [
+                                                        ActionIconButton(
+                                                          icon: Icons.delete,
+                                                          bg: Colors.red.shade50,
+                                                          fg: Colors.red.shade700,
+                                                          tooltip: context.l10n.trips_actions_delete_tooltip,
+                                                          onTap: () async {
+                                                            _outsideBarrier.pause();
+
+                                                            final ok = await showConfirmActionSheet(
+                                                              context,
+                                                              title: context.l10n.timeline_delete_title,
+                                                              message: context.l10n.timeline_delete_message(s.title),
+                                                              cancelLabel: context.l10n.common_cancel,
+                                                              confirmLabel: context.l10n.trips_delete_confirm,
+                                                              icon: Icons.warning_amber_rounded,
+                                                              confirmBg: Colors.red.shade50,
+                                                              confirmFg: Colors.red.shade800,
+                                                            );
+
+                                                            _outsideBarrier.resume();
+
+                                                            if (ok == true && mounted && widget.onDeleteStep != null) {
+                                                              final messenger = ScaffoldMessenger.of(context);
+                                                              final success = await widget.onDeleteStep!(s);
+                                                              if (!mounted) return;
+                                                              messenger.showSnackBar(
+                                                                SnackBar(
+                                                                  content: Text(
+                                                                    success
+                                                                        ? context.l10n.trips_delete_success
+                                                                        : context.l10n.trips_delete_error,
+                                                                  ),
+                                                                ),
+                                                              );
+                                                              _closeStepActions();
+                                                            }
+                                                          },
+                                                        ),
+                                                        const SizedBox(height: 12),
+                                                        ActionIconButton(
+                                                          icon: Icons.edit,
+                                                          bg: Colors.blue.shade50,
+                                                          fg: AppColors.texasBlue,
+                                                          tooltip: context.l10n.trips_actions_edit_tooltip,
+                                                          onTap: () {
+                                                            widget.onEditStep?.call(s);
+                                                            _closeStepActions();
+                                                          },
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       );
 
-                                      // 2. on regarde la durée de trajet portée par CE step
+                                      // (la suite de ton code travel badge inchangée)
                                       final int travelMin = _extractTravelDurationFromStepVm(s);
-
-                                      // 2.a CAS NORMAL (step i > 0) : trajet depuis le step précédent
                                       if (i > 0 && travelMin > 0) {
                                         final p = widget.steps[i - 1];
                                         final prevEndY = _timeToY(p.start) + _durationToHeight(p.durationMin);
@@ -636,13 +749,8 @@ class _TimelinePaneState extends State<TimelinePane> {
                                         );
                                       }
 
-                                      // 2.b 🔥 NOUVEAU CAS : premier step de la journée
-                                      // si le TripDay a une adresse (hasAddress == true) ET que ce premier step
-                                      // a bien une durée de trajet (depuis l’hôtel) alors on l’affiche tout en haut
                                       if (i == 0 && widget.hasAddress && travelMin > 0) {
-                                        // on prend un point entre le haut et le top du premier step
                                         final midY = top / 2.0;
-
                                         children.add(
                                           Positioned(
                                             top: math.max(0.0, midY - _kBadgeHalfHeight),
@@ -652,6 +760,7 @@ class _TimelinePaneState extends State<TimelinePane> {
                                         );
                                       }
                                     }
+
 
 
                                     // --- Guide de drop (ghost + ligne + badge au-dessus) ---

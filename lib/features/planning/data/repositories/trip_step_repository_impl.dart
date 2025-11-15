@@ -32,7 +32,6 @@ class TripStepRepositoryImpl implements TripStepRepository {
     int? travelDistanceMeters,
     String travelMode = 'driving',
   }) async {
-    // Normalise le type
     final kind = targetType.trim().toLowerCase();
 
     int? activityId;
@@ -43,11 +42,9 @@ class TripStepRepositoryImpl implements TripStepRepository {
       eventId = targetId;
     }
 
-    // HH:MM:SS
     final startTime =
         '${startHour.toString().padLeft(2, '0')}:${startMinute.toString().padLeft(2, '0')}:00';
 
-    // ✅ On n’envoie que les IDs au backend (pas le title)
     final created = await remote.create(
       tripId: tripId,
       tripDayId: tripDayId,
@@ -61,5 +58,58 @@ class TripStepRepositoryImpl implements TripStepRepository {
     );
 
     return created;
+  }
+
+  @override
+  Future<void> delete(int stepId) async {
+    await remote.delete(stepId: stepId);
+  }
+
+  @override
+  Future<TripStep> update({
+    required int id,
+    int? tripDayId,
+    int? startHour,
+    int? startMinute,
+    int? estimatedDurationMinutes,
+    String? travelMode,
+    int? travelDurationMinutes,
+    int? travelDistanceMeters,
+    String? targetType,
+    int? targetId,
+  }) async {
+    int? activityId;
+    int? eventId;
+
+    if (targetType != null && targetId != null) {
+      final kind = targetType.trim().toLowerCase();
+      if (kind == 'activity') {
+        activityId = targetId;
+        eventId = null;
+      } else if (kind == 'event') {
+        eventId = targetId;
+        activityId = null;
+      }
+    }
+
+    String? startTime;
+    if (startHour != null && startMinute != null) {
+      startTime =
+      '${startHour.toString().padLeft(2, '0')}:${startMinute.toString().padLeft(2, '0')}:00';
+    }
+
+    final updated = await remote.update(
+      stepId: id,
+      tripDayId: tripDayId,
+      startTime: startTime,
+      estimatedDurationMinutes: estimatedDurationMinutes,
+      travelMode: travelMode,
+      travelDurationMinutes: travelDurationMinutes,
+      travelDistanceMeters: travelDistanceMeters,
+      activityId: activityId,
+      eventId: eventId,
+    );
+
+    return updated;
   }
 }
