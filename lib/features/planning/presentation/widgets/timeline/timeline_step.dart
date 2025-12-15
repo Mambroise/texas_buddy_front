@@ -147,7 +147,7 @@ class StepCard extends StatelessWidget {
             // Durée
             if (durationMin != null) ...[
               const SizedBox(height: 6),
-              Text('${durationMin} min', style: TextStyle(fontSize: 10, color: AppColors.black)),
+              Text('$durationMin min', style: TextStyle(fontSize: 10, color: AppColors.black)),
             ],
 
             // Lat/Lng (petit, discret)

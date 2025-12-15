@@ -10,12 +10,12 @@ class ExpandableText extends StatefulWidget {
 
   const ExpandableText(
       this.text, {
-        Key? key,
+        super.key,
         this.trimLines = 3,
         this.style,
         this.duration = const Duration(milliseconds: 200),
         this.curve = Curves.easeInOut,
-      }) : super(key: key);
+      });
 
   @override
   State<ExpandableText> createState() => _ExpandableTextState();

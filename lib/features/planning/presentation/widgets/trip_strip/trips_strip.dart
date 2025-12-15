@@ -144,7 +144,10 @@ class _TripsStripState extends State<TripsStrip> {
             return TripDaysStrip(
               height: widget.height,
               trip: _focusedTrip!,
-              onBack: () => setState(() => _focusedTrip = null),
+              onBack: () {
+                setState(() => _focusedTrip = null);
+                context.read<PlanningOverlayCubit>().clearTrip();
+              },
               onCenteredDayChanged: (d) {
                 context.read<PlanningOverlayCubit>().selectDay(d);
               },

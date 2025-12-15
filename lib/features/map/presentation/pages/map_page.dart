@@ -70,7 +70,7 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
   DateTime? _lastTapTime;
   final _doubleTapWindow = const Duration(milliseconds: 280);
 
-
+  bool _detailSheetOpen = false;
 
   static const LatLng _dallas = LatLng(32.7767, -96.7970);
 
@@ -460,6 +460,61 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
             _animateTo(st.latitude, st.longitude, st.zoom);
           },
         ),
+        BlocListener<DetailPanelBloc, DetailPanelState>(
+          listenWhen: (prev, curr) =>
+          prev.runtimeType != curr.runtimeType || prev != curr,
+          listener: (ctx, state) async {
+            if (state is DetailHidden) {
+              // Si le BLoC demande la fermeture, on ferme la sheet si besoin
+              if (_detailSheetOpen && Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              }
+              _detailSheetOpen = false;
+              return;
+            }
+
+            // Si déjà ouverte, on laisse le BlocBuilder dans DetailPanel gérer les updates
+            if (_detailSheetOpen) return;
+
+            _detailSheetOpen = true;
+
+            await showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (sheetCtx) {
+                return DraggableScrollableSheet(
+                  initialChildSize: 0.4,
+                  minChildSize: 0.25,
+                  maxChildSize: 0.9,
+                  expand: false,
+                  builder: (context, scrollController) {
+                    return Material(
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(24),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: DetailPanel(
+                        scrollController: scrollController,
+                        onClose: () {
+                          Navigator.of(sheetCtx).maybePop();
+                        },
+                      ),
+                    );
+                  },
+                );
+              },
+            );
+
+            // Quand la bottom sheet est fermée (swipe, back, bouton X)
+            if (mounted) {
+              _detailSheetOpen = false;
+              context
+                  .read<DetailPanelBloc>()
+                  .add(const DetailCloseRequested());
+            }
+          },
+        ),
       ],
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -526,7 +581,6 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
                   },
                 ),
               ),
-              DetailPanel(onClose: () => context.read<DetailPanelBloc>().add(const DetailCloseRequested())),
 
               // Planning overlay
               const PlanningOverlayDock(

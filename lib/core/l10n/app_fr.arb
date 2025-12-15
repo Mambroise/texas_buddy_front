@@ -135,6 +135,8 @@
   "typeAtLeast3Chars": "Tape au moins 3 lettres pour rechercher.",
   "genericError": "Une erreur est survenue.",
   "noResults": "Aucun résultat.",
+  "planning_select_trip_hint": "Sélectionnez un voyage pour commencer à planifier ✨",
+  "planning_select_trip_hintDescription": "Texte du bandeau affiché dans l'overlay de planning quand aucun voyage n'est ouvert.",
 
   "timeline_delete_title": "Supprimer l’étape",
   "timeline_delete_message": "Voulez-vous vraiment supprimer l’étape « {stepTitle} » ?",
@@ -146,6 +148,26 @@
         "example": "Déjeuner à Austin"
       }
     }
-  }
+  },
+
+  "timeline_edit_duration_title": "Modifier « {stepTitle} »",
+  "@timeline_edit_duration_title": {
+    "description": "Titre de la boîte de dialogue pour modifier la durée d'une activité dans la timeline.",
+    "placeholders": {
+      "stepTitle": {
+        "type": "String",
+        "example": "Déjeuner à Austin"
+      }
+    }
+  },
+
+  "timeline_edit_duration_subtitle": "Ajuste la durée de l'activité. Les étapes suivantes seront décalées automatiquement.",
+
+  "common_hours_short": "h",
+  "common_minutes_short": "min",
+
+  "common_save": "Enregistrer",
+  "timeline_edit_success": "Durée mise à jour, la journée a été recalée.",
+  "timeline_edit_error": "Impossible de mettre à jour cette activité."
 
 }

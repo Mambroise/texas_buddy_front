@@ -6,7 +6,6 @@
 //---------------------------------------------------------------------------
 
 
-import 'dart:collection';
 import '../../domain/repositories/travel_repository.dart';
 import '../datasources/remote/travel_remote_datasource.dart';
 
@@ -16,7 +15,7 @@ class TravelRepositoryImpl implements TravelRepository {
 
   // Petit cache mémoire (clé normalisée, LRU soft)
   static const int _maxEntries = 200;
-  final _cache = LinkedHashMap<String, (int,int)>();
+  final _cache = <String, (int,int)>{};
 
   String _k(double a, double b, double c, double d, String m, String? lang) {
     String f(double x) => x.toStringAsFixed(5);

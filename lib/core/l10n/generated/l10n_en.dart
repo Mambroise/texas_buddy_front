@@ -387,10 +387,39 @@ class L10nEn extends L10n {
   String get noResults => 'No results found.';
 
   @override
+  String get planning_select_trip_hint => 'Select a trip to start planning ✨';
+
+  @override
+  String get planning_select_trip_hintDescription => 'Banner text displayed in the planning overlay when no trip is currently open.';
+
+  @override
   String get timeline_delete_title => 'Delete step';
 
   @override
   String timeline_delete_message(String stepTitle) {
     return 'Are you sure you want to delete the step \"$stepTitle\"?';
   }
+
+  @override
+  String timeline_edit_duration_title(String stepTitle) {
+    return 'Edit “$stepTitle”';
+  }
+
+  @override
+  String get timeline_edit_duration_subtitle => 'Adjust the activity duration. Subsequent steps will shift automatically.';
+
+  @override
+  String get common_hours_short => 'h';
+
+  @override
+  String get common_minutes_short => 'min';
+
+  @override
+  String get common_save => 'Save';
+
+  @override
+  String get timeline_edit_success => 'Duration updated, the day has been adjusted.';
+
+  @override
+  String get timeline_edit_error => 'Unable to update this activity.';
 }
