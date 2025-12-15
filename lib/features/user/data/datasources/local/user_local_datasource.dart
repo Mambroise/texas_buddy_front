@@ -52,21 +52,21 @@ class UserLocalDataSourceImpl implements UserLocalDataSource {
         ''');
       },
       onUpgrade: (db, oldV, newV) async {
-        Future<void> _addCol(String name, String type) async {
+        Future<void> addCol(String name, String type) async {
           try { await db.execute('ALTER TABLE $_table ADD COLUMN $name $type'); } catch (_) {}
         }
         if (oldV < 2) {
-          await _addCol('address', 'TEXT');
-          await _addCol('zip_code', 'TEXT');
-          await _addCol('country', 'TEXT');
-          await _addCol('phone', 'TEXT');
-          await _addCol('city', 'TEXT');
-          await _addCol('state', 'TEXT');
+          await addCol('address', 'TEXT');
+          await addCol('zip_code', 'TEXT');
+          await addCol('country', 'TEXT');
+          await addCol('phone', 'TEXT');
+          await addCol('city', 'TEXT');
+          await addCol('state', 'TEXT');
         }
         if (oldV < 3) {
-          await _addCol('registration_number', 'TEXT');
-          await _addCol('first_ip', 'TEXT');
-          await _addCol('second_ip', 'TEXT');
+          await addCol('registration_number', 'TEXT');
+          await addCol('first_ip', 'TEXT');
+          await addCol('second_ip', 'TEXT');
         }
       },
     );

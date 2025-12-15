@@ -5,7 +5,6 @@
 // Author : Morice
 //---------------------------------------------------------------------------
 
-
 enum NearbyKind { activity, event }
 
 class NearbyItem {
@@ -24,6 +23,10 @@ class NearbyItem {
   final DateTime? startDateTime;
   final DateTime? endDateTime;
 
+  /// ✅ NEW: durée en minutes renvoyée par le backend (activity ou event)
+  /// (si null, l'UI peut fallback sur 60 ou sur end-start pour un event)
+  final int? durationMinutes;
+
   const NearbyItem({
     required this.id,
     required this.kind,
@@ -39,6 +42,7 @@ class NearbyItem {
     this.distanceKm,
     this.startDateTime,
     this.endDateTime,
+    this.durationMinutes,
   });
 
   NearbyItem copyWith({
@@ -56,6 +60,7 @@ class NearbyItem {
     double? distanceKm,
     DateTime? startDateTime,
     DateTime? endDateTime,
+    int? durationMinutes,
   }) {
     return NearbyItem(
       id: id ?? this.id,
@@ -72,6 +77,7 @@ class NearbyItem {
       distanceKm: distanceKm ?? this.distanceKm,
       startDateTime: startDateTime ?? this.startDateTime,
       endDateTime: endDateTime ?? this.endDateTime,
+      durationMinutes: durationMinutes ?? this.durationMinutes,
     );
   }
 }

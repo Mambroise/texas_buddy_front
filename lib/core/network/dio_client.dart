@@ -20,10 +20,11 @@ Dio createDioClient({
 }) {
   final dio = Dio(
     BaseOptions(
-      baseUrl: 'http://192.168.0.15:8001/api/',// maison
+      //baseUrl: 'http://192.168.0.15:8001/api/',// maison
       // baseUrl: 'http://192.168.1.20:8001/api/', // teddy
       //baseUrl: 'http://192.168.1.153:8001/api/', // laura
-      //baseUrl: 'http://10.0.2.2:8001/api/', // emul
+      //baseUrl: 'http://10.0.2.2:8001/api/', // emul 10.87.3.167
+      baseUrl: 'http://10.87.3.167:8001/api/',// Partage con
 
 
 
@@ -47,7 +48,7 @@ Dio createDioClient({
       request: true,
       requestBody: false,
       responseHeader: false,
-      responseBody: false,
+      responseBody: true,
       error: true,
       logPrint: (obj) => print(obj),
     ));

@@ -20,7 +20,7 @@ import 'package:texas_buddy/features/planning/presentation/widgets/timeline/hour
 import 'package:texas_buddy/features/planning/presentation/widgets/timeline/timeline_step.dart';
 import 'package:texas_buddy/features/planning/presentation/widgets/timeline/add_address_button.dart';
 import 'package:texas_buddy/features/planning/presentation/widgets/timeline/travel_badge.dart';
-import 'package:texas_buddy/features/planning/presentation/widgets/timeline/no_glow_scroll.dart';
+import 'package:texas_buddy/features/planning/presentation/widgets/no_glow_scroll.dart';
 import 'package:texas_buddy/features/planning/presentation/widgets/timeline/timeline_auto_scroller.dart';
 import 'package:texas_buddy/core/utils/outside_dismiss_barrier.dart';
 import 'package:texas_buddy/features/planning/presentation/widgets/action_icon_button.dart';
@@ -216,17 +216,23 @@ class _TimelinePaneState extends State<TimelinePane> {
     return local.dy;
   }
 
-  // ✅ Nearby → durée proposée (même logique que côté overlay)
+// ✅ Nearby → durée proposée
   int _proposedDurationFor(NearbyItem it) {
+    // 1) ✅ priorité à la durée backend si dispo (activity ou event)
+    final dur = it.durationMinutes;
+    if (dur != null && dur > 0) return dur.clamp(15, 240);
+
+    // 2) fallback : event basé sur start/end (si pas de durée explicite)
     if (it.startDateTime != null && it.endDateTime != null) {
       final d = it.endDateTime!.difference(it.startDateTime!).inMinutes;
-      if (d.isFinite) {
-        final clamped = d.clamp(15, 240);
-        return clamped;
-      }
+      return d.clamp(15, 240);
     }
+
+    // 3) fallback final
     return 60;
   }
+
+
   // gestion boutons tripStep
   void _openStepActions(int index) {
     setState(() => _actionIndex = index);
@@ -265,10 +271,6 @@ class _TimelinePaneState extends State<TimelinePane> {
     if (widget.selectedTripDayId == null) return;
     final lat = item.latitude;
     final lng = item.longitude;
-    if (lat == null || lng == null) {
-      setState(() { _hoverTravelMin = null; _hoverTravelMeters = null; _hoverMinStart = null; });
-      return;
-    }
     // Lang de l’UI si dispo
     final String lang =_langOf(context);
 
@@ -426,9 +428,9 @@ class _TimelinePaneState extends State<TimelinePane> {
 
         final double slideFrac = -(1.0 - (stripeW / leftPaneW));
 
-        void _onHStart(_) => _dragDx = 0;
-        void _onHUpdate(DragUpdateDetails d) => _dragDx += d.delta.dx;
-        void _onHEnd(DragEndDetails d) {
+        void onHStart(_) => _dragDx = 0;
+        void onHUpdate(DragUpdateDetails d) => _dragDx += d.delta.dx;
+        void onHEnd(DragEndDetails d) {
           if (_isUserScrolling) return;
           final vx = d.primaryVelocity ?? 0;
           if (vx > _kSwipeVxThreshold || _dragDx > _kSwipeDxThreshold) {
@@ -500,38 +502,113 @@ class _TimelinePaneState extends State<TimelinePane> {
                                       _autoScroller.stop();
                                     });
                                   },
-                                  onAcceptWithDetails: (d) async {
-                                    if (widget.onCreateStep == null || widget.selectedDay == null) return;
+                                    onAcceptWithDetails: (d) async {
+                                      if (widget.onCreateStep == null || widget.selectedDay == null) return;
 
-                                    // on capture TOUT ce qui dépend du context AVANT l'await
-                                    final mapFocusCubit = context.read<MapFocusCubit>();
+                                      // On capture les dépendances au contexte AVANT les await
+                                      final mapFocusCubit = context.read<MapFocusCubit>();
+                                      final lang = _langOf(context);
 
-                                    // 🧠 positionnement : la "ligne" suit le doigt (snap 15')
-                                    final rawY = _localY(d.offset);
-                                    final snappedLine = _snapY15(rawY);
+                                      // Position du doigt → Y local → heure de drop
+                                      final rawY = _localY(d.offset);
+                                      final snappedLine = _snapY15(rawY);
 
-                                    TimeOfDay t = _yToTime(snappedLine + _kLineToGhostGap);
+                                      TimeOfDay tDrop = _yToTime(snappedLine + _kLineToGhostGap);
 
-                                    final item = d.data;
-                                    final dur  = _proposedDurationFor(item);
+                                      final item = d.data;
+                                      final dur  = _proposedDurationFor(item);
 
-                                    if (_hoverMinStart != null) {
-                                      final newMin = _toMin(_hoverMinStart!);
-                                      final cur    = _toMin(t);
-                                      if (cur < newMin) t = _hoverMinStart!;
-                                    }
+                                      // Est-ce qu’un trajet est attendu ? (jour ancré + coords de destination)
+                                      final bool mustHaveTravel = widget.hasAddress &&
+                                          widget.selectedTripDayId != null;
 
-                                    if (_hasOverlap(t, dur)) {
-                                      HapticFeedback.heavyImpact();
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: Text(context.l10n.genericError),
-                                          backgroundColor: Colors.red.shade700,
-                                        ),
-                                      );
+                                      int? travelMin;
+                                      int? travelMeters;
+                                      TimeOfDay? minStart;
+
+                                      if (mustHaveTravel) {
+                                        final cubit = context.read<PlanningOverlayCubit>();
+
+                                        // 🧠 Ici on FORCE le calcul de trajet et on ATTEND le résultat,
+                                        // même si l'utilisateur a droppé très vite.
+                                        final info = await cubit.estimateTravelForHover(
+                                          tripDayId: widget.selectedTripDayId!,
+                                          intendedStart: tDrop,
+                                          destLat: item.latitude,
+                                          destLng: item.longitude,
+                                          mode: 'driving',
+                                          lang: lang,
+                                        );
+
+                                        if (!mounted) return;
+
+                                        if (info != null) {
+                                          travelMin    = info.minutes;
+                                          travelMeters = info.meters;
+                                          minStart     = info.minStart;
+                                        }
+                                      }
+
+                                      // Heure finale = au moins minStart si connue, sinon tDrop
+                                      TimeOfDay t = tDrop;
+                                      if (minStart != null) {
+                                        final minMinutes = _toMin(minStart);
+                                        if (_toMin(t) < minMinutes) {
+                                          t = minStart;
+                                        }
+                                      }
+
+                                      // Vérifie l’overlap sur le créneau [t ; t+dur]
+                                      if (_hasOverlap(t, dur)) {
+                                        HapticFeedback.heavyImpact();
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Text(context.l10n.genericError),
+                                            backgroundColor: Colors.red.shade700,
+                                          ),
+                                        );
+                                        setState(() {
+                                          _hoverY = null;
+                                          _hoverItem = null;
+                                          _canDropHere = true;
+                                          _hoverTravelMin = null;
+                                          _hoverTravelMeters = null;
+                                          _hoverMinStart = null;
+                                          _didWarnNoHotel = false;
+                                          _didHapticConstraint = false;
+                                          _autoScroller.stop();
+                                        });
+                                        return;
+                                      }
+
+                                      // On coupe le ghost immédiatement côté UI
                                       setState(() {
                                         _hoverY = null;
                                         _hoverItem = null;
+                                      });
+
+                                      HapticFeedback.lightImpact();
+
+                                      // ⬇️ Création du step avec les infos de trajet calculées juste avant
+                                      await widget.onCreateStep!(
+                                        item: item,
+                                        tripDayId: widget.selectedTripDayId!,
+                                        day: widget.selectedDay!,
+                                        startTime: t,
+                                        travelDurationMinutes: travelMin,
+                                        travelDistanceMeters: travelMeters,
+                                      );
+
+                                      if (!mounted) return;
+
+                                      // Focus carte sans relire le context
+                                      if (hasValidCoords(item.latitude, item.longitude)) {
+                                        mapFocusCubit.focusTripStep(
+                                          item.latitude, item.longitude, zoom: 16,
+                                        );
+                                      }
+
+                                      setState(() {
                                         _canDropHere = true;
                                         _hoverTravelMin = null;
                                         _hoverTravelMeters = null;
@@ -540,50 +617,11 @@ class _TimelinePaneState extends State<TimelinePane> {
                                         _didHapticConstraint = false;
                                         _autoScroller.stop();
                                       });
-                                      return;
-                                    }
 
-                                    // couper le ghost tout de suite
-                                    setState(() {
-                                      _hoverY = null;
-                                      _hoverItem = null;
-                                    });
-
-                                    HapticFeedback.lightImpact();
-
-                                    // ⬇️ appel async
-                                    await widget.onCreateStep!(
-                                      item: item,
-                                      tripDayId: widget.selectedTripDayId!,
-                                      day: widget.selectedDay!,
-                                      startTime: t,
-                                      travelDurationMinutes: _hoverTravelMin,
-                                      travelDistanceMeters: _hoverTravelMeters,
-                                    );
-
-                                    // après l'await : on protège les setState
-                                    if (!mounted) return;
-
-                                    // focus carte SANS réutiliser context.read(...)
-                                    if (hasValidCoords(item.latitude, item.longitude)) {
-                                      mapFocusCubit.focusTripStep(
-                                        item.latitude, item.longitude, zoom: 16,
-                                      );
-                                    }
-
-                                    setState(() {
-                                      _canDropHere = true;
-                                      _hoverTravelMin = null;
-                                      _hoverTravelMeters = null;
-                                      _hoverMinStart = null;
-                                      _didWarnNoHotel = false;
-                                      _didHapticConstraint = false;
-                                      _autoScroller.stop();
-                                    });
-
-                                    _pendingTitle = item.name;
-                                    _pendingStart = t;
-                                  },
+                                      // pour auto-sélectionner le step créé après le prochain rebuild
+                                      _pendingTitle = item.name;
+                                      _pendingStart = t;
+                                    },
                                   builder: (_, __, ___) {
                                     // On construit la pile de widgets dynamiquement pour pouvoir
                                     // insérer les badges entre steps.
@@ -592,8 +630,8 @@ class _TimelinePaneState extends State<TimelinePane> {
                                     // Fond / cadre
                                     children.add(
                                       Container(
-                                        decoration: const BoxDecoration(
-                                          color: Colors.white,
+                                        decoration: BoxDecoration(
+                                          color: widget.stripeColor,
                                           border: Border(
                                             top: BorderSide(color: AppColors.texasBlue, width: 1),
                                           ),
@@ -875,9 +913,9 @@ class _TimelinePaneState extends State<TimelinePane> {
                               onTap: () {
                                 if (!_isUserScrolling) widget.onToggleTap();
                               },
-                              onHorizontalDragStart: _onHStart,
-                              onHorizontalDragUpdate: _onHUpdate,
-                              onHorizontalDragEnd: _onHEnd,
+                              onHorizontalDragStart: onHStart,
+                              onHorizontalDragUpdate: onHUpdate,
+                              onHorizontalDragEnd: onHEnd,
                               child: Container(
                                 width: stripeW,
                                 height: stripeH,

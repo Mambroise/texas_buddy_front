@@ -387,10 +387,39 @@ class L10nEs extends L10n {
   String get noResults => 'Sin resultados.';
 
   @override
+  String get planning_select_trip_hint => 'Selecciona un viaje para empezar a planear ✨';
+
+  @override
+  String get planning_select_trip_hintDescription => 'Texto del banner que se muestra en la vista de planificación cuando no hay ningún viaje abierto.';
+
+  @override
   String get timeline_delete_title => 'Eliminar etapa';
 
   @override
   String timeline_delete_message(String stepTitle) {
     return '¿Estás seguro de que deseas eliminar la etapa \"$stepTitle\"?';
   }
+
+  @override
+  String timeline_edit_duration_title(String stepTitle) {
+    return 'Modificar «$stepTitle»';
+  }
+
+  @override
+  String get timeline_edit_duration_subtitle => 'Ajusta la duración de la actividad. Los pasos siguientes se ajustarán automáticamente.';
+
+  @override
+  String get common_hours_short => 'h';
+
+  @override
+  String get common_minutes_short => 'min';
+
+  @override
+  String get common_save => 'Guardar';
+
+  @override
+  String get timeline_edit_success => 'Duración actualizada, el día ha sido ajustado.';
+
+  @override
+  String get timeline_edit_error => 'No se pudo actualizar esta actividad.';
 }

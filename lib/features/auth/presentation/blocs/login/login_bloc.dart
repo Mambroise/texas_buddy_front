@@ -21,7 +21,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
 
   LoginBloc(this._loginUseCase,this._auth,this._fetchMe) : super(const LoginState()) {
 
-    bool _isFormValid(String email, String password) {
+    bool isFormValid(String email, String password) {
       final emailOk = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(email);
       final pwdOk = password.length >= 6;
       return emailOk && pwdOk;
@@ -29,7 +29,7 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
 
     on<LoginEmailChanged>((e, emit) {
       final email = e.email.trim();
-      final status = _isFormValid(email, state.password)
+      final status = isFormValid(email, state.password)
           ? FormStatus.valid
           : FormStatus.invalid;
       emit(state.copyWith(email: email, status: status));
@@ -37,14 +37,14 @@ class LoginBloc extends Bloc<LoginEvent, LoginState> {
 
     on<LoginPasswordChanged>((e, emit) {
       final pwd = e.password;
-      final status = _isFormValid(state.email, pwd)
+      final status = isFormValid(state.email, pwd)
           ? FormStatus.valid
           : FormStatus.invalid;
       emit(state.copyWith(password: pwd, status: status));
     });
 
     on<LoginSubmitted>((_, emit) async {
-      if (!_isFormValid(state.email, state.password)) return;
+      if (!isFormValid(state.email, state.password)) return;
       if (state.status != FormStatus.valid) return;
 
       emit(state.copyWith(status: FormStatus.submissionInProgress));

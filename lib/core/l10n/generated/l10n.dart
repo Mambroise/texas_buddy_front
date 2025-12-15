@@ -817,6 +817,18 @@ abstract class L10n {
   /// **'No results found.'**
   String get noResults;
 
+  /// No description provided for @planning_select_trip_hint.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a trip to start planning ✨'**
+  String get planning_select_trip_hint;
+
+  /// No description provided for @planning_select_trip_hintDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Banner text displayed in the planning overlay when no trip is currently open.'**
+  String get planning_select_trip_hintDescription;
+
   /// No description provided for @timeline_delete_title.
   ///
   /// In en, this message translates to:
@@ -828,6 +840,48 @@ abstract class L10n {
   /// In en, this message translates to:
   /// **'Are you sure you want to delete the step \"{stepTitle}\"?'**
   String timeline_delete_message(String stepTitle);
+
+  /// Title of the dialog used to edit an activity duration in the timeline.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit “{stepTitle}”'**
+  String timeline_edit_duration_title(String stepTitle);
+
+  /// No description provided for @timeline_edit_duration_subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjust the activity duration. Subsequent steps will shift automatically.'**
+  String get timeline_edit_duration_subtitle;
+
+  /// No description provided for @common_hours_short.
+  ///
+  /// In en, this message translates to:
+  /// **'h'**
+  String get common_hours_short;
+
+  /// No description provided for @common_minutes_short.
+  ///
+  /// In en, this message translates to:
+  /// **'min'**
+  String get common_minutes_short;
+
+  /// No description provided for @common_save.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get common_save;
+
+  /// No description provided for @timeline_edit_success.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration updated, the day has been adjusted.'**
+  String get timeline_edit_success;
+
+  /// No description provided for @timeline_edit_error.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to update this activity.'**
+  String get timeline_edit_error;
 }
 
 class _L10nDelegate extends LocalizationsDelegate<L10n> {

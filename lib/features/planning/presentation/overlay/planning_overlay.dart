@@ -7,7 +7,9 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:texas_buddy/core/theme/app_colors.dart';
 
+import 'package:texas_buddy/core/l10n/l10n_ext.dart';
 import 'package:texas_buddy/features/planning/presentation/cubits/planning_overlay_cubit.dart';
 import 'package:texas_buddy/features/planning/presentation/widgets/trip_strip/trips_strip.dart';
 
@@ -28,8 +30,10 @@ import 'package:texas_buddy/features/planning/domain/entities/trip_step.dart';
 // ⬇️ Mapper FA → IconData
 import 'package:texas_buddy/core/utils/category_icon_mapper.dart';
 
-// ⬇️ Couleurs (texasBlue)
-import 'package:texas_buddy/core/theme/app_colors.dart';
+import 'package:texas_buddy/features/planning/presentation/widgets/trip_strip/trip_strip-bend.dart';
+import 'package:texas_buddy/features/planning/presentation/widgets/sheets/edit_step_duration_sheet.dart';
+
+
 
 class PlanningOverlay extends StatefulWidget {
   final double width;
@@ -62,16 +66,17 @@ class _PlanningOverlayState extends State<PlanningOverlay> {
   }
 
   int _defaultDurationMinFor(NearbyItem it) {
-    // si event avec dates → durée réelle bornée (15'..240')
+    final d = it.durationMinutes;
+    if (d != null && d > 0) return d.clamp(15, 240);
+
     if (it.startDateTime != null && it.endDateTime != null) {
-      final d = it.endDateTime!.difference(it.startDateTime!).inMinutes;
-      if (d.isFinite) {
-        final clamped = d.clamp(15, 240);
-        return clamped;
-      }
+      final m = it.endDateTime!.difference(it.startDateTime!).inMinutes;
+      return m.clamp(15, 240);
     }
-    return 60; // activité par défaut : 60'
+    return 60;
   }
+
+
 
   List<String> _otherIconKeysOf(NearbyItem it) {
     final primary = it.primaryCategory?.trim();
@@ -114,6 +119,8 @@ class _PlanningOverlayState extends State<PlanningOverlay> {
     // === Sélection du state du cubit ===
     final overlayState = context.watch<PlanningOverlayCubit>().state;
     final TripDay? day = overlayState.selectedDay;
+    final bool hasOpenTrip = overlayState.selectedTrip != null;
+
 
     // map TripStep → TripStepVm (tri + durée + icônes)
     List<TripStepVm> stepsVm = const [];
@@ -203,7 +210,8 @@ class _PlanningOverlayState extends State<PlanningOverlay> {
         // ── BAS (timeline + liste draggable) ────────────────────────────────
         SizedBox(
           height: bottomHeight,
-          child: Row(
+          child:  hasOpenTrip
+              ? Row(
             children: [
               // ==== COLONNE GAUCHE : TIMELINE (drop zone) ====
               Expanded(
@@ -234,7 +242,7 @@ class _PlanningOverlayState extends State<PlanningOverlay> {
                       steps: stepsVm,
                       hasAddress: hasAddress,
                       selectedDay: selectedDayDate,
-                      tripDayLatitude: day?.latitude, // ✅ nouveau
+                      tripDayLatitude: day?.latitude,
                       tripDayLongitude: day?.longitude,
                       selectedTripDayId: day?.id, // ✅ nécessaire pour créer le step au bon endroit
 
@@ -274,11 +282,46 @@ class _PlanningOverlayState extends State<PlanningOverlay> {
                         // Exemple si tu as une méthode dédiée :
                         return await context.read<PlanningOverlayCubit>().deleteStep(step.id!);
                       },
-                      onEditStep: (step) {
-                        // ouvre ton sheet/modal d’édition du step
-                        // ex: showEditStepSheet(step);
+                      onEditStep: (step) async {
+                        if (step.id == null) return;
+
+                        final newDuration = await showModalBottomSheet<int>(
+                          context: context,
+                          isScrollControlled: true,
+                          useSafeArea: true,
+                          backgroundColor: Colors.white,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+                          ),
+                          builder: (ctx) => EditStepDurationSheet(
+                            title: step.title,
+                            initialDurationMinutes: step.durationMin,
+                          ),
+                        );
+
+                        if (newDuration == null || newDuration <= 0) return;
+
+                        final cubit = context.read<PlanningOverlayCubit>();
+                        final ok = await cubit.updateStepFromEditor(
+                          stepId: step.id!,
+                          newDurationMinutes: newDuration,
+                        );
+
+                        if (!context.mounted) return;
+
+                        final messenger = ScaffoldMessenger.of(context);
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              ok
+                                  ? context.l10n.timeline_edit_success
+                                  : context.l10n.timeline_edit_error,
+                            ),
+                          ),
+                        );
                       },
-                      
+
+
                       // --- création d'un step au drop ---
                       onCreateStep: ({
                         required NearbyItem item,
@@ -348,74 +391,34 @@ class _PlanningOverlayState extends State<PlanningOverlay> {
                 ),
               ),
             ],
+          ) : Align(
+            alignment: const Alignment(0, -0.5),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              decoration: BoxDecoration(
+                color: widget.stripeColor.withValues(alpha: 0.95),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: AppColors.texasBlue, width: 1),
+                boxShadow: const [
+                  BoxShadow(
+                    blurRadius: 12,
+                    offset: Offset(0, 4),
+                    color: Color(0x22000000),
+                  ),
+                ],
+              ),
+              child: Text(
+                context.l10n.planning_select_trip_hint,
+                style: const TextStyle(
+                  color: AppColors.texasBlue,
+                  fontWeight: FontWeight.w600,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
           ),
         ),
       ],
-    );
-  }
-}
-
-/// Bandeau full-width avec fond blanc 90% et double bordure
-class TripStripBand extends StatelessWidget {
-  final double height;
-  final Widget child;
-  final EdgeInsetsGeometry margin; // ⬅️ nouveau
-
-  const TripStripBand({
-    super.key,
-    required this.height,
-    required this.child,
-    this.margin = const EdgeInsets.symmetric(vertical: 8),
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    // withValues nécessite Flutter 3.22+
-    final Color bg = Colors.white.withValues(alpha: 0.90);
-
-    return Container(
-      margin: margin, // ⬅️ applique la marge externe
-      width: double.infinity,
-      height: height,
-      child: Stack(
-        children: [
-          // Fond + bordures extérieures épaisses (4px)
-          Container(
-            width: double.infinity,
-            height: height,
-            foregroundDecoration: BoxDecoration(
-              color: bg, // alpha 0.90
-              border: const Border(
-                top: BorderSide(color: AppColors.texasBlue, width: 2),
-                bottom: BorderSide(color: AppColors.texasBlue, width: 4),
-              ),
-            ),
-          ),
-
-          // Bordures intérieures fines (1px), décalées vers l'intérieur
-          const Positioned(
-            top: 4, left: 0, right: 0,
-            child: SizedBox(
-              height: 0,
-              child: DecoratedBox(
-                decoration: BoxDecoration(color: AppColors.texasBlue),
-              ),
-            ),
-          ),
-          const Positioned(
-            bottom: 6, left: 0, right: 0,
-            child: SizedBox(
-              height: 1,
-              child: DecoratedBox(
-                decoration: BoxDecoration(color: AppColors.texasBlue),
-              ),
-            ),
-          ),
-
-          // Contenu centré
-          Center(child: child),
-        ],
-      ),
     );
   }
 }

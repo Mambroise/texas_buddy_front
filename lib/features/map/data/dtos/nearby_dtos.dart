@@ -5,11 +5,11 @@
 // Author : Morice
 //---------------------------------------------------------------------------
 
-
 import 'package:texas_buddy/features/map/domain/entities/nearby_item.dart';
 
 class NearbyItemDto {
   final String id;
+
   /// "activity" | "event"
   final String type;
   final String name;
@@ -41,6 +41,9 @@ class NearbyItemDto {
   final DateTime? startDateTime;
   final DateTime? endDateTime;
 
+  /// ✅ Durée en minutes (backend peut renvoyer int OU "HH:MM:SS")
+  final int? durationMinutes;
+
   const NearbyItemDto({
     required this.id,
     required this.type,
@@ -56,11 +59,12 @@ class NearbyItemDto {
     this.primaryCategory,
     this.startDateTime,
     this.endDateTime,
+    this.durationMinutes,
   });
 
   /// Factory tolérante aux alias de clés (latitude/lat, longitude/lng/lon, etc.)
   factory NearbyItemDto.fromJson(Map<String, dynamic> json) {
-    double _asDouble(dynamic v) {
+    double asDouble(dynamic v) {
       if (v == null) throw const FormatException('null cannot be parsed to double');
       if (v is num) return v.toDouble();
       final s = v.toString().trim();
@@ -68,20 +72,66 @@ class NearbyItemDto {
       return double.parse(s);
     }
 
-    bool _asBool(dynamic v) {
+    bool asBool(dynamic v) {
       if (v is bool) return v;
       if (v == null) return false;
       final s = v.toString().trim().toLowerCase();
       return s == '1' || s == 'true' || s == 'yes';
     }
 
-    String _asString(dynamic v) => (v ?? '').toString();
+    String asString(dynamic v) => (v ?? '').toString();
 
-    DateTime? _asDate(dynamic v) {
+    DateTime? asDate(dynamic v) {
       if (v == null) return null;
       final s = v.toString().trim();
       if (s.isEmpty) return null;
       return DateTime.parse(s); // ISO8601 (Django) supporté (avec ou sans timezone)
+    }
+
+    int? asIntNullable(dynamic v) {
+      if (v == null) return null;
+      if (v is int) return v;
+      if (v is num) return v.toInt();
+      final s = v.toString().trim();
+      if (s.isEmpty) return null;
+      return int.tryParse(s);
+    }
+
+    /// ✅ Parse une durée qui peut être:
+    /// - int/num (minutes)
+    /// - "120" (minutes)
+    /// - "HH:MM:SS" ou "MM:SS" (Django duration)
+    int? asDurationMinutes(dynamic v) {
+      if (v == null) return null;
+
+      // nombre direct
+      if (v is int) return v;
+      if (v is num) return v.toInt();
+
+      final s = v.toString().trim();
+      if (s.isEmpty) return null;
+
+      // "120"
+      final direct = int.tryParse(s);
+      if (direct != null) return direct;
+
+      // "HH:MM:SS" ou "MM:SS"
+      final parts = s.split(':').map((e) => e.trim()).toList();
+      if (parts.length == 3) {
+        final h = int.tryParse(parts[0]);
+        final m = int.tryParse(parts[1]);
+        final sec = int.tryParse(parts[2]);
+        if (h == null || m == null || sec == null) return null;
+        return (h * 60) + m + (sec >= 30 ? 1 : 0); // arrondi au min
+      }
+      if (parts.length == 2) {
+        final m = int.tryParse(parts[0]);
+        final sec = int.tryParse(parts[1]);
+        if (m == null || sec == null) return null;
+        return m + (sec >= 30 ? 1 : 0);
+      }
+
+      return null;
     }
 
     final latRaw = json['latitude'] ?? json['lat'];
@@ -89,16 +139,16 @@ class NearbyItemDto {
 
     // --------- NORMALISATION DES CATÉGORIES ---------
     // Accepte 'category' OU 'categories' en entrée
-    final rawCats = (json['category'] as List?)
-        ?? (json['categories'] as List?)
-        ?? const <dynamic>[];
+    final rawCats = (json['category'] as List?) ??
+        (json['categories'] as List?) ??
+        const <dynamic>[];
 
     // On préfère la clé d’icône (fa-xxx). Fallback sur name.
     // Déduplication en conservant l'ordre.
     final catKeys = <String>[];
     final seen = <String>{};
 
-    void _addCat(String? v) {
+    void addCat(String? v) {
       final key = v?.trim();
       if (key == null || key.isEmpty) return;
       if (seen.add(key)) catKeys.add(key);
@@ -109,22 +159,22 @@ class NearbyItemDto {
         final icon = e['icon']?.toString();
         final name = e['name']?.toString();
         if (icon != null && icon.trim().isNotEmpty) {
-          _addCat(icon);
+          addCat(icon);
         } else {
-          _addCat(name);
+          addCat(name);
         }
       } else if (e != null) {
         // parfois l’API renvoie directement une chaîne
-        _addCat(e.toString());
+        addCat(e.toString());
       }
     }
     // -----------------------------------------------
 
     // 🔑 Clé d’icône pour le marqueur : icon FA prioritaire, sinon name, sinon null
-    String? _primaryCategoryKey(Map<String, dynamic>? pc) {
+    String? primaryCategoryKey(Map<String, dynamic>? pc) {
       if (pc == null) return null;
       final icon = pc['icon']?.toString().trim();
-      if (icon != null && icon.isNotEmpty) return icon;     // ex: "fa-utensils"
+      if (icon != null && icon.isNotEmpty) return icon; // ex: "fa-utensils"
       final name = pc['name']?.toString().trim();
       return (name != null && name.isNotEmpty) ? name : null;
     }
@@ -132,27 +182,38 @@ class NearbyItemDto {
     final Map<String, dynamic>? pc = json['primary_category'] is Map
         ? (json['primary_category'] as Map).cast<String, dynamic>()
         : null;
-    final primaryCatKey = _primaryCategoryKey(pc);
+    final primaryCatKey = primaryCategoryKey(pc);
 
     // ✅ alias pour dates d’événements
-    final startRaw = json['start_datetime'] ?? json['startDateTime'] ?? json['start'] ?? json['start_date'];
-    final endRaw   = json['end_datetime']   ?? json['endDateTime']   ?? json['end']   ?? json['end_date'];
+    final startRaw =
+        json['start_datetime'] ?? json['startDateTime'] ?? json['start'] ?? json['start_date'];
+    final endRaw =
+        json['end_datetime'] ?? json['endDateTime'] ?? json['end'] ?? json['end_date'];
+
+    // ✅ alias pour durée (minutes OU "HH:MM:SS")
+    final durationRaw = json['duration_minutes'] ??
+        json['duration'] ?? // ex: "02:00:00"
+        json['estimated_duration_minutes'] ??
+        json['estimatedDurationMinutes'];
 
     return NearbyItemDto(
-      id: _asString(json['id'] ?? json['uuid'] ?? json['pk']),
-      type: _asString(json['type'] ?? 'activity'),
-      name: _asString(json['name']),
-      latitude: _asDouble(latRaw),
-      longitude: _asDouble(lonRaw),
-      hasPromotion: _asBool(json['has_promotion']),
-      isAdvertisement: _asBool(json['is_advertisement']),
-      averageRating: json['average_rating'] == null ? null : _asDouble(json['average_rating']),
-      categories: catKeys,                    // ✅ clés normalisées (fa-xxx si dispo)
+      id: asString(json['id'] ?? json['uuid'] ?? json['pk']),
+      type: asString(json['type'] ?? 'activity'),
+      name: asString(json['name']),
+      latitude: asDouble(latRaw),
+      longitude: asDouble(lonRaw),
+      hasPromotion: asBool(json['has_promotion']),
+      isAdvertisement: asBool(json['is_advertisement']),
+      averageRating: json['average_rating'] == null ? null : asDouble(json['average_rating']),
+      categories: catKeys, // ✅ clés normalisées (fa-xxx si dispo)
       imageUrl: json['image']?.toString(),
-      distanceKm: json['distance'] == null ? null : _asDouble(json['distance']),
-      primaryCategory: primaryCatKey,         // ✅ clé normalisée aussi
-      startDateTime: _asDate(startRaw),
-      endDateTime: _asDate(endRaw),
+      distanceKm: json['distance'] == null ? null : asDouble(json['distance']),
+      primaryCategory: primaryCatKey, // ✅ clé normalisée aussi
+      startDateTime: asDate(startRaw),
+      endDateTime: asDate(endRaw),
+
+      // ✅ NEW (supporte "HH:MM:SS")
+      durationMinutes: asDurationMinutes(durationRaw) ?? asIntNullable(durationRaw),
     );
   }
 
@@ -177,6 +238,9 @@ class NearbyItemDto {
       distanceKm: distanceKm,
       startDateTime: startDateTime,
       endDateTime: endDateTime,
+
+      // ✅ NEW
+      durationMinutes: durationMinutes,
     );
   }
 
@@ -191,9 +255,6 @@ class NearbyItemDto {
 
   /// Utilitaire : extrait une liste directe (si le backend renvoie déjà une liste à la racine).
   static List<NearbyItemDto> listFromJsonArray(List<dynamic> arr) {
-    return arr
-        .whereType<Map<String, dynamic>>()
-        .map(NearbyItemDto.fromJson)
-        .toList();
+    return arr.whereType<Map<String, dynamic>>().map(NearbyItemDto.fromJson).toList();
   }
 }

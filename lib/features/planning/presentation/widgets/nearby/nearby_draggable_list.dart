@@ -10,8 +10,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:texas_buddy/core/theme/app_colors.dart';
 import 'package:texas_buddy/features/map/domain/entities/nearby_item.dart';
 import 'package:texas_buddy/features/map/presentation/blocs/nearby/nearby_bloc.dart';
+import 'package:texas_buddy/features/planning/presentation/widgets/no_glow_scroll.dart';
+import 'package:texas_buddy/features/planning/presentation/widgets/nearby/nearby_card.dart';
 
-// ⬇️ nouveau: helpers + widget de distance
+//  helpers + widget de distance
 import 'package:texas_buddy/features/planning/presentation/widgets/nearby/distance_label.dart';
 
 class NearbyDraggableList extends StatefulWidget {
@@ -65,7 +67,7 @@ class _NearbyDraggableListState extends State<NearbyDraggableList> {
             final extraScroll = cons.maxHeight * 0.30;
 
             return ScrollConfiguration(
-              behavior: const _NoGlowScroll(),
+              behavior: const NoGlowScroll(),
               child: ListView.builder(
                 padding: EdgeInsets.fromLTRB(12, 0, 12, 12 + extraScroll + bottomSafe),
                 physics: const AlwaysScrollableScrollPhysics(
@@ -77,7 +79,7 @@ class _NearbyDraggableListState extends State<NearbyDraggableList> {
                   final cardWidth  = widget.maxCardWidth;
                   const cardHeight = 88.0;
 
-                  final card = _NearbyCard(
+                  final card = NearbyCard(
                     item: it,
                     useMiles: widget.useMiles,
                     dimmed: _draggingIndex == i,
@@ -90,10 +92,10 @@ class _NearbyDraggableListState extends State<NearbyDraggableList> {
                       offset: Offset(-cardWidth / 2, -cardHeight / 2),
                       child: _DragFeedbackCard(item: it, width: cardWidth, height: cardHeight, useMiles: widget.useMiles),
                     ),
-                    child: card,
                     childWhenDragging: const _NearbyCardPlaceholder(),
                     onDragStarted: () => setState(() => _draggingIndex = i),
                     onDragEnd: (_) => setState(() => _draggingIndex = null),
+                    child: card,
                   );
                 },
               ),
@@ -105,77 +107,7 @@ class _NearbyDraggableListState extends State<NearbyDraggableList> {
   }
 }
 
-class _NoGlowScroll extends ScrollBehavior {
-  const _NoGlowScroll();
-  @override
-  Widget buildOverscrollIndicator(BuildContext context, Widget child, ScrollableDetails details) => child;
-}
 
-class _NearbyCard extends StatelessWidget {
-  final NearbyItem item;
-  final Widget? trailing;
-  final bool dimmed;
-  final bool useMiles;
-
-  const _NearbyCard({
-    required this.item,
-    required this.useMiles,
-    this.trailing,
-    this.dimmed = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Opacity(
-      opacity: dimmed ? .35 : 1.0,
-      child: Container(
-        margin: const EdgeInsets.only(top: 12),
-        height: 88,
-        decoration: BoxDecoration(
-          color: AppColors.fog,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.texasBlue, width: 1),
-          boxShadow: const [BoxShadow(blurRadius: 10, offset: Offset(0, 4), color: Color(0x12000000))],
-        ),
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        child: Stack(
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.place, color: AppColors.texasBlue),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    item.name,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppColors.texasBlue,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-                if (trailing != null) ...[
-                  const SizedBox(width: 8),
-                  trailing!,
-                ],
-              ],
-            ),
-
-            // Label distance discret en bas à droite
-            if (item.distanceKm != null)
-              Positioned(
-                right: 8,
-                bottom: 8,
-                child: DistanceLabel(km: item.distanceKm!, useMiles: useMiles),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 class _DragFeedbackCard extends StatelessWidget {
   final NearbyItem item;

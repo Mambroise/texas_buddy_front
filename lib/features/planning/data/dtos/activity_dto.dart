@@ -5,7 +5,6 @@
 // Author : Morice
 //-------------------------------------------------------------------------
 
-
 import 'package:texas_buddy/features/planning/data/dtos/category_dto.dart';
 
 /// Data Transfer Object for activity data
@@ -21,6 +20,9 @@ class ActivityDto {
   final bool hasPromotion;
   final double distance;
 
+  /// ✅ Durée en minutes (si renvoyée par le backend)
+  final int? durationMinutes;
+
   ActivityDto({
     required this.id,
     required this.name,
@@ -32,7 +34,25 @@ class ActivityDto {
     this.price,
     required this.hasPromotion,
     required this.distance,
+    this.durationMinutes,
   });
+
+  static int? _parseNullableInt(dynamic raw) {
+    if (raw == null) return null;
+    if (raw is int) return raw;
+    if (raw is num) return raw.toInt();
+    if (raw is String) return int.tryParse(raw);
+    return null;
+  }
+
+  static int? _extractDurationMinutes(Map<String, dynamic> json) {
+    // Supporte plusieurs noms possibles pour éviter de casser si le serializer varie
+    return _parseNullableInt(
+      json['duration_minutes'] ??
+          json['duration'] ??
+          json['estimated_duration_minutes'],
+    );
+  }
 
   /// Creates an [ActivityDto] from a JSON map
   factory ActivityDto.fromJson(Map<String, dynamic> json) {
@@ -49,6 +69,9 @@ class ActivityDto {
       price: (json['price'] as num?)?.toDouble(),
       hasPromotion: json['has_promotion'] as bool,
       distance: (json['distance'] as num).toDouble(),
+
+      // ✅ new
+      durationMinutes: _extractDurationMinutes(json),
     );
   }
 
@@ -65,6 +88,9 @@ class ActivityDto {
       'price': price,
       'has_promotion': hasPromotion,
       'distance': distance,
+
+      // ✅ new (optionnel)
+      'duration_minutes': durationMinutes,
     };
   }
 }

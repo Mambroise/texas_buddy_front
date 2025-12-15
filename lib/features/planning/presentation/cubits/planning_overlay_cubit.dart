@@ -117,11 +117,6 @@ class PlanningOverlayCubit extends Cubit<PlanningOverlayState> {
     String mode = 'driving',
     String? lang,
   }) async {
-    if (stepToUpdate.id == null) {
-      d('[OverlayCubit] _recomputeAndPersistTravelForStep: step sans id, skip');
-      return day;
-    }
-
     double? originLat;
     double? originLng;
 
@@ -146,9 +141,7 @@ class PlanningOverlayCubit extends Cubit<PlanningOverlayState> {
     int meters = 0;
 
     if (originLat != null &&
-        originLng != null &&
-        destLat != null &&
-        destLng != null) {
+        originLng != null) {
       try {
         final (m, dist) = await computeTravel(
           originLat: originLat,
@@ -189,10 +182,11 @@ class PlanningOverlayCubit extends Cubit<PlanningOverlayState> {
     // 3) PATCH backend si possible, mais sans casser l’UI si ça plante
     try {
       final TripStep updatedRemote = await updateTripStep.execute(
-        id: stepToUpdate.id!,
+        id: stepToUpdate.id!, // ✅ pas stepToUpdate.id
         travelDurationMinutes: minutes,
         travelDistanceMeters: meters,
       );
+
 
       final TripDay remoteDay = _replaceStepInDay(localDay, updatedRemote);
       d('[OverlayCubit] _recomputeAndPersistTravelForStep: backend OK, '
@@ -240,8 +234,7 @@ class PlanningOverlayCubit extends Cubit<PlanningOverlayState> {
     if (s.endHour != null && s.endMinute != null) {
       return (s.endHour! * 60) + s.endMinute!;
     }
-    final dur = (s.estimatedDurationMinutes is int &&
-        s.estimatedDurationMinutes > 0)
+    final dur = (s.estimatedDurationMinutes > 0)
         ? s.estimatedDurationMinutes
         : 60;
     return _stepStartMin(s) + dur;
@@ -369,6 +362,13 @@ class PlanningOverlayCubit extends Cubit<PlanningOverlayState> {
     }
     final first = t.days.isNotEmpty ? t.days.first : null;
     emit(state.copyWith(selectedTrip: t, selectedDay: first));
+  }
+
+  void clearTrip() {
+    emit(state.copyWith(
+      clearTrip: true,
+      clearDay: true,
+    ));
   }
 
   void selectDay(DateTime date) {
@@ -585,11 +585,254 @@ class PlanningOverlayCubit extends Cubit<PlanningOverlayState> {
     }
   }
 
+  /// Met à jour la durée d'un step (en minutes) et recale tous les steps suivants
+  /// en tenant compte des contraintes de trajet.
+  ///
+  /// - UI : update optimiste immédiat.
+  /// - Backend :
+  ///   1) PATCH duration du step édité
+  ///   2) si step suivant : recompute travel A->B (persist travel_* sur B)
+  ///   3) si besoin : shift B et tous les suivants pour respecter
+  ///      start(B) >= end(A) + travel(A->B)
+  ///
+  /// Retourne true si la mise à jour "réelle" est OK (main + contraintes OK).
+  Future<bool> updateStepFromEditor({
+    required int stepId,
+    required int newDurationMinutes,
+  }) async {
+    try {
+      if (newDurationMinutes <= 0) return false;
 
-  Future<void> updateStepFromEditor(/* params ou TripStep */) async {
-    // 1) appel usecase -> TripStep updated
-    // 2) remplacer le step dans le TripDay courant
-    // 3) _emitWithUpdatedTripIfPossible(newDay)
+      TripDay? day = state.selectedDay;
+
+      // Trouver le day qui contient le step
+      if (day == null || !day.steps.any((s) => s.id == stepId)) {
+        final t = state.selectedTrip;
+        if (t == null) return false;
+        day = t.days.firstWhereOrNull((d) => d.steps.any((s) => s.id == stepId));
+        if (day == null) return false;
+      }
+
+      // Tri des steps du jour
+      final List<TripStep> sorted = [...day.steps]
+        ..sort((a, b) => _stepStartMin(a).compareTo(_stepStartMin(b)));
+
+      final int idx = sorted.indexWhere((s) => s.id == stepId);
+      if (idx == -1) return false;
+
+      final TripStep original = sorted[idx];
+      if (original.id == null) return false;
+
+      // Durée actuelle
+      int oldDuration;
+      if (original.estimatedDurationMinutes > 0) {
+        oldDuration = original.estimatedDurationMinutes;
+      } else {
+        oldDuration = _stepEndMin(original) - _stepStartMin(original);
+        if (oldDuration <= 0) oldDuration = 60;
+      }
+
+      final int delta = newDurationMinutes - oldDuration;
+
+      d('[OverlayCubit] updateStepFromEditor stepId=$stepId '
+          'oldDur=$oldDuration newDur=$newDurationMinutes delta=$delta');
+
+      // --- 0) UI optimiste : on applique localement duration + shift simple ---
+      // (on fait ça même si delta==0, ça ne coûte rien et ça rend l'UI stable)
+      final Map<int, TripStep> localUpdatesById = {};
+
+      // Step édité : durée + end recalculé localement
+      TripStep editedLocal = original;
+      final int startMin = _stepStartMin(original);
+      final int newEndMin = startMin + newDurationMinutes;
+      final int newEndHour = (newEndMin ~/ 60).clamp(0, 23);
+      final int newEndMinute = (newEndMin % 60).clamp(0, 59);
+
+      try {
+        editedLocal = (original as dynamic).copyWith(
+          estimatedDurationMinutes: newDurationMinutes,
+          endHour: newEndHour,
+          endMinute: newEndMinute,
+        ) as TripStep;
+      } catch (_) {
+        // pas grave : UI sera corrigée par la réponse backend
+      }
+      localUpdatesById[original.id!] = editedLocal;
+
+      // Steps suivants : shift "simple" de delta en local (pas de travel ici)
+      if (delta != 0) {
+        for (int i = idx + 1; i < sorted.length; i++) {
+          final TripStep s = sorted[i];
+          if (s.id == null) continue;
+
+          final int shiftedStartMin = _stepStartMin(s) + delta;
+
+          int dur;
+          if (s.estimatedDurationMinutes > 0) {
+            dur = s.estimatedDurationMinutes;
+          } else {
+            dur = _stepEndMin(s) - _stepStartMin(s);
+            if (dur <= 0) dur = 60;
+          }
+
+          final int shiftedEndMin = shiftedStartMin + dur;
+
+          final int newStartHourS = (shiftedStartMin ~/ 60).clamp(0, 23);
+          final int newStartMinuteS = (shiftedStartMin % 60).clamp(0, 59);
+          final int newEndHourS = (shiftedEndMin ~/ 60).clamp(0, 23);
+          final int newEndMinuteS = (shiftedEndMin % 60).clamp(0, 59);
+
+          TripStep shifted = s;
+          try {
+            shifted = (s as dynamic).copyWith(
+              startHour: newStartHourS,
+              startMinute: newStartMinuteS,
+              endHour: newEndHourS,
+              endMinute: newEndMinuteS,
+            ) as TripStep;
+          } catch (_) {}
+
+          localUpdatesById[s.id!] = shifted;
+        }
+      }
+
+      // Appliquer localUpdates sur day.steps (dans l'ordre original day.steps)
+      final List<TripStep> newStepsLocal = day.steps.map((s) {
+        final sid = s.id;
+        if (sid != null && localUpdatesById.containsKey(sid)) {
+          return localUpdatesById[sid]!;
+        }
+        return s;
+      }).toList();
+
+      TripDay localDay;
+      try {
+        // ignore: avoid_dynamic_calls
+        localDay = (day as dynamic).copyWith(steps: newStepsLocal) as TripDay;
+      } catch (_) {
+        localDay = TripDay(
+          id: day.id,
+          date: day.date,
+          address: day.address,
+          latitude: day.latitude,
+          longitude: day.longitude,
+          steps: newStepsLocal,
+        );
+      }
+
+      // UI immédiatement à jour
+      _emitWithUpdatedTripIfPossible(localDay);
+
+      // --- 1) Backend : PATCH du step édité (OBLIGATOIRE) ---
+      TripDay currentDay = localDay;
+
+      TripStep updatedMain;
+      try {
+        updatedMain = await updateTripStep.execute(
+          id: original.id!, // ✅
+          estimatedDurationMinutes: newDurationMinutes,
+        );
+        currentDay = _replaceStepInDay(currentDay, updatedMain);
+      } catch (e, st) {
+        d('[OverlayCubit] updateStepFromEditor main updateTripStep ERROR: $e\n$st');
+        return false; // ✅ pas de faux succès
+      }
+
+      // S'il n'y a pas de step suivant : fini (succès réel)
+      if (idx + 1 >= sorted.length) {
+        _emitWithUpdatedTripIfPossible(currentDay);
+        return true;
+      }
+
+      // --- 2) Contraintes : recompute travel A->B + shift si besoin ---
+      final TripStep nextOrig = sorted[idx + 1];
+      if (nextOrig.id == null) {
+        _emitWithUpdatedTripIfPossible(currentDay);
+        return true; // on ne peut pas faire mieux sans id
+      }
+
+      // 2a) Recompute + persist travel_* sur le "next"
+      currentDay = await _recomputeAndPersistTravelForStep(
+        day: currentDay,
+        previousStep: updatedMain,
+        stepToUpdate: nextOrig,
+      );
+
+      // On relit le "next" dans la journée actuelle
+      final TripStep nextInDay =
+      currentDay.steps.firstWhere((s) => s.id == nextOrig.id);
+
+      final int minStartForNext =
+          _stepEndMin(updatedMain) + (nextInDay.travelDurationMinutes);
+
+      final int curNextStart = _stepStartMin(nextInDay);
+
+      // 2b) Si next démarre trop tôt, on le décale (ainsi que tous les suivants)
+      if (curNextStart < minStartForNext) {
+        final int shift = minStartForNext - curNextStart;
+
+        d('[OverlayCubit] updateStepFromEditor: shift following by +$shift min '
+            '(due to travel constraint)');
+
+        // On shift next + tous les suivants (idx+1 .. end)
+        for (int i = idx + 1; i < sorted.length; i++) {
+          final TripStep s = sorted[i];
+          if (s.id == null) continue;
+
+          // On prend la version courante dans currentDay (déjà éventuellement modifiée)
+          final TripStep cur = currentDay.steps.firstWhere((x) => x.id == s.id);
+
+          final int newStartMin = _stepStartMin(cur) + shift;
+          final int newStartHour = (newStartMin ~/ 60).clamp(0, 23);
+          final int newStartMinute = (newStartMin % 60).clamp(0, 59);
+
+          try {
+            final TripStep updated = await updateTripStep.execute(
+              id: cur.id!, // ✅
+              startHour: newStartHour,
+              startMinute: newStartMinute,
+            );
+            currentDay = _replaceStepInDay(currentDay, updated);
+          } catch (e, st) {
+            d('[OverlayCubit] updateStepFromEditor shift updateTripStep ERROR: $e\n$st');
+            return false; // ✅ si un seul suivant échoue → échec réel
+          }
+        }
+      } else {
+        // Si pas de shift lié au travel, on push quand même le "delta" si on en avait un
+        // (car ton UI locale a déjà décalé les suivants).
+        if (delta != 0) {
+          for (int i = idx + 1; i < sorted.length; i++) {
+            final TripStep s = sorted[i];
+            if (s.id == null) continue;
+
+            final TripStep? local = localUpdatesById[s.id!];
+            if (local == null) continue;
+
+            try {
+              final TripStep updated = await updateTripStep.execute(
+                id: s.id!,
+                startHour: local.startHour,
+                startMinute: local.startMinute,
+              );
+              currentDay = _replaceStepInDay(currentDay, updated);
+            } catch (e, st) {
+              d('[OverlayCubit] updateStepFromEditor following(delta) updateTripStep ERROR: $e\n$st');
+              return false;
+            }
+          }
+        }
+      }
+
+      // --- 3) Etat final ---
+      _emitWithUpdatedTripIfPossible(currentDay);
+      return true;
+    } catch (e, st) {
+      d('[OverlayCubit] updateStepFromEditor FATAL ERROR: $e\n$st');
+      return false;
+    }
   }
+
+
 
 }
