@@ -8,11 +8,9 @@
         android:label="texas_buddy"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
-
-        <meta-data
-            android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyANxNsMHtGLRCXT2t5jidp__fhX7L_H5QA" />
-
+        <meta-data android:name="com.google.android.geo.API_KEY"
+            android:value=""
+            />
         <activity
             android:name=".MainActivity"
             android:exported="true"
