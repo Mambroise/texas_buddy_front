@@ -175,7 +175,10 @@
 
   "common_save": "Save",
   "timeline_edit_success": "Duration updated, the day has been adjusted.",
-  "timeline_edit_error": "Unable to update this activity."
+  "timeline_edit_error": "Unable to update this activity.",
 
-
+  "timeline_drop_occupied": "This time slot is already taken",
+  "@timeline_drop_occupied": {
+    "description": "Message shown when dropping a step onto an occupied slot"
+  }
 }

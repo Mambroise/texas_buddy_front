@@ -422,4 +422,7 @@ class L10nEn extends L10n {
 
   @override
   String get timeline_edit_error => 'Unable to update this activity.';
+
+  @override
+  String get timeline_drop_occupied => 'This time slot is already taken';
 }

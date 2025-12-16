@@ -168,5 +168,9 @@
 
   "common_save": "Guardar",
   "timeline_edit_success": "Duración actualizada, el día ha sido ajustado.",
-  "timeline_edit_error": "No se pudo actualizar esta actividad."
+  "timeline_edit_error": "No se pudo actualizar esta actividad.",
+  "timeline_drop_occupied": "Ese horario ya está ocupado",
+  "@timeline_drop_occupied": {
+    "description": "Mensaje cuando se intenta soltar un step en un horario ocupado"
+  }
 }

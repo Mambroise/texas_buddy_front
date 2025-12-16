@@ -168,6 +168,10 @@
 
   "common_save": "Enregistrer",
   "timeline_edit_success": "Durée mise à jour, la journée a été recalée.",
-  "timeline_edit_error": "Impossible de mettre à jour cette activité."
+  "timeline_edit_error": "Impossible de mettre à jour cette activité.",
+  "timeline_drop_occupied": "Créneau déjà occupé",
+  "@timeline_drop_occupied": {
+    "description": "Message quand on tente de déposer un step sur un autre step"
+  }
 
 }

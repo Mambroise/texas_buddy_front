@@ -882,6 +882,12 @@ abstract class L10n {
   /// In en, this message translates to:
   /// **'Unable to update this activity.'**
   String get timeline_edit_error;
+
+  /// Message shown when dropping a step onto an occupied slot
+  ///
+  /// In en, this message translates to:
+  /// **'This time slot is already taken'**
+  String get timeline_drop_occupied;
 }
 
 class _L10nDelegate extends LocalizationsDelegate<L10n> {
