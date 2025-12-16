@@ -32,6 +32,8 @@ class AuthRepositoryImpl implements AuthRepository {
   Future<bool> checkSession() async {
     final access = await _tokens .getAccessToken();
     final refresh = await _tokens .getRefreshToken();
+    print('====in CheckSession auth repo_impl ========');
+
 
     if (access != null) {
       final valid = await _remote.checkToken(access);

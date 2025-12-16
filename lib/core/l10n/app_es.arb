@@ -134,6 +134,43 @@
   "fillCityFirst": "Introduce primero la ciudad",
   "typeAtLeast3Chars": "Escribe al menos 3 letras para buscar.",
   "genericError": "Ha ocurrido un error.",
-  "noResults": "Sin resultados."
+  "noResults": "Sin resultados.",
+  "planning_select_trip_hint": "Selecciona un viaje para empezar a planear ✨",
+  "planning_select_trip_hintDescription": "Texto del banner que se muestra en la vista de planificación cuando no hay ningún viaje abierto.",
 
+  "timeline_delete_title": "Eliminar etapa",
+  "timeline_delete_message": "¿Estás seguro de que deseas eliminar la etapa \"{stepTitle}\"?",
+  "@timeline_delete_message": {
+    "description": "Mensaje de confirmación antes de eliminar una etapa de la línea de tiempo",
+    "placeholders": {
+      "stepTitle": {
+        "type": "String",
+        "example": "Almuerzo en Austin"
+      }
+    }
+  },
+
+  "timeline_edit_duration_title": "Modificar «{stepTitle}»",
+  "@timeline_edit_duration_title": {
+    "description": "Título del cuadro de diálogo para modificar la duración de una actividad en la línea de tiempo.",
+    "placeholders": {
+      "stepTitle": {
+        "type": "String",
+        "example": "Comida en Austin"
+      }
+    }
+  },
+
+  "timeline_edit_duration_subtitle": "Ajusta la duración de la actividad. Los pasos siguientes se ajustarán automáticamente.",
+
+  "common_hours_short": "h",
+  "common_minutes_short": "min",
+
+  "common_save": "Guardar",
+  "timeline_edit_success": "Duración actualizada, el día ha sido ajustado.",
+  "timeline_edit_error": "No se pudo actualizar esta actividad.",
+  "timeline_drop_occupied": "Ese horario ya está ocupado",
+  "@timeline_drop_occupied": {
+    "description": "Mensaje cuando se intenta soltar un step en un horario ocupado"
+  }
 }

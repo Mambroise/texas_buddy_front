@@ -5,65 +5,84 @@
 // Author : Morice
 //---------------------------------------------------------------------------
 
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../blocs/detail/detail_panel_bloc.dart';
 import 'package:texas_buddy/features/map/presentation/widgets/expandable_text.dart';
 
-
 class DetailPanel extends StatelessWidget {
   final VoidCallback onClose;
-  const DetailPanel({super.key, required this.onClose});
+  final ScrollController? scrollController;
 
+  const DetailPanel({
+    super.key,
+    required this.onClose,
+    this.scrollController,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return BlocBuilder<DetailPanelBloc, DetailPanelState>(
       buildWhen: (p, n) => p.runtimeType != n.runtimeType || p != n,
       builder: (context, state) {
-        if (state is DetailHidden) return const SizedBox.shrink();
-        return AnimatedSwitcher(
-          duration: const Duration(milliseconds: 220),
-          transitionBuilder: (child, anim) => FadeTransition(opacity: anim, child: child),
-          child: _buildInner(context, state),
+        if (state is DetailHidden) {
+          return const SizedBox.shrink();
+        }
+
+        Widget inner;
+        switch (state) {
+          case DetailLoading():
+            inner = const SizedBox(
+              height: 120,
+              child: Center(child: CircularProgressIndicator()),
+            );
+          case DetailError(message: final message):
+            inner = SizedBox(
+              height: 120,
+              child: Center(child: Text(message, style: theme.textTheme.bodyMedium)),
+            );
+          case DetailActivityLoaded(entity: final entity):
+            inner = _ActivityDetailView(entity: entity, onClose: onClose);
+          case DetailEventLoaded(entity: final entity):
+            inner = _EventDetailView(entity: entity, onClose: onClose);
+          default:
+            inner = const SizedBox.shrink();
+        }
+
+        return Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 👉 Handle pour drag
+            Container(
+              width: 40,
+              height: 5,
+              margin: const EdgeInsets.only(top: 8, bottom: 12),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade400,
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+
+            // 👉 Contenu scrollable sans card, juste padding
+            Flexible(
+              child: SingleChildScrollView(
+                controller: scrollController,
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
+                child: inner,
+              ),
+            ),
+          ],
         );
       },
     );
   }
-
-
-  Widget _buildInner(BuildContext context, DetailPanelState state) {
-    final theme = Theme.of(context);
-    final card = Card(
-      elevation: 12,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      margin: const EdgeInsets.all(12),
-      child: Padding(
-        padding: const EdgeInsets.all(12.0),
-        child: switch (state) {
-          DetailLoading() => const SizedBox(height: 120, child: Center(child: CircularProgressIndicator())),
-          DetailError(:final message) => SizedBox(
-            height: 120,
-            child: Center(child: Text(message, style: theme.textTheme.bodyMedium)),
-          ),
-          DetailActivityLoaded(:final entity) => _ActivityDetailView(entity: entity, onClose: onClose),
-          DetailEventLoaded(:final entity) => _EventDetailView(entity: entity, onClose: onClose),
-          _ => const SizedBox.shrink(),
-        },
-      ),
-    );
-
-
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: SafeArea(child: card),
-    );
-  }
 }
 
-// ✅ Helpers
+// --- Helpers --------------------------------------------------------------
+
 String _capFirst(String? s) {
   if (s == null || s.isEmpty) return '';
   return s[0].toUpperCase() + s.substring(1);
@@ -71,13 +90,13 @@ String _capFirst(String? s) {
 
 String _formatDuration(dynamic duration) {
   if (duration == null) return '—';
-  if (duration is String) return duration; // si l’API t’envoie déjà un libellé
+  if (duration is String) return duration;
   if (duration is num) {
     final totalMin = duration.round();
     final h = totalMin ~/ 60;
     final m = totalMin % 60;
     if (h > 0) {
-      final mm = m.toString().padLeft(2, '0'); // <-- force 2 chiffres
+      final mm = m.toString().padLeft(2, '0');
       return '$h h $mm';
     }
     return '$totalMin min';
@@ -85,11 +104,9 @@ String _formatDuration(dynamic duration) {
   return duration.toString();
 }
 
-
 String _formatPrice(BuildContext context, dynamic price) {
   if (price == null) return '—';
   if (price is num) {
-    // USD par défaut (Texas) ; ajuste si tu veux internationaliser
     final cur = NumberFormat.simpleCurrency(name: 'USD');
     return cur.format(price);
   }
@@ -100,9 +117,10 @@ bool _isByReservation(dynamic e) {
   try {
     return (e as dynamic).isByReservation == true;
   } catch (_) {
-    return false; // si la propriété n'existe pas côté entity/DTO → ne pas afficher
+    return false;
   }
 }
+
 
 
 class _ActivityDetailView extends StatelessWidget {

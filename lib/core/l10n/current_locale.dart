@@ -11,7 +11,7 @@ import 'dart:ui' show Locale;
 
 /// Contient la langue courante sous forme "fr", "en", "es", etc.
 class CurrentLocale extends ValueNotifier<String> {
-  CurrentLocale(String initial) : super(initial);
+  CurrentLocale(super.initial);
 
   /// Helper pour la forcer depuis une Locale (prend seulement le code langue)
   void setFromLocale(Locale locale) {

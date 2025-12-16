@@ -27,7 +27,7 @@ class OutsideDismissBarrier {
     if (_entry != null) return; // déjà affichée
     _computeHostRect();
     final overlay = Overlay.of(context, rootOverlay: true);
-    if (overlay == null || _hostRect == null) return;
+    if (_hostRect == null) return;
 
     _entry = OverlayEntry(
       builder: (_) {
@@ -45,7 +45,7 @@ class OutsideDismissBarrier {
   }
 
   void hide() {
-    _entry?..remove();
+    _entry?.remove();
     _entry = null;
     _hostRect = null;
     _paused = false;

@@ -1,7 +1,7 @@
 //---------------------------------------------------------------------------
 //                           TEXAS BUDDY   ( 2 0 2 5 )
 //---------------------------------------------------------------------------
-// File   : features/planning/presentation/widgets/hours_list.dart
+// File   : features/planning/presentation/widgets/timeline/hours_list.dart
 // Author : Morice
 //---------------------------------------------------------------------------
 
@@ -56,7 +56,7 @@ class HoursList extends StatelessWidget {
                 _labelForHour(h),
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
-                  fontSize: 12,
+                  fontSize: 9,
                   color: textColor,
                 ),
               ),

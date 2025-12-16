@@ -65,13 +65,13 @@ class TripStepDto {
       otherIcons: targetDto?.otherIcons ?? const [],
     );
 
-    int _parseH(String s) => int.tryParse(s.split(':')[0]) ?? 0;
-    int _parseM(String s) => int.tryParse(s.split(':')[1]) ?? 0;
+    int parseH(String s) => int.tryParse(s.split(':')[0]) ?? 0;
+    int parseM(String s) => int.tryParse(s.split(':')[1]) ?? 0;
 
-    final sh = _parseH(startTime);
-    final sm = _parseM(startTime);
-    final eh = (endTime != null) ? _parseH(endTime!) : null;
-    final em = (endTime != null) ? _parseM(endTime!) : null;
+    final sh = parseH(startTime);
+    final sm = parseM(startTime);
+    final eh = (endTime != null) ? parseH(endTime!) : null;
+    final em = (endTime != null) ? parseM(endTime!) : null;
 
     return TripStep(
       id: id,

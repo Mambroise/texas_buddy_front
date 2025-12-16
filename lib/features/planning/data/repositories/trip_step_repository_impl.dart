@@ -5,7 +5,6 @@
 // Author : Morice
 //---------------------------------------------------------------------------
 
-
 import '../../domain/entities/trip_step.dart';
 import '../../domain/repositories/trip_step_repository.dart';
 import '../datasources/remote/trip_step_remote_datasource.dart';
@@ -18,9 +17,9 @@ class TripStepRepositoryImpl implements TripStepRepository {
   Future<TripStep> create({
     required int tripId,
     required int tripDayId,
-    required String targetType,
-    required int targetId,
-    required String targetName,
+    required String targetType,   // "activity" | "event"
+    required int targetId,        // ⚠️ int, pas String
+    required String targetName,   // UI only
     required int startHour,
     required int startMinute,
     required int estimatedDurationMinutes,
@@ -29,31 +28,88 @@ class TripStepRepositoryImpl implements TripStepRepository {
     String? placeId,
     double? latitude,
     double? longitude,
+    int? travelDurationMinutes,
+    int? travelDistanceMeters,
+    String travelMode = 'driving',
   }) async {
-    // Mappe target -> activity_id/event_id pour l'API
+    final kind = targetType.trim().toLowerCase();
+
     int? activityId;
     int? eventId;
-    if (targetType == 'activity') {
+    if (kind == 'activity') {
       activityId = targetId;
-    } else if (targetType == 'event') {
+    } else if (kind == 'event') {
       eventId = targetId;
     }
 
-    // Format start_time attendu par le backend : HH:MM:SS
     final startTime =
         '${startHour.toString().padLeft(2, '0')}:${startMinute.toString().padLeft(2, '0')}:00';
 
-    // Appel au datasource remote qui renvoie déjà un TripStep (dto.toEntity())
     final created = await remote.create(
       tripId: tripId,
       tripDayId: tripDayId,
-      targetType: targetType,
-      activityId: activityId,
-      eventId: eventId,
       startTime: startTime,
       estimatedDurationMinutes: estimatedDurationMinutes,
+      travelMode: travelMode,
+      travelDurationMinutes: travelDurationMinutes,
+      travelDistanceMeters: travelDistanceMeters,
+      activityId: activityId,
+      eventId: eventId,
     );
 
     return created;
+  }
+
+  @override
+  Future<void> delete(int stepId) async {
+    await remote.delete(stepId: stepId);
+  }
+
+  @override
+  Future<TripStep> update({
+    required int id,
+    int? tripDayId,
+    int? startHour,
+    int? startMinute,
+    int? estimatedDurationMinutes,
+    String? travelMode,
+    int? travelDurationMinutes,
+    int? travelDistanceMeters,
+    String? targetType,
+    int? targetId,
+  }) async {
+    int? activityId;
+    int? eventId;
+
+    if (targetType != null && targetId != null) {
+      final kind = targetType.trim().toLowerCase();
+      if (kind == 'activity') {
+        activityId = targetId;
+        eventId = null;
+      } else if (kind == 'event') {
+        eventId = targetId;
+        activityId = null;
+      }
+    }
+
+    String? startTime;
+    if (startHour != null && startMinute != null) {
+      startTime =
+      '${startHour.toString().padLeft(2, '0')}:${startMinute.toString().padLeft(2, '0')}:00';
+    }
+
+    final updated = await remote.update(
+      stepId: id,
+      tripDayId: tripDayId,
+      startTime: startTime,
+      estimatedDurationMinutes: estimatedDurationMinutes,
+      travelMode: travelMode,
+      travelDurationMinutes: travelDurationMinutes,
+      travelDistanceMeters: travelDistanceMeters,
+      activityId: activityId,
+      eventId: eventId,
+    );
+
+    return updated;
   }
 }

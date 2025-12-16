@@ -26,6 +26,10 @@ class EventDto {
   final bool hasPromotion;
   final double distance;
 
+  /// ✅ Durée en minutes (si renvoyée par le backend)
+  /// (on pourra préférer ça à end-start si présent)
+  final int? durationMinutes;
+
   EventDto({
     required this.id,
     required this.name,
@@ -43,7 +47,24 @@ class EventDto {
     required this.staffFavorite,
     required this.hasPromotion,
     required this.distance,
+    this.durationMinutes,
   });
+
+  static int? _parseNullableInt(dynamic raw) {
+    if (raw == null) return null;
+    if (raw is int) return raw;
+    if (raw is num) return raw.toInt();
+    if (raw is String) return int.tryParse(raw);
+    return null;
+  }
+
+  static int? _extractDurationMinutes(Map<String, dynamic> json) {
+    return _parseNullableInt(
+      json['duration_minutes'] ??
+          json['duration'] ??
+          json['estimated_duration_minutes'],
+    );
+  }
 
   /// Creates an [EventDto] from a JSON map
   factory EventDto.fromJson(Map<String, dynamic> json) {
@@ -66,6 +87,9 @@ class EventDto {
       staffFavorite: json['staff_favorite'] as bool,
       hasPromotion: json['has_promotion'] as bool,
       distance: (json['distance'] as num).toDouble(),
+
+      // ✅ new
+      durationMinutes: _extractDurationMinutes(json),
     );
   }
 
@@ -88,6 +112,9 @@ class EventDto {
       'staff_favorite': staffFavorite,
       'has_promotion': hasPromotion,
       'distance': distance,
+
+      // ✅ new (optionnel)
+      'duration_minutes': durationMinutes,
     };
   }
 }

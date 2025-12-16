@@ -43,6 +43,7 @@ class AppRouter {
 
         // Une fois initialisé :
         if (!loggedIn && isProtected) return '/login';
+        if (!loggedIn && isSplash) return '/login';
         if (loggedIn && (isLogin || isSplash)) return '/landing';
 
         return null;

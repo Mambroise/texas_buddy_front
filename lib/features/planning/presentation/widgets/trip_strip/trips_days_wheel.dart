@@ -144,10 +144,19 @@ class _TripDaysStripState extends State<TripDaysStrip> {
     final idx = p.round().clamp(0, _days.length - 1);
     final day = _days[idx];
 
-    // Notifie à l’extérieur
     widget.onCenteredDayChanged?.call(day.date);
 
-    // Focus carte si on a une adresse + coords
+    // 👇 protection "ne pas voler le focus d'un step créé à l'instant"
+    final mapState = context.read<MapFocusCubit>().state;
+    if (mapState != null &&
+        mapState.source == MapFocusSource.tripStep) {
+      final diff = DateTime.now().difference(mapState.at);
+      if (diff.inMilliseconds < 600) {
+        // si < 600ms → on laisse le step
+        return;
+      }
+    }
+
     final hasAddress = (day.address != null && day.address!.trim().isNotEmpty);
     final hasGeo = (day.latitude != null && day.longitude != null);
     final notSame = (_lastFocusedTripDayId != day.id);
@@ -157,6 +166,7 @@ class _TripDaysStripState extends State<TripDaysStrip> {
       context.read<MapFocusCubit>().focusTripDay(day.latitude!, day.longitude!, zoom: 14);
     }
   }
+
 
   String _fmtDate(DateTime d) =>
       MaterialLocalizations.of(context).formatShortMonthDay(d);
@@ -308,13 +318,16 @@ class _DayBandContent extends StatelessWidget {
             ),
           ),
 
-          // Hôtel + adresse (bas centre)
+          // Hôtel + adresse (bas centre, largeur 70%)
           Align(
             alignment: Alignment.bottomCenter,
-            child: _HotelAddress(
-              address: address,
-              hasAddress: hasAddress,
-              onTap: onAddressTap,
+            child: FractionallySizedBox(
+              widthFactor: 0.70, // ⬅️ largeur 70% du bandeau
+              child: _HotelAddress(
+                address: address,
+                hasAddress: hasAddress,
+                onTap: onAddressTap,
+              ),
             ),
           ),
         ],
@@ -337,7 +350,7 @@ class _HotelAddress extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!hasAddress) {
-      // 👉 Même bouton que dans TimelinePane
+      // bouton identique TimelinePane (inchangé)
       return Padding(
         padding: const EdgeInsets.only(bottom: 8.0),
         child: TextButton.icon(
@@ -357,33 +370,40 @@ class _HotelAddress extends StatelessWidget {
       );
     }
 
-    // Adresse affichée (avec icône hôtel)
+    // Adresse affichée (centrée, largeur 70% déjà imposée par le parent)
     return Padding(
       padding: const EdgeInsets.only(bottom: 8.0),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.hotel_rounded, size: 20, color: AppColors.texasBlue),
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              address,
-              textAlign: TextAlign.left,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
-                height: 1.2,
+      child: SizedBox(
+        width: double.infinity, // pour que Row ait une largeur contrainte
+        child: Row(
+          mainAxisSize: MainAxisSize.max,
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const Icon(Icons.hotel_rounded, size: 20, color: AppColors.texasBlue),
+            const SizedBox(width: 8),
+            Expanded( // ⬅️ laisse le texte prendre la place restante
+              child: Text(
+                address,
+                textAlign: TextAlign.center,
+                softWrap: true,
+                maxLines: 4,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                  height: 1.2,
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
 }
+
 
 
 class _NavChevron extends StatelessWidget {

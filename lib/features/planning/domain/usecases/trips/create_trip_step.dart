@@ -6,10 +6,8 @@
 //---------------------------------------------------------------------------
 
 
-// lib/features/planning/domain/usecases/trips/create_trip_step.dart
-
-import '../../entities/trip_step.dart';
 import '../../repositories/trip_step_repository.dart';
+import '../../entities/trip_step.dart';
 
 class CreateTripStep {
   final TripStepRepository repo;
@@ -21,7 +19,7 @@ class CreateTripStep {
     required int startHour,
     required int startMinute,
     required int estimatedDurationMinutes,
-    required String targetType,
+    required String targetType, // "activity" | "event"
     required int targetId,
     required String targetName,
     String? primaryIcon,
@@ -29,21 +27,27 @@ class CreateTripStep {
     String? placeId,
     double? latitude,
     double? longitude,
+    int? travelDurationMinutes,
+    int? travelDistanceMeters,
+    String travelMode = 'driving',
   }) {
     return repo.create(
       tripId: tripId,
       tripDayId: tripDayId,
-      targetType: targetType,
-      targetId: targetId,
-      targetName: targetName,
       startHour: startHour,
       startMinute: startMinute,
       estimatedDurationMinutes: estimatedDurationMinutes,
+      targetType: targetType,
+      targetId: targetId,
+      targetName: targetName,
       primaryIcon: primaryIcon,
       otherIcons: otherIcons,
       placeId: placeId,
       latitude: latitude,
       longitude: longitude,
+      travelDurationMinutes: travelDurationMinutes,
+      travelDistanceMeters: travelDistanceMeters,
+      travelMode: travelMode,
     );
   }
 }

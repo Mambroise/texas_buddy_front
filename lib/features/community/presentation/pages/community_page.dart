@@ -20,11 +20,6 @@ class _CommunityPageState extends State<CommunityPage>
   @override
   bool get wantKeepAlive => true; // conserve scroll/état des listes
 
-  @override
-  void initState() {
-    super.initState();
-    // TODO: context.read<CommunityBloc>().add(CommunityEvent.loadInitial());
-  }
 
   @override
   Widget build(BuildContext context) {

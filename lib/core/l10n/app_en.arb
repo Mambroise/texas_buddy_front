@@ -141,6 +141,44 @@
   "fillCityFirst": "Enter the city first",
   "typeAtLeast3Chars": "Type at least 3 letters to search.",
   "genericError": "An error occurred.",
-  "noResults": "No results found."
+  "noResults": "No results found.",
+  "planning_select_trip_hint": "Select a trip to start planning ✨",
+  "planning_select_trip_hintDescription": "Banner text displayed in the planning overlay when no trip is currently open.",
 
+  "timeline_delete_title": "Delete step",
+  "timeline_delete_message": "Are you sure you want to delete the step \"{stepTitle}\"?",
+  "@timeline_delete_message": {
+    "description": "Confirmation message shown before deleting a step in the timeline",
+    "placeholders": {
+      "stepTitle": {
+        "type": "String",
+        "example": "Lunch at Austin"
+      }
+    }
+  },
+
+  "timeline_edit_duration_title": "Edit “{stepTitle}”",
+  "@timeline_edit_duration_title": {
+    "description": "Title of the dialog used to edit an activity duration in the timeline.",
+    "placeholders": {
+      "stepTitle": {
+        "type": "String",
+        "example": "Lunch in Austin"
+      }
+    }
+  },
+
+  "timeline_edit_duration_subtitle": "Adjust the activity duration. Subsequent steps will shift automatically.",
+
+  "common_hours_short": "h",
+  "common_minutes_short": "min",
+
+  "common_save": "Save",
+  "timeline_edit_success": "Duration updated, the day has been adjusted.",
+  "timeline_edit_error": "Unable to update this activity.",
+
+  "timeline_drop_occupied": "This time slot is already taken",
+  "@timeline_drop_occupied": {
+    "description": "Message shown when dropping a step onto an occupied slot"
+  }
 }
