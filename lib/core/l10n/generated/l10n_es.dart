@@ -422,4 +422,7 @@ class L10nEs extends L10n {
 
   @override
   String get timeline_edit_error => 'No se pudo actualizar esta actividad.';
+
+  @override
+  String get timeline_drop_occupied => 'Ese horario ya está ocupado';
 }

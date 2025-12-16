@@ -422,4 +422,7 @@ class L10nFr extends L10n {
 
   @override
   String get timeline_edit_error => 'Impossible de mettre à jour cette activité.';
+
+  @override
+  String get timeline_drop_occupied => 'Créneau déjà occupé';
 }
