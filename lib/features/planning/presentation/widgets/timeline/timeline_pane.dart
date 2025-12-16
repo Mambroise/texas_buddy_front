@@ -213,6 +213,7 @@ class _TimelinePaneState extends State<TimelinePane> {
     );
   }
 
+
   double _timeToY(TimeOfDay t) {
     final h = (t.hour - widget.firstHour).toDouble();
     return (h * widget.slotHeight) + (t.minute / 60.0) * widget.slotHeight + _gridTopInset;
