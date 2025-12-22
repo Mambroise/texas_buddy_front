@@ -5,6 +5,42 @@
 // Author : Morice
 //---------------------------------------------------------------------------
 
+/*
+==============================================================================
+SplashPage — Écran de démarrage logique
+==============================================================================
+
+🎯 Rôle principal
+- Écran transitoire affiché au lancement de l’app.
+- Décide de la première destination réelle de l’utilisateur.
+
+🔁 Workflow
+1) initState()
+   - déclenche _initSession()
+
+2) Vérification de session
+   - CheckSessionUseCase :
+     - tokens valides → utilisateur connecté
+     - sinon → non connecté
+
+3) Si connecté
+   - tentative non bloquante de fetch du profil (/me)
+   - redirection vers Landing
+
+4) Si non connecté ou erreur
+   - redirection vers Login
+
+🎨 UI
+- Affiche uniquement un loader + message localisé
+- Aucune interaction utilisateur possible
+
+📌 Pourquoi c’est important
+- Centralise la logique de décision initiale
+- Évite toute duplication de logique auth dans les pages
+- Garantit une navigation propre dès le premier écran
+==============================================================================
+*/
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -31,16 +67,13 @@ class _SplashPageState extends State<SplashPage> {
   @override
   void initState() {
     super.initState();
-    print('[Splash] =================================================================================initState');
     _initSession();
   }
 
   Future<void> _initSession() async {
-    print('[Splash]==dans initsassion start====================================================================');
     try {
       final isLoggedIn = await _checkSessionUseCase();
       if (!mounted) return;
-      print("5splash après le mounted========================");
       if (isLoggedIn) {
         try {
           await _fetchMe();
