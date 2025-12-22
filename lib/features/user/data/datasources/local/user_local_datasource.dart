@@ -17,18 +17,18 @@ abstract class UserLocalDataSource {
 
 class UserLocalDataSourceImpl implements UserLocalDataSource {
   static const _dbName = 'texas_buddy.db';
-  static const _table  = 'user_profile';
+  static const _table = 'user_profile';
 
   Database? _db;
 
   Future<Database> _open() async {
     if (_db != null) return _db!;
-    final dir  = await getDatabasesPath();
+    final dir = await getDatabasesPath();
     final path = p.join(dir, _dbName);
 
     _db = await openDatabase(
       path,
-      version: 3, // ⬅️ bump (v2: adresse, v3: registration/ip)
+      version: 4, // ✅ v4: interests
       onCreate: (db, _) async {
         await db.execute('''
           CREATE TABLE $_table(
@@ -47,14 +47,18 @@ class UserLocalDataSourceImpl implements UserLocalDataSource {
             first_ip TEXT,
             second_ip TEXT,
             avatar_url TEXT,
-            created_at TEXT
+            created_at TEXT,
+            interests TEXT
           )
         ''');
       },
       onUpgrade: (db, oldV, newV) async {
         Future<void> addCol(String name, String type) async {
-          try { await db.execute('ALTER TABLE $_table ADD COLUMN $name $type'); } catch (_) {}
+          try {
+            await db.execute('ALTER TABLE $_table ADD COLUMN $name $type');
+          } catch (_) {}
         }
+
         if (oldV < 2) {
           await addCol('address', 'TEXT');
           await addCol('zip_code', 'TEXT');
@@ -63,13 +67,20 @@ class UserLocalDataSourceImpl implements UserLocalDataSource {
           await addCol('city', 'TEXT');
           await addCol('state', 'TEXT');
         }
+
         if (oldV < 3) {
           await addCol('registration_number', 'TEXT');
           await addCol('first_ip', 'TEXT');
           await addCol('second_ip', 'TEXT');
         }
+
+        // ✅ NEW: migration v4 -> ajoute la colonne interests
+        if (oldV < 4) {
+          await addCol('interests', 'TEXT');
+        }
       },
     );
+
     return _db!;
   }
 
@@ -85,7 +96,8 @@ class UserLocalDataSourceImpl implements UserLocalDataSource {
 
   @override
   Future<void> upsert(UserProfile user) async {
-    final db  = await _open();
+    final db = await _open();
+
     final dto = UserProfileDto(
       id: user.id,
       email: user.email,
@@ -103,7 +115,11 @@ class UserLocalDataSourceImpl implements UserLocalDataSource {
       secondIp: user.secondIp,
       avatarUrl: user.avatarUrl,
       createdAt: user.createdAt,
+
+      // ✅ IMPORTANT: on sauvegarde aussi les intérêts
+      interestCategoryIds: user.interestCategoryIds,
     );
+
     await db.insert(
       _table,
       dto.toDb(),
@@ -117,12 +133,12 @@ class UserLocalDataSourceImpl implements UserLocalDataSource {
     await db.delete(_table);
   }
 
-  // (Optionnel) petit utilitaire debug
   Future<Map<String, dynamic>> debugDump() async {
     final db = await _open();
     final count = Sqflite.firstIntValue(
       await db.rawQuery('SELECT COUNT(*) FROM $_table'),
-    ) ?? 0;
+    ) ??
+        0;
     final rows = await db.query(_table, limit: 1);
     return {'count': count, 'firstRow': rows.isNotEmpty ? rows.first : null};
   }

@@ -1,7 +1,7 @@
 //---------------------------------------------------------------------------
 //                           TEXAS BUDDY   ( 2 0 2 5 )
 //---------------------------------------------------------------------------
-// File   :user/domain/entities/user_page.dart
+// File   :user/domain/entities/user_profile.dart
 // Author : Morice
 //-------------------------------------------------------------------------
 
@@ -20,8 +20,8 @@ class UserProfile {
   final String? zipCode;
   final String? country;
   final String? phone;
+  final List<int> interestCategoryIds;
 
-  // 👇 Nouveaux champs
   final String? registrationNumber; // sign_up_number
   final String? firstIp;
   final String? secondIp;
@@ -41,6 +41,7 @@ class UserProfile {
     this.zipCode,
     this.country,
     this.phone,
+    this.interestCategoryIds = const [],
     this.registrationNumber,
     this.firstIp,
     this.secondIp,

@@ -1,7 +1,7 @@
 //---------------------------------------------------------------------------
 //                           TEXAS BUDDY   ( 2 0 2 5 )
 //---------------------------------------------------------------------------
-// File   :user/data/datasources/remote/auth/auth_remote_datasource.dart
+// File   :user/data/datasources/remote/user_remote_datasource.dart
 // Author : Morice
 //-------------------------------------------------------------------------
 

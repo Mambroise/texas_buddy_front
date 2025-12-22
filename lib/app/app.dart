@@ -5,6 +5,49 @@
 // Author : Morice
 //---------------------------------------------------------------------------
 
+/*
+==============================================================================
+TexasBuddyApp — Racine UI de l’application
+==============================================================================
+
+🎯 Rôle principal
+- Racine Flutter de l’app (MaterialApp.router).
+- Connecte :
+  - le routing (GoRouter),
+  - la gestion de la langue (LocaleCubit),
+  - les blocs globaux nécessaires dès le lancement.
+
+🏗️ Responsabilités clés
+1) Initialisation du router
+   - AppRouter.build() construit la navigation déclarative
+   - dépend de l’état d’authentification (AuthNotifier)
+
+2) Fournisseurs globaux (MultiBlocProvider)
+   - LocationBloc :
+     - gestion de la géolocalisation dès le boot
+   - LocaleCubit :
+     - gère la langue active UI
+     - charge la langue sauvegardée si elle existe
+
+3) Synchronisation UI ↔ Infra (langue)
+   - BlocListener<LocaleCubit> :
+     - met à jour CurrentLocale
+     - impacte automatiquement les headers API (Dio)
+
+4) MaterialApp.router
+   - configuration du thème
+   - localisation (L10n)
+   - routerConfig (GoRouter)
+
+📌 Point important
+- TexasBuddyApp ne contient PAS de logique métier.
+- C’est un “composeur” :
+  - états globaux
+  - routing
+  - thème
+  - localisation
+==============================================================================
+*/
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';

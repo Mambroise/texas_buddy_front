@@ -6,6 +6,8 @@
 //-------------------------------------------------------------------------
 
 
+import 'dart:convert';
+
 import 'package:texas_buddy/features/user/domain/entities/user_profile.dart';
 
 class UserProfileDto {
@@ -21,8 +23,8 @@ class UserProfileDto {
   final String? zipCode;
   final String? country;
   final String? phone;
+  final List<int> interestCategoryIds;
 
-  // 👇 Ajoutés
   final String? registrationNumber; // sign_up_number
   final String? firstIp;
   final String? secondIp;
@@ -42,6 +44,7 @@ class UserProfileDto {
     this.zipCode,
     this.country,
     this.phone,
+    this.interestCategoryIds = const [],
     this.registrationNumber,
     this.firstIp,
     this.secondIp,
@@ -57,6 +60,27 @@ class UserProfileDto {
     }
     DateTime? dt(dynamic v) { if (v == null) return null; try { return DateTime.parse(v.toString()); } catch (_) { return null; } }
 
+    List<int> interestsToIds(dynamic v) {
+      if (v is List) {
+        final ids = <int>[];
+        for (final e in v) {
+          if (e is int) {
+            ids.add(e);
+          } else if (e is String) {
+            final n = int.tryParse(e);
+            if (n != null) ids.add(n);
+          } else if (e is Map) {
+            final raw = e['id'] ?? e['pk'];
+            final n = (raw is int) ? raw : int.tryParse(raw?.toString() ?? '');
+            if (n != null) ids.add(n);
+          }
+        }
+        return ids;
+      }
+      return const [];
+    }
+
+
     return UserProfileDto(
       id: s(json['id'] ?? json['uuid'] ?? json['pk']),
       email: s(json['email']),
@@ -69,11 +93,12 @@ class UserProfileDto {
       zipCode: sn(json['zip_code'] ?? json['zipcode'] ?? json['postal_code']),
       country: sn(json['country']),
       phone: sn(json['phone']),
+      interestCategoryIds: interestsToIds(json['interests']),
       registrationNumber: sn(json['sign_up_number']),
       firstIp: sn(json['first_ip']),
       secondIp: sn(json['second_ip']),
       avatarUrl: sn(json['avatar'] ?? json['avatar_url'] ?? json['photo']),
-      createdAt: dt(json['created_at']),
+      createdAt: dt(json['created_at'] ?? json['timestamp']),
     );
   }
 
@@ -89,6 +114,7 @@ class UserProfileDto {
     zipCode: zipCode,
     country: country,
     phone: phone,
+    interestCategoryIds: interestCategoryIds,
     registrationNumber: registrationNumber,
     firstIp: firstIp,
     secondIp: secondIp,
@@ -108,6 +134,7 @@ class UserProfileDto {
     'zip_code': zipCode,
     'country': country,
     'phone': phone,
+    'interests': jsonEncode(interestCategoryIds),
     'registration_number': registrationNumber,
     'first_ip': firstIp,
     'second_ip': secondIp,
@@ -115,22 +142,44 @@ class UserProfileDto {
     'created_at': createdAt?.toIso8601String(),
   };
 
-  static UserProfileDto fromDb(Map<String, dynamic> row) => UserProfileDto(
-    id: row['id'] as String,
-    email: row['email'] as String,
-    firstName: row['first_name'] as String?,
-    lastName: row['last_name'] as String?,
-    nickname: row['nickname'] as String?,
-    address: row['address'] as String?,
-    city: row['city'] as String?,
-    state: row['state'] as String?,
-    zipCode: row['zip_code'] as String?,
-    country: row['country'] as String?,
-    phone: row['phone'] as String?,
-    registrationNumber: row['registration_number'] as String?,
-    firstIp: row['first_ip'] as String?,
-    secondIp: row['second_ip'] as String?,
-    avatarUrl: row['avatar_url'] as String?,
-    createdAt: row['created_at'] != null ? DateTime.tryParse(row['created_at'] as String) : null,
-  );
+  static UserProfileDto fromDb(Map<String, dynamic> row) {
+    List<int> decodeIds(dynamic v) {
+      if (v == null) return const [];
+      try {
+        final decoded = jsonDecode(v.toString());
+        if (decoded is List) {
+          return decoded.map((e) {
+            if (e is int) return e;
+            return int.tryParse(e.toString()) ?? -1;
+          }).where((e) => e >= 0).toList();
+        }
+      } catch (_) {}
+      return const [];
+    }
+
+    return UserProfileDto(
+      id: row['id'] as String,
+      email: row['email'] as String,
+      firstName: row['first_name'] as String?,
+      lastName: row['last_name'] as String?,
+      nickname: row['nickname'] as String?,
+      address: row['address'] as String?,
+      city: row['city'] as String?,
+      state: row['state'] as String?,
+      zipCode: row['zip_code'] as String?,
+      country: row['country'] as String?,
+      phone: row['phone'] as String?,
+      registrationNumber: row['registration_number'] as String?,
+      firstIp: row['first_ip'] as String?,
+      secondIp: row['second_ip'] as String?,
+      avatarUrl: row['avatar_url'] as String?,
+      createdAt: row['created_at'] != null
+          ? DateTime.tryParse(row['created_at'] as String)
+          : null,
+
+      // ✅ NEW
+      interestCategoryIds: decodeIds(row['interests']),
+    );
+  }
+
 }

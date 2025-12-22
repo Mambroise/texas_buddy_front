@@ -1,3 +1,12 @@
+//---------------------------------------------------------------------------
+//                           TEXAS BUDDY   ( 2 0 2 5 )
+//---------------------------------------------------------------------------
+// File   :user/data/repositories/use_repository_impl.dart
+// Author : Morice
+//-------------------------------------------------------------------------
+
+
+
 import 'package:texas_buddy/features/user/domain/entities/user_profile.dart';
 import 'package:texas_buddy/features/user/domain/repositories/user_repository.dart';
 import 'package:texas_buddy/features/user/data/datasources/local/user_local_datasource.dart';

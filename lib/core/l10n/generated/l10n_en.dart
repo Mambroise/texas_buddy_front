@@ -425,4 +425,46 @@ class L10nEn extends L10n {
 
   @override
   String get timeline_drop_occupied => 'This time slot is already taken';
+
+  @override
+  String get interestsTitle => 'Choose your interests';
+
+  @override
+  String get interestsSubtitle => 'Pick a few topics to personalize your recommendations.';
+
+  @override
+  String get myInterests => 'My interests';
+
+  @override
+  String get interestsOpenCta => 'Edit my interests';
+
+  @override
+  String get search => 'Search';
+
+  @override
+  String get interestsLoading => 'Loading interests…';
+
+  @override
+  String get interestsLoadError => 'We couldn\'t load your interests.';
+
+  @override
+  String get interestsRetry => 'Try again';
+
+  @override
+  String get interestsSave => 'Save';
+
+  @override
+  String get interestsSkip => 'Not now';
+
+  @override
+  String get interestsClose => 'Close';
+
+  @override
+  String get interestsMinOneError => 'Please select at least one interest.';
+
+  @override
+  String get interestsSaveSuccess => 'Interests saved.';
+
+  @override
+  String get interestsSaveError => 'We couldn\'t save your interests.';
 }

@@ -36,8 +36,14 @@ import 'package:texas_buddy/features/map/domain/repositories/detail_repository.d
 // User
 import 'package:texas_buddy/features/user/data/datasources/local/user_local_datasource.dart';
 import 'package:texas_buddy/features/user/data/datasources/remote/user_remote_datasource.dart';
+import 'package:texas_buddy/features/user/data/datasources/remote/interests_remote_data_source.dart';
+import 'package:texas_buddy/features/user/data/datasources/remote/user_interests_remote_data_source.dart';
 import 'package:texas_buddy/features/user/data/repositories/user_repository_impl.dart';
+import 'package:texas_buddy/features/user/data/repositories/interests_repository_impl.dart';
+import 'package:texas_buddy/features/user/data/repositories/user_interests_repository_impl.dart';
 import 'package:texas_buddy/features/user/domain/repositories/user_repository.dart';
+import 'package:texas_buddy/features/user/domain/repositories/interests_repository.dart';
+import 'package:texas_buddy/features/user/domain/repositories/user_interests_repository.dart';
 
 import 'package:texas_buddy/features/planning/data/datasources/remote/trip_remote_datasource.dart';
 import 'package:texas_buddy/features/planning/data/repositories/trip_repository_impl.dart';
@@ -70,6 +76,8 @@ import 'package:texas_buddy/features/map/domain/usecases/get_event_detail.dart';
 
 import 'package:texas_buddy/features/user/domain/usecases/fetch_and_cache_me_usecase.dart';
 import 'package:texas_buddy/features/user/domain/usecases/get_cached_user_usecase.dart';
+import 'package:texas_buddy/features/user/domain/usecases/fetch_interest_categories_usecase.dart';
+import 'package:texas_buddy/features/user/domain/usecases/save_user_interests_usecase.dart';
 import 'package:texas_buddy/features/planning/domain/usecases/trips/create_trip.dart';
 import 'package:texas_buddy/features/planning/domain/usecases/trips/list_trips.dart';
 
@@ -137,6 +145,15 @@ Future<void> setupLocator(Dio dio) async {
   getIt.registerLazySingleton<AllEventsCache>(() => AllEventsCache());
 
   // ── DataSources ──────────────────────────────────────────────────────────
+  getIt.registerLazySingleton<InterestsRemoteDataSource>(
+        () => InterestsRemoteDataSourceImpl(getIt()), // ou dio directement
+  );
+  getIt.registerLazySingleton<InterestsRepository>(
+        () => InterestsRepositoryImpl(getIt()),
+  );
+  getIt.registerLazySingleton<FetchInterestCategoriesUseCase>(
+        () => FetchInterestCategoriesUseCase(getIt()),
+  );
   getIt.registerLazySingleton<AuthRemoteDatasource>(
         () => AuthRemoteDatasource(getIt<Dio>()),
   );
@@ -214,6 +231,19 @@ Future<void> setupLocator(Dio dio) async {
 
   getIt.registerLazySingleton<TripStepRepository>(
         () => TripStepRepositoryImpl(getIt<TripStepRemoteDataSource>()),
+  );
+
+// save interests
+  getIt.registerLazySingleton<UserInterestsRemoteDataSource>(
+        () => UserInterestsRemoteDataSourceImpl(getIt()), // Dio
+  );
+
+  getIt.registerLazySingleton<UserInterestsRepository>(
+        () => UserInterestsRepositoryImpl(getIt()),
+  );
+
+  getIt.registerLazySingleton<SaveUserInterestsUseCase>(
+        () => SaveUserInterestsUseCase(getIt()),
   );
 
   // ── UseCases ─────────────────────────────────────────────────────────────
