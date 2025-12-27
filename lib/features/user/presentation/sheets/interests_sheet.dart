@@ -1,3 +1,11 @@
+//---------------------------------------------------------------------------
+//                           TEXAS BUDDY   ( 2 0 2 5 )
+//---------------------------------------------------------------------------
+// File   : feature/user/presentation/sheets/interests_sheet.dart
+// Author : Morice
+//-------------------------------------------------------------------------
+
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:texas_buddy/app/di/service_locator.dart';
@@ -7,40 +15,104 @@ import 'package:texas_buddy/features/user/presentation/cubits/interests_cubit.da
 import 'package:texas_buddy/core/theme/app_colors.dart';
 import 'package:texas_buddy/core/utils/category_icon_mapper.dart';
 
-
-class InterestsSheet extends StatelessWidget {
+class InterestsSheet extends StatefulWidget {
   const InterestsSheet({super.key});
+
+  @override
+  State<InterestsSheet> createState() => _InterestsSheetState();
+}
+
+class _InterestsSheetState extends State<InterestsSheet> {
+  Set<int>? _preselected;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPreselected();
+  }
+
+  Future<void> _loadPreselected() async {
+    try {
+      final me = getIt<GetCachedUserUseCase>();
+      final u = await me();
+      final ids = u?.interestCategoryIds ?? const <int>[];
+      if (!mounted) return;
+      setState(() => _preselected = ids.toSet());
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _preselected = <int>{});
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
     final media = MediaQuery.of(context);
-    final bottomSafe = media.viewPadding.bottom;     // ✅ navbar système
+    final bottomSafe = media.viewPadding.bottom;
     final keyboard = media.viewInsets.bottom;
 
+    final pre = _preselected;
+    if (pre == null) {
+      return Padding(
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: 12,
+          bottom: 12 + bottomSafe + keyboard,
+        ),
+        child: Row(
+          children: [
+            const SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            const SizedBox(width: 12),
+            Text(l10n.interestsLoading),
+          ],
+        ),
+      );
+    }
+
     return BlocProvider(
-      create: (_) {
-        // pré-sélection = intérêts actuels du user (cache)
-        final me = getIt<GetCachedUserUseCase>();
-        return InterestsCubit(
-          fetch: getIt(),
-          save: getIt(),
-          fetchMe: getIt(),
-          preselected: <int>{}, // on branchera la vraie pré-sélection ensuite si tu veux
-        )..load();
-      },
+      create: (_) => InterestsCubit(
+        fetch: getIt(),
+        save: getIt(),
+        fetchMe: getIt(),
+        preselected: pre,
+      )..load(),
       child: BlocListener<InterestsCubit, InterestsState>(
-    listenWhen: (p, n) => p.saveStatus != n.saveStatus,
-    listener: (ctx, st) {
-      if (st.saveStatus == InterestsSaveStatus.success) {
-        Navigator.of(context).pop();
-      } else if (st.saveStatus == InterestsSaveStatus.failure) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(l10n.interestsSaveError)),
-        );
-      }
-    },
-    child: Padding(
+        listenWhen: (p, n) => p.saveStatus != n.saveStatus,
+        listener: (ctx, st) {
+          if (st.saveStatus == InterestsSaveStatus.success) {
+            // ✅ IMPORTANT: utiliser ctx (contexte du listener)
+            Navigator.of(ctx).pop();
+          } else if (st.saveStatus == InterestsSaveStatus.failure) {
+            ScaffoldMessenger.of(ctx).showSnackBar(
+              SnackBar(content: Text(l10n.interestsSaveError)),
+            );
+          }
+        },
+        child: _InterestsSheetBody(bottomSafe: bottomSafe, keyboard: keyboard),
+      ),
+    );
+  }
+}
+
+class _InterestsSheetBody extends StatelessWidget {
+  final double bottomSafe;
+  final double keyboard;
+
+  const _InterestsSheetBody({
+    required this.bottomSafe,
+    required this.keyboard,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n;
+
+    return Padding(
       padding: EdgeInsets.only(
         left: 16,
         right: 16,
@@ -119,7 +191,7 @@ class InterestsSheet extends StatelessWidget {
                 if (filtered.isEmpty) {
                   return Padding(
                     padding: const EdgeInsets.only(top: 16),
-                    child: Text(l10n.noResults), // si tu l’as déjà; sinon remplace
+                    child: Text(l10n.noResults),
                   );
                 }
 
@@ -131,11 +203,10 @@ class InterestsSheet extends StatelessWidget {
                       for (final cat in filtered)
                         _InterestChip(
                           name: cat.name,
-                          iconKey: cat.icon ?? cat.name, // icon backend si dispo, sinon fallback sur name
+                          iconKey: cat.icon ?? cat.name,
                           selected: st.selectedIds.contains(cat.id),
                           onTap: () => ctx.read<InterestsCubit>().toggle(cat.id),
                         ),
-
                     ],
                   ),
                 );
@@ -145,18 +216,18 @@ class InterestsSheet extends StatelessWidget {
 
           const SizedBox(height: 16),
           BlocBuilder<InterestsCubit, InterestsState>(
-            buildWhen: (p, n) => p.selectedIds.length != n.selectedIds.length,
+            buildWhen: (p, n) =>
+            p.selectedIds.length != n.selectedIds.length || p.saveStatus != n.saveStatus,
             builder: (ctx, st) {
               return Row(
                 children: [
-// ✅ PLUS TARD : texte seul, aucun fond, aucun border
                   Expanded(
                     child: TextButton(
                       onPressed: () => Navigator.of(context).pop(),
                       style: TextButton.styleFrom(
                         foregroundColor: AppColors.texasBlue,
                         padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: const StadiumBorder(), // ✅ demi-cercles
+                        shape: const StadiumBorder(),
                       ),
                       child: Text(
                         l10n.interestsSkip,
@@ -166,10 +237,7 @@ class InterestsSheet extends StatelessWidget {
                       ),
                     ),
                   ),
-
                   const SizedBox(width: 12),
-
-// ✅ ENREGISTRER : fond bleu, blanc, demi-cercles
                   Expanded(
                     child: ElevatedButton(
                       onPressed: (st.selectedIds.isEmpty || st.saveStatus == InterestsSaveStatus.saving)
@@ -200,19 +268,14 @@ class InterestsSheet extends StatelessWidget {
                           color: AppColors.whiteGlow,
                         ),
                       ),
-
                     ),
                   ),
                 ],
               );
-
             },
           ),
         ],
       ),
-    ),
-    ),
-
     );
   }
 }
@@ -234,7 +297,6 @@ class _InterestChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final icon = CategoryIconMapper.map(iconKey);
 
-    // Couleurs “Texas”
     final bg = selected ? AppColors.texasRedGlow70 : AppColors.texasBlue;
     final fg = AppColors.whiteGlow;
     final check = AppColors.white;
@@ -263,7 +325,7 @@ class _InterestChip extends StatelessWidget {
             ),
             if (selected) ...[
               const SizedBox(width: 8),
-              Icon(Icons.check_circle, size: 16, color: check), // ✅ V rouge
+              Icon(Icons.check_circle, size: 16, color: check),
             ],
           ],
         ),

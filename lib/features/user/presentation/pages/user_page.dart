@@ -1,7 +1,7 @@
 //---------------------------------------------------------------------------
 //                           TEXAS BUDDY   ( 2 0 2 5 )
 //---------------------------------------------------------------------------
-// File   : presentation/pages/user/user_page.dart
+// File   : features/user/presentation/pages/pages/user_page.dart
 // Author : Morice
 //-------------------------------------------------------------------------
 
@@ -179,15 +179,19 @@ class _UserPageContent extends StatelessWidget {
                                 child: OutlinedButton.icon(
                                   icon: const Icon(Icons.tune),
                                   label: Text(l10n.myInterests), // clé l10n à ajouter
-                                  onPressed: () {
-                                    showModalBottomSheet<void>(
+                                  onPressed: () async {
+                                    await showModalBottomSheet<void>(
                                       context: context,
                                       useSafeArea: true,
                                       isScrollControlled: true,
                                       showDragHandle: true,
                                       builder: (_) => const InterestsSheet(),
                                     );
+                                    if (context.mounted) {
+                                      context.read<UserOverviewCubit>().loadCached();
+                                    }
                                   },
+
                                 ),
                               ),
                               const SizedBox(height: 8),

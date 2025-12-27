@@ -55,7 +55,8 @@ class InterestsState extends Equatable {
   );
 
   @override
-  List<Object?> get props => [status, all, selectedIds, query];
+  List<Object?> get props => [status, saveStatus, all, selectedIds, query];
+
 }
 
 class InterestsCubit extends Cubit<InterestsState> {
