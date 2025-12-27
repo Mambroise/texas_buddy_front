@@ -172,5 +172,23 @@
   "timeline_drop_occupied": "Ese horario ya está ocupado",
   "@timeline_drop_occupied": {
     "description": "Mensaje cuando se intenta soltar un step en un horario ocupado"
-  }
+  },
+
+  "interestsTitle": "Elige tus intereses",
+  "interestsSubtitle": "Selecciona algunos temas para personalizar tus recomendaciones.",
+  "myInterests": "Mis intereses",
+  "interestsOpenCta": "Editar mis intereses",
+  "search": "Buscar",
+
+  "interestsLoading": "Cargando intereses…",
+  "interestsLoadError": "No pudimos cargar tus intereses.",
+  "interestsRetry": "Reintentar",
+
+  "interestsSave": "Guardar",
+  "interestsSkip": "Ahora no",
+  "interestsClose": "Cerrar",
+
+  "interestsMinOneError": "Selecciona al menos un interés.",
+  "interestsSaveSuccess": "Intereses guardados.",
+  "interestsSaveError": "No pudimos guardar tus intereses."
 }

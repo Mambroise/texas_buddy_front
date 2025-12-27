@@ -425,4 +425,46 @@ class L10nEs extends L10n {
 
   @override
   String get timeline_drop_occupied => 'Ese horario ya está ocupado';
+
+  @override
+  String get interestsTitle => 'Elige tus intereses';
+
+  @override
+  String get interestsSubtitle => 'Selecciona algunos temas para personalizar tus recomendaciones.';
+
+  @override
+  String get myInterests => 'Mis intereses';
+
+  @override
+  String get interestsOpenCta => 'Editar mis intereses';
+
+  @override
+  String get search => 'Buscar';
+
+  @override
+  String get interestsLoading => 'Cargando intereses…';
+
+  @override
+  String get interestsLoadError => 'No pudimos cargar tus intereses.';
+
+  @override
+  String get interestsRetry => 'Reintentar';
+
+  @override
+  String get interestsSave => 'Guardar';
+
+  @override
+  String get interestsSkip => 'Ahora no';
+
+  @override
+  String get interestsClose => 'Cerrar';
+
+  @override
+  String get interestsMinOneError => 'Selecciona al menos un interés.';
+
+  @override
+  String get interestsSaveSuccess => 'Intereses guardados.';
+
+  @override
+  String get interestsSaveError => 'No pudimos guardar tus intereses.';
 }

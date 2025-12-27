@@ -172,6 +172,24 @@
   "timeline_drop_occupied": "Créneau déjà occupé",
   "@timeline_drop_occupied": {
     "description": "Message quand on tente de déposer un step sur un autre step"
-  }
+  },
+
+  "interestsTitle": "Choisis tes centres d’intérêt",
+  "interestsSubtitle": "Sélectionne quelques thèmes pour personnaliser tes recommandations.",
+  "myInterests": "Mes centres d’intérêt",
+  "interestsOpenCta": "Modifier mes centres d’intérêt",
+
+  "interestsLoading": "Chargement des centres d’intérêt…",
+  "interestsLoadError": "Impossible de charger les centres d’intérêt.",
+  "interestsRetry": "Réessayer",
+  "search": "Rechercher",
+
+  "interestsSave": "Enregistrer",
+  "interestsSkip": "Plus tard",
+  "interestsClose": "Fermer",
+
+  "interestsMinOneError": "Choisis au moins un centre d’intérêt.",
+  "interestsSaveSuccess": "Centres d’intérêt enregistrés.",
+  "interestsSaveError": "Impossible d’enregistrer tes centres d’intérêt."
 
 }

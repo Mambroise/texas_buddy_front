@@ -180,5 +180,23 @@
   "timeline_drop_occupied": "This time slot is already taken",
   "@timeline_drop_occupied": {
     "description": "Message shown when dropping a step onto an occupied slot"
-  }
+  },
+
+  "interestsTitle": "Choose your interests",
+  "interestsSubtitle": "Pick a few topics to personalize your recommendations.",
+  "myInterests": "My interests",
+  "interestsOpenCta": "Edit my interests",
+  "search": "Search",
+
+  "interestsLoading": "Loading interests…",
+  "interestsLoadError": "We couldn't load your interests.",
+  "interestsRetry": "Try again",
+
+  "interestsSave": "Save",
+  "interestsSkip": "Not now",
+  "interestsClose": "Close",
+
+  "interestsMinOneError": "Please select at least one interest.",
+  "interestsSaveSuccess": "Interests saved.",
+  "interestsSaveError": "We couldn't save your interests."
 }

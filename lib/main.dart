@@ -5,6 +5,60 @@
 // Author : Morice
 //---------------------------------------------------------------------------
 
+/*
+==============================================================================
+main.dart — Point d’entrée de l’application
+==============================================================================
+
+🎯 Rôle principal
+- Point de boot global de Texas Buddy.
+- Initialise tout ce qui DOIT exister avant le premier frame :
+  - bindings Flutter
+  - langue courante
+  - client réseau (Dio)
+  - base de données locale
+  - service locator (DI)
+  - état d’authentification initial
+
+🔁 Séquence d’initialisation (ordre critique)
+1) WidgetsFlutterBinding.ensureInitialized()
+   - requis pour toute initialisation async avant runApp
+
+2) Détection de la langue système
+   - ex: "fr-FR" → "fr"
+   - fallback sécurisé sur "en"
+
+3) CurrentLocale
+   - stocke la langue active côté infra (API, headers, etc.)
+   - enregistré en singleton dans getIt
+
+4) Dio client
+   - créé avec interceptor de langue basé sur CurrentLocale
+   - garantit que chaque requête API connaît la langue active
+
+5) Base de données locale (SQLite)
+   - ouverture + création des tables IF NOT EXISTS
+   - attendue AVANT l’initialisation des repositories
+
+6) Service Locator (DI)
+   - enregistre blocs, cubits, usecases, repositories, datasources
+   - dépend de Dio et de la DB déjà prêts
+
+7) AuthNotifier.init()
+   - vérifie la session (token valide ou non)
+   - prépare l’état d’authentification global
+
+8) runApp()
+   - lance TexasBuddyApp avec la locale device initiale
+
+📌 Pourquoi ce fichier est critique
+- Il garantit un démarrage cohérent :
+  pas de requêtes réseau sans langue,
+  pas de repository sans DB,
+  pas de routing sans état d’authentification connu.
+==============================================================================
+*/
+
 
 import 'dart:ui';
 import 'package:flutter/material.dart';

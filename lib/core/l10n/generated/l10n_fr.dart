@@ -425,4 +425,46 @@ class L10nFr extends L10n {
 
   @override
   String get timeline_drop_occupied => 'Créneau déjà occupé';
+
+  @override
+  String get interestsTitle => 'Choisis tes centres d’intérêt';
+
+  @override
+  String get interestsSubtitle => 'Sélectionne quelques thèmes pour personnaliser tes recommandations.';
+
+  @override
+  String get myInterests => 'Mes centres d’intérêt';
+
+  @override
+  String get interestsOpenCta => 'Modifier mes centres d’intérêt';
+
+  @override
+  String get search => 'Rechercher';
+
+  @override
+  String get interestsLoading => 'Chargement des centres d’intérêt…';
+
+  @override
+  String get interestsLoadError => 'Impossible de charger les centres d’intérêt.';
+
+  @override
+  String get interestsRetry => 'Réessayer';
+
+  @override
+  String get interestsSave => 'Enregistrer';
+
+  @override
+  String get interestsSkip => 'Plus tard';
+
+  @override
+  String get interestsClose => 'Fermer';
+
+  @override
+  String get interestsMinOneError => 'Choisis au moins un centre d’intérêt.';
+
+  @override
+  String get interestsSaveSuccess => 'Centres d’intérêt enregistrés.';
+
+  @override
+  String get interestsSaveError => 'Impossible d’enregistrer tes centres d’intérêt.';
 }

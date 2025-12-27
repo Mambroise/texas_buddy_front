@@ -1,7 +1,7 @@
 //---------------------------------------------------------------------------
 //                           TEXAS BUDDY   ( 2 0 2 5 )
 //---------------------------------------------------------------------------
-// File   : presentation/pages/user/user_page.dart
+// File   : features/user/presentation/pages/pages/user_page.dart
 // Author : Morice
 //-------------------------------------------------------------------------
 
@@ -12,6 +12,7 @@ import 'package:texas_buddy/app/di/service_locator.dart';
 import 'package:texas_buddy/core/theme/app_colors.dart';
 import 'package:texas_buddy/features/auth/presentation/blocs/logout/logout_bloc.dart';
 import 'package:texas_buddy/features/user/presentation/cubits/user_overview_cubit.dart';
+import 'package:texas_buddy/features/user/presentation/sheets/interests_sheet.dart';
 import 'package:texas_buddy/features/user/domain/entities/user_profile.dart';
 import 'package:texas_buddy/presentation/pages/settings/settings_page.dart';
 
@@ -173,6 +174,27 @@ class _UserPageContent extends StatelessWidget {
                                   ],
                                 ),
                               ],
+                              SizedBox(
+                                width: double.infinity,
+                                child: OutlinedButton.icon(
+                                  icon: const Icon(Icons.tune),
+                                  label: Text(l10n.myInterests), // clé l10n à ajouter
+                                  onPressed: () async {
+                                    await showModalBottomSheet<void>(
+                                      context: context,
+                                      useSafeArea: true,
+                                      isScrollControlled: true,
+                                      showDragHandle: true,
+                                      builder: (_) => const InterestsSheet(),
+                                    );
+                                    if (context.mounted) {
+                                      context.read<UserOverviewCubit>().loadCached();
+                                    }
+                                  },
+
+                                ),
+                              ),
+                              const SizedBox(height: 8),
                             ],
                           ),
                         ),
@@ -269,3 +291,4 @@ class _UserPageContent extends StatelessWidget {
     );
   }
 }
+

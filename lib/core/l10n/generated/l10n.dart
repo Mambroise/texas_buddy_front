@@ -888,6 +888,90 @@ abstract class L10n {
   /// In en, this message translates to:
   /// **'This time slot is already taken'**
   String get timeline_drop_occupied;
+
+  /// No description provided for @interestsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose your interests'**
+  String get interestsTitle;
+
+  /// No description provided for @interestsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a few topics to personalize your recommendations.'**
+  String get interestsSubtitle;
+
+  /// No description provided for @myInterests.
+  ///
+  /// In en, this message translates to:
+  /// **'My interests'**
+  String get myInterests;
+
+  /// No description provided for @interestsOpenCta.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit my interests'**
+  String get interestsOpenCta;
+
+  /// No description provided for @search.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get search;
+
+  /// No description provided for @interestsLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Loading interests…'**
+  String get interestsLoading;
+
+  /// No description provided for @interestsLoadError.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t load your interests.'**
+  String get interestsLoadError;
+
+  /// No description provided for @interestsRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get interestsRetry;
+
+  /// No description provided for @interestsSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get interestsSave;
+
+  /// No description provided for @interestsSkip.
+  ///
+  /// In en, this message translates to:
+  /// **'Not now'**
+  String get interestsSkip;
+
+  /// No description provided for @interestsClose.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get interestsClose;
+
+  /// No description provided for @interestsMinOneError.
+  ///
+  /// In en, this message translates to:
+  /// **'Please select at least one interest.'**
+  String get interestsMinOneError;
+
+  /// No description provided for @interestsSaveSuccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Interests saved.'**
+  String get interestsSaveSuccess;
+
+  /// No description provided for @interestsSaveError.
+  ///
+  /// In en, this message translates to:
+  /// **'We couldn\'t save your interests.'**
+  String get interestsSaveError;
 }
 
 class _L10nDelegate extends LocalizationsDelegate<L10n> {
