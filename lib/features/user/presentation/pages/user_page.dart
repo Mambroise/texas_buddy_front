@@ -15,6 +15,8 @@ import 'package:texas_buddy/features/user/presentation/cubits/user_overview_cubi
 import 'package:texas_buddy/features/user/presentation/sheets/interests_sheet.dart';
 import 'package:texas_buddy/features/user/domain/entities/user_profile.dart';
 import 'package:texas_buddy/presentation/pages/settings/settings_page.dart';
+import 'package:texas_buddy/features/user/presentation/sheets/edit_profile_sheet.dart';
+
 
 // L10n
 import 'package:texas_buddy/core/l10n/l10n_ext.dart';
@@ -250,11 +252,25 @@ class _UserPageContent extends StatelessWidget {
                       child: OutlinedButton.icon(
                         icon: const Icon(Icons.edit),
                         label: Text(l10n.editProfile),
-                        onPressed: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(content: Text(l10n.profileEditComingSoon)),
+                        onPressed: () async {
+                          final u = context.read<UserOverviewCubit>().state.user;
+
+                          final result = await showModalBottomSheet<Map<String, dynamic>>(
+                            context: context,
+                            useSafeArea: true,
+                            isScrollControlled: true,
+                            showDragHandle: true,
+                            builder: (_) => EditProfileSheet(initial: u),
                           );
+
+                          // Pour l'instant : juste debug / snackbar (pas de backend)
+                          if (result != null && context.mounted) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text(l10n.profileEditComingSoon)),
+                            );
+                          }
                         },
+
                       ),
                     ),
                     const SizedBox(height: 8),

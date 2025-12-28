@@ -95,6 +95,7 @@
   "tripCreateDatesPick": "Seleccionar fechas",
   "tripCreateSave": "Aceptar",
   "tripCreateCancel": "Cancelar",
+  "cancel": "Cancelar",
   "tripCreateCreate": "Crear",
   "tripCreateValidationNameRequired": "El título es obligatorio",
   "tripCreateValidationNameMax": "Máximo {max} caracteres",
@@ -121,10 +122,18 @@
   "trips_update_error": "Error al actualizar el viaje.",
   "tripEditTitle": "Editar viaje",
   "tripEditSave": "Guardar",
+  "save": "Guardar",
   "trips_update_success": "Viaje actualizado.",
   "trips_update_error": "Error al actualizar el viaje.",
   "tripNoAddress": "Sin dirección",
   "addHotelAddress": "añadir la dirección",
+  "country": "País",
+  "phone": "Número de teléfono",
+
+  "profileEditSubtitle": "Actualiza tus datos de contacto y tu país.",
+
+  "fieldRequired": "Este campo es obligatorio",
+  "invalidEmail": "Dirección de correo electrónico inválida",
 
   "addressFormTitle": "Definir la dirección del hotel",
   "cityLabel": "Ciudad",
@@ -187,6 +196,7 @@
   "interestsSave": "Guardar",
   "interestsSkip": "Ahora no",
   "interestsClose": "Cerrar",
+  "close": "Cerrar",
 
   "interestsMinOneError": "Selecciona al menos un interés.",
   "interestsSaveSuccess": "Intereses guardados.",
