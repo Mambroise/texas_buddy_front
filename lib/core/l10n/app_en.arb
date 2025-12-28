@@ -102,6 +102,7 @@
   "tripCreateDatesPick": "Select dates",
   "tripCreateSave": "Save",
   "tripCreateCancel": "Cancel",
+  "cancel": "Cancel",
   "tripCreateCreate": "Create",
   "tripCreateValidationNameRequired": "Title is required",
   "tripCreateValidationNameMax": "Max {max} characters",
@@ -128,10 +129,18 @@
   "trips_update_error": "Failed to update trip.",
   "tripEditTitle": "Edit trip",
   "tripEditSave": "Save",
+  "save": "Save",
   "trips_update_success": "Trip updated.",
   "trips_update_error": "Failed to update trip.",
   "tripNoAddress": "No address",
   "addHotelAddress": "Add an address",
+  "country": "Country",
+  "phone": "Phone number",
+
+  "profileEditSubtitle": "Update your contact details and location.",
+
+  "fieldRequired": "This field is required",
+  "invalidEmail": "Please enter a valid email address",
 
   "addressFormTitle": "Set hotel address",
   "cityLabel": "City",
@@ -195,6 +204,7 @@
   "interestsSave": "Save",
   "interestsSkip": "Not now",
   "interestsClose": "Close",
+  "close": "Close",
 
   "interestsMinOneError": "Please select at least one interest.",
   "interestsSaveSuccess": "Interests saved.",
