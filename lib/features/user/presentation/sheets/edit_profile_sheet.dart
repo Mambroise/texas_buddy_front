@@ -1,11 +1,4 @@
-//---------------------------------------------------------------------------
-//                           TEXAS BUDDY   ( 2 0 2 5 )
-//---------------------------------------------------------------------------
-// File   : feature/user/presentation/sheets/interests_sheet.dart
-// Author : Morice
-//-------------------------------------------------------------------------
-
-//---------------------------------------------------------------------------
+//---------------------------------------------------------------------
 //                           TEXAS BUDDY   ( 2 0 2 5 )
 //---------------------------------------------------------------------------
 // File   : features/user/presentation/sheets/edit_profile_sheet.dart
@@ -16,6 +9,10 @@ import 'package:flutter/material.dart';
 import 'package:texas_buddy/core/l10n/l10n_ext.dart';
 import 'package:texas_buddy/core/theme/app_colors.dart';
 import 'package:texas_buddy/features/user/domain/entities/user_profile.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:texas_buddy/app/di/service_locator.dart';
+import 'package:texas_buddy/features/user/presentation/cubits/edit_profile_cubit.dart';
+
 
 class EditProfileSheet extends StatefulWidget {
   final UserProfile? initial;
@@ -62,7 +59,22 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
     final bottomSafe = media.viewPadding.bottom;
     final keyboard = media.viewInsets.bottom;
 
-    return SafeArea(
+    return BlocProvider(
+        create: (_) => EditProfileCubit(updateMe: getIt()),
+    child: BlocListener<EditProfileCubit, EditProfileState>(
+    listenWhen: (p, n) => p.status != n.status,
+      listener: (ctx, st) {
+        final l10n = ctx.l10n;
+        if (st.status == EditProfileStatus.success) {
+          Navigator.of(ctx).pop();
+        } else if (st.status == EditProfileStatus.failure) {
+          ScaffoldMessenger.of(ctx).showSnackBar(
+            SnackBar(content: Text(l10n.profileUpdateError)),
+          );
+        }
+      },
+
+      child: SafeArea(
       top: false,
       child: Padding(
         padding: EdgeInsets.only(
@@ -175,58 +187,81 @@ class _EditProfileSheetState extends State<EditProfileSheet> {
 
             // Actions (fixes)
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: TextButton(
-                    onPressed: () => Navigator.of(context).pop(),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.texasBlue,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: const StadiumBorder(),
-                    ),
-                    child: Text(
-                      l10n.cancel,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      if (!(_formKey.currentState?.validate() ?? false)) return;
 
-                      Navigator.of(context).pop(<String, dynamic>{
-                        'email': _email.text.trim(),
-                        'address': _address.text.trim(),
-                        'phone': _phone.text.trim(),
-                        'country': _country,
-                      });
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.texasBlue,
-                      foregroundColor: AppColors.whiteGlow,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: const StadiumBorder(),
-                    ),
-                    child: Text(
-                      l10n.save,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.whiteGlow,
+            Builder(
+              builder: (ctx) {
+                final saving = ctx.select(
+                      (EditProfileCubit c) => c.state.status == EditProfileStatus.saving,
+                );
+
+                return Row(
+                  children: [
+                    Expanded(
+                      child: TextButton(
+                        onPressed: saving ? null : () => Navigator.of(ctx).pop(),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.texasBlue,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: const StadiumBorder(),
+                        ),
+                        child: Text(
+                          l10n.cancel,
+                          style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
-                ),
-              ],
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: saving
+                            ? null
+                            : () {
+                          if (!(_formKey.currentState?.validate() ?? false)) return;
+
+                          ctx.read<EditProfileCubit>().save(
+                            email: _email.text.trim(),
+                            address: _address.text.trim(),
+                            phone: _phone.text.trim(),
+                            country: _country,
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.texasBlue,
+                          foregroundColor: AppColors.whiteGlow,
+                          elevation: 0,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: const StadiumBorder(),
+                        ),
+                        child: saving
+                            ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                            : Text(
+                          l10n.save,
+                          style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.whiteGlow,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+              },
             ),
+
           ],
         ),
       ),
+    ),
+    ),
     );
   }
 

@@ -787,6 +787,12 @@ abstract class L10n {
   /// **'Phone number'**
   String get phone;
 
+  /// No description provided for @profileUpdateError.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to update your profile.'**
+  String get profileUpdateError;
+
   /// No description provided for @profileEditSubtitle.
   ///
   /// In en, this message translates to:

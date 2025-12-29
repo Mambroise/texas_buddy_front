@@ -372,6 +372,9 @@ class L10nFr extends L10n {
   String get phone => 'Numéro de téléphone';
 
   @override
+  String get profileUpdateError => 'Impossible de mettre à jour le profil.';
+
+  @override
   String get profileEditSubtitle => 'Modifiez vos coordonnées et votre pays.';
 
   @override

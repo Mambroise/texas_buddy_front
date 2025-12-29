@@ -136,6 +136,7 @@
   "addHotelAddress": "Add an address",
   "country": "Country",
   "phone": "Phone number",
+  "profileUpdateError": "Unable to update your profile.",
 
   "profileEditSubtitle": "Update your contact details and location.",
 

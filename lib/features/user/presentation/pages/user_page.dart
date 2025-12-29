@@ -77,8 +77,8 @@ class _UserPageContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n;
-
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: Text(l10n.profile),
         centerTitle: true,
@@ -106,145 +106,150 @@ class _UserPageContent extends StatelessWidget {
           duration: const Duration(milliseconds: 500),
           child: Column(
             children: [
-              const SizedBox(height: 24),
-              BlocBuilder<UserOverviewCubit, UserOverviewState>(
-                builder: (context, st) {
-                  final u = st.user;
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+              // ✅ Contenu scrollable
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Column(
                     children: [
-                      _avatar(u),
-                      const SizedBox(height: 12),
-                      Text(
-                        u != null
-                            ? (u.nickname ?? '${u.firstName ?? ''} ${u.lastName ?? ''}'.trim())
-                            : l10n.guest,
-                        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-                        textAlign: TextAlign.center,
-                      ),
-                      if (u?.email != null)
-                        Text(u!.email, style: const TextStyle(color: Colors.black54), textAlign: TextAlign.center),
-                      if (u?.city != null || u?.state != null)
-                        Text(
-                          [u?.city, u?.state].where((e) => (e?.isNotEmpty ?? false)).join(', '),
-                          style: const TextStyle(color: Colors.black54),
-                          textAlign: TextAlign.center,
-                        ),
-                      const SizedBox(height: 8),
-
-                      // Address card
-                      Card(
-                        margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                      const SizedBox(height: 24),
+                      BlocBuilder<UserOverviewCubit, UserOverviewState>(
+                        builder: (context, st) {
+                          final u = st.user;
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              Row(
-                                children: [
-                                  const Icon(Icons.home, color: AppColors.texasBlue),
-                                  const SizedBox(width: 8),
-                                  Text(l10n.address, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                  const Spacer(),
-                                  TextButton.icon(
-                                    icon: const Icon(Icons.edit, size: 18),
-                                    label: Text(l10n.modify),
-                                    onPressed: () {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(content: Text(l10n.profileEditComingSoon)),
-                                      );
-                                    },
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
+                              _avatar(u),
+                              const SizedBox(height: 12),
                               Text(
-                                (u?.address?.isNotEmpty ?? false) ? u!.address! : '—',
-                                style: const TextStyle(fontSize: 16),
+                                u != null
+                                    ? (u.nickname ?? '${u.firstName ?? ''} ${u.lastName ?? ''}'.trim())
+                                    : l10n.guest,
+                                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                                textAlign: TextAlign.center,
                               ),
-                              if (u != null && _cityStateZip(u).isNotEmpty)
-                                Text(_cityStateZip(u), style: const TextStyle(color: Colors.black54)),
-                              if (u?.country?.isNotEmpty == true)
-                                Text(u!.country!, style: const TextStyle(color: Colors.black54)),
-                              if (u?.phone?.isNotEmpty == true) ...[
-                                const SizedBox(height: 8),
-                                Row(
-                                  children: [
-                                    const Icon(Icons.phone, size: 16, color: Colors.black54),
-                                    const SizedBox(width: 6),
-                                    Text(u!.phone!, style: const TextStyle(color: Colors.black87)),
-                                  ],
+                              if (u?.email != null)
+                                Text(u!.email, style: const TextStyle(color: Colors.black54), textAlign: TextAlign.center),
+                              if (u?.city != null || u?.state != null)
+                                Text(
+                                  [u?.city, u?.state].where((e) => (e?.isNotEmpty ?? false)).join(', '),
+                                  style: const TextStyle(color: Colors.black54),
+                                  textAlign: TextAlign.center,
                                 ),
-                              ],
-                              SizedBox(
-                                width: double.infinity,
-                                child: OutlinedButton.icon(
-                                  icon: const Icon(Icons.tune),
-                                  label: Text(l10n.myInterests), // clé l10n à ajouter
-                                  onPressed: () async {
-                                    await showModalBottomSheet<void>(
-                                      context: context,
-                                      useSafeArea: true,
-                                      isScrollControlled: true,
-                                      showDragHandle: true,
-                                      builder: (_) => const InterestsSheet(),
-                                    );
-                                    if (context.mounted) {
-                                      context.read<UserOverviewCubit>().loadCached();
-                                    }
-                                  },
+                              const SizedBox(height: 8),
 
+                              // Address card
+                              Card(
+                                margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.home, color: AppColors.texasBlue),
+                                          const SizedBox(width: 8),
+                                          Text(l10n.address, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        (u?.address?.isNotEmpty ?? false) ? u!.address! : '—',
+                                        style: const TextStyle(fontSize: 16),
+                                      ),
+                                      if (u != null && _cityStateZip(u).isNotEmpty)
+                                        Text(_cityStateZip(u), style: const TextStyle(color: Colors.black54)),
+                                      if (u?.country?.isNotEmpty == true)
+                                        Text(u!.country!, style: const TextStyle(color: Colors.black54)),
+                                      if (u?.phone?.isNotEmpty == true) ...[
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          children: [
+                                            const Icon(Icons.phone, size: 16, color: Colors.black54),
+                                            const SizedBox(width: 6),
+                                            Text(u!.phone!, style: const TextStyle(color: Colors.black87)),
+                                          ],
+                                        ),
+                                      ],
+                                      SizedBox(
+                                        width: double.infinity,
+                                        child: OutlinedButton.icon(
+                                          icon: const Icon(Icons.tune),
+                                          label: Text(l10n.myInterests),
+                                          onPressed: () async {
+                                            await showModalBottomSheet<void>(
+                                              context: context,
+                                              useSafeArea: true,
+                                              isScrollControlled: true,
+                                              showDragHandle: true,
+                                              builder: (_) => const InterestsSheet(),
+                                            );
+                                            if (context.mounted) {
+                                              context.read<UserOverviewCubit>().loadCached();
+                                            }
+                                          },
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                    ],
+                                  ),
                                 ),
                               ),
-                              const SizedBox(height: 8),
-                            ],
-                          ),
-                        ),
-                      ),
 
-                      // Account & Security card
-                      Card(
-                        margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                        child: Padding(
-                          padding: const EdgeInsets.all(16.0),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  const Icon(Icons.verified_user, color: AppColors.texasBlue),
-                                  const SizedBox(width: 8),
-                                  Text(l10n.accountSecurity, style: const TextStyle(fontWeight: FontWeight.bold)),
-                                ],
+                              // Account & Security card (inchangé)
+                              Card(
+                                margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          const Icon(Icons.verified_user, color: AppColors.texasBlue),
+                                          const SizedBox(width: 8),
+                                          Text(l10n.accountSecurity, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      _kv(l10n.registrationNumber, u?.registrationNumber ?? '—'),
+                                      const SizedBox(height: 6),
+                                      _kv(l10n.firstIp, u?.firstIp ?? '—'),
+                                      const SizedBox(height: 6),
+                                      _kv(l10n.secondIp, u?.secondIp ?? '—'),
+                                    ],
+                                  ),
+                                ),
                               ),
-                              const SizedBox(height: 8),
-                              _kv(l10n.registrationNumber, u?.registrationNumber ?? '—'),
-                              const SizedBox(height: 6),
-                              _kv(l10n.firstIp, u?.firstIp ?? '—'),
-                              const SizedBox(height: 6),
-                              _kv(l10n.secondIp, u?.secondIp ?? '—'),
-                            ],
-                          ),
-                        ),
-                      ),
 
-                      if (st.loading)
-                        const Padding(
-                          padding: EdgeInsets.only(top: 8.0),
-                          child: Center(child: CircularProgressIndicator()),
-                        ),
-                      if (st.error != null)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 8.0),
-                          child: Center(child: Text(st.error!, style: const TextStyle(color: Colors.red))),
-                        ),
+                              if (st.loading)
+                                const Padding(
+                                  padding: EdgeInsets.only(top: 8.0),
+                                  child: Center(child: CircularProgressIndicator()),
+                                ),
+                              if (st.error != null)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 8.0),
+                                  child: Center(child: Text(st.error!, style: const TextStyle(color: Colors.red))),
+                                ),
+                            ],
+                          );
+                        },
+                      ),
                     ],
-                  );
-                },
+                  ),
+                ),
               ),
-              const Spacer(),
+
+              // ✅ Boutons du bas fixes (inchangés, mais on garde du safe-area)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                padding: EdgeInsets.fromLTRB(
+                  24,
+                  12,
+                  24,
+                  24 + MediaQuery.of(context).viewPadding.bottom,
+                ),
                 child: Column(
                   children: [
                     SizedBox(
@@ -263,14 +268,10 @@ class _UserPageContent extends StatelessWidget {
                             builder: (_) => EditProfileSheet(initial: u),
                           );
 
-                          // Pour l'instant : juste debug / snackbar (pas de backend)
-                          if (result != null && context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text(l10n.profileEditComingSoon)),
-                            );
+                          if (context.mounted) {
+                            context.read<UserOverviewCubit>().loadCached();
                           }
                         },
-
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -286,7 +287,8 @@ class _UserPageContent extends StatelessWidget {
                             ),
                             icon: busy
                                 ? const SizedBox(
-                              width: 18, height: 18,
+                              width: 18,
+                              height: 18,
                               child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                             )
                                 : const Icon(Icons.logout),
@@ -296,12 +298,12 @@ class _UserPageContent extends StatelessWidget {
                         );
                       },
                     ),
-                    const SizedBox(height: 24),
                   ],
                 ),
               ),
             ],
           ),
+
         ),
       ),
     );

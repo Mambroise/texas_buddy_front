@@ -372,6 +372,9 @@ class L10nEn extends L10n {
   String get phone => 'Phone number';
 
   @override
+  String get profileUpdateError => 'Unable to update your profile.';
+
+  @override
   String get profileEditSubtitle => 'Update your contact details and location.';
 
   @override
