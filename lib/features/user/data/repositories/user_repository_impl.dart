@@ -34,4 +34,23 @@ class UserRepositoryImpl implements UserRepository {
 
   @override
   Future<void> clearLocal() => local.clear();
+
+  @override
+  Future<UserProfile> updateMeAndCache({
+    String? email,
+    String? address,
+    String? phone,
+    String? country,
+  }) async {
+    final dto = await remote.patchMe(
+      email: email,
+      address: address,
+      phone: phone,
+      country: country,
+    );
+    final user = dto.toDomain();
+    await local.upsert(user);
+    return user;
+  }
+
 }

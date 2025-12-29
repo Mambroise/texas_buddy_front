@@ -613,6 +613,12 @@ abstract class L10n {
   /// **'Cancel'**
   String get tripCreateCancel;
 
+  /// No description provided for @cancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel'**
+  String get cancel;
+
   /// No description provided for @tripCreateCreate.
   ///
   /// In en, this message translates to:
@@ -751,6 +757,12 @@ abstract class L10n {
   /// **'Save'**
   String get tripEditSave;
 
+  /// No description provided for @save.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get save;
+
   /// No description provided for @tripNoAddress.
   ///
   /// In en, this message translates to:
@@ -762,6 +774,42 @@ abstract class L10n {
   /// In en, this message translates to:
   /// **'Add an address'**
   String get addHotelAddress;
+
+  /// No description provided for @country.
+  ///
+  /// In en, this message translates to:
+  /// **'Country'**
+  String get country;
+
+  /// No description provided for @phone.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone number'**
+  String get phone;
+
+  /// No description provided for @profileUpdateError.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to update your profile.'**
+  String get profileUpdateError;
+
+  /// No description provided for @profileEditSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Update your contact details and location.'**
+  String get profileEditSubtitle;
+
+  /// No description provided for @fieldRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'This field is required'**
+  String get fieldRequired;
+
+  /// No description provided for @invalidEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a valid email address'**
+  String get invalidEmail;
 
   /// No description provided for @addressFormTitle.
   ///
@@ -954,6 +1002,12 @@ abstract class L10n {
   /// In en, this message translates to:
   /// **'Close'**
   String get interestsClose;
+
+  /// No description provided for @close.
+  ///
+  /// In en, this message translates to:
+  /// **'Close'**
+  String get close;
 
   /// No description provided for @interestsMinOneError.
   ///

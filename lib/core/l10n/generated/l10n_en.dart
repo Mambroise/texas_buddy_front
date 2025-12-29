@@ -281,6 +281,9 @@ class L10nEn extends L10n {
   String get tripCreateCancel => 'Cancel';
 
   @override
+  String get cancel => 'Cancel';
+
+  @override
   String get tripCreateCreate => 'Create';
 
   @override
@@ -354,10 +357,31 @@ class L10nEn extends L10n {
   String get tripEditSave => 'Save';
 
   @override
+  String get save => 'Save';
+
+  @override
   String get tripNoAddress => 'No address';
 
   @override
   String get addHotelAddress => 'Add an address';
+
+  @override
+  String get country => 'Country';
+
+  @override
+  String get phone => 'Phone number';
+
+  @override
+  String get profileUpdateError => 'Unable to update your profile.';
+
+  @override
+  String get profileEditSubtitle => 'Update your contact details and location.';
+
+  @override
+  String get fieldRequired => 'This field is required';
+
+  @override
+  String get invalidEmail => 'Please enter a valid email address';
 
   @override
   String get addressFormTitle => 'Set hotel address';
@@ -458,6 +482,9 @@ class L10nEn extends L10n {
 
   @override
   String get interestsClose => 'Close';
+
+  @override
+  String get close => 'Close';
 
   @override
   String get interestsMinOneError => 'Please select at least one interest.';
