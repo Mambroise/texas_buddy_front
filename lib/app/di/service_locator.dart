@@ -78,6 +78,7 @@ import 'package:texas_buddy/features/user/domain/usecases/fetch_and_cache_me_use
 import 'package:texas_buddy/features/user/domain/usecases/get_cached_user_usecase.dart';
 import 'package:texas_buddy/features/user/domain/usecases/fetch_interest_categories_usecase.dart';
 import 'package:texas_buddy/features/user/domain/usecases/save_user_interests_usecase.dart';
+import 'package:texas_buddy/features/user/domain/usecases/update_me_usecase.dart';
 import 'package:texas_buddy/features/planning/domain/usecases/trips/create_trip.dart';
 import 'package:texas_buddy/features/planning/domain/usecases/trips/list_trips.dart';
 
@@ -124,6 +125,7 @@ import 'package:texas_buddy/features/user/presentation/cubits/user_overview_cubi
 import 'package:texas_buddy/features/planning/presentation/cubits/trips_cubit.dart';
 import 'package:texas_buddy/features/planning/presentation/cubits/planning_overlay_cubit.dart';
 import 'package:texas_buddy/features/map/presentation/cubits/map_focus_cubit.dart';
+import 'package:texas_buddy/features/user/presentation/cubits/edit_profile_cubit.dart';
 
 final getIt = GetIt.instance;
 
@@ -302,6 +304,7 @@ Future<void> setupLocator(Dio dio) async {
   getIt.registerLazySingleton(() => DeleteTripStep(getIt<TripStepRepository>()));
 
   getIt.registerLazySingleton(() => UpdateTripStep(getIt<TripStepRepository>()));
+  getIt.registerLazySingleton<UpdateMeUseCase>(() => UpdateMeUseCase(getIt()));
 
   // ── App State (router) ───────────────────────────────────────────────────
   getIt.registerLazySingleton<AuthNotifier>(() => AuthNotifier(getIt<CheckSessionUseCase>()));
@@ -371,5 +374,8 @@ Future<void> setupLocator(Dio dio) async {
        ));
 
   getIt.registerFactory<MapFocusCubit>(() => MapFocusCubit());
+
+  getIt.registerFactory<EditProfileCubit>(() => EditProfileCubit(updateMe: getIt()));
+
 
 }

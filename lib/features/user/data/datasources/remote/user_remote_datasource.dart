@@ -11,6 +11,13 @@ import 'package:texas_buddy/features/user/data/dtos/user_profile_dto.dart';
 
 abstract class UserRemoteDataSource {
   Future<UserProfileDto> getMe();
+
+  Future<UserProfileDto> patchMe({
+    String? email,
+    String? address,
+    String? phone,
+    String? country,
+  });
 }
 
 class UserRemoteDataSourceImpl implements UserRemoteDataSource {
@@ -20,6 +27,25 @@ class UserRemoteDataSourceImpl implements UserRemoteDataSource {
   @override
   Future<UserProfileDto> getMe() async {
     final res = await dio.get('/users/users/me/');
+    return UserProfileDto.fromJson(res.data as Map<String, dynamic>);
+  }
+
+  @override
+  Future<UserProfileDto> patchMe({
+    String? email,
+    String? address,
+    String? phone,
+    String? country,
+  }) async {
+    final body = <String, dynamic>{};
+
+    // backend fields: email, address, phone, country
+    if (email != null) body['email'] = email;
+    if (address != null) body['address'] = address;
+    if (phone != null) body['phone'] = phone;
+    if (country != null) body['country'] = country;
+
+    final res = await dio.patch('/users/users/me/', data: body);
     return UserProfileDto.fromJson(res.data as Map<String, dynamic>);
   }
 }

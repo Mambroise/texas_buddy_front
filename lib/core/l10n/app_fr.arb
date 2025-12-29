@@ -129,6 +129,7 @@
   "addHotelAddress": "ajouter l'adresse",
   "country": "Pays",
   "phone": "Numéro de téléphone",
+  "profileUpdateError": "Impossible de mettre à jour le profil.",
 
   "profileEditSubtitle": "Modifiez vos coordonnées et votre pays.",
 
