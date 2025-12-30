@@ -1,3 +1,11 @@
+//---------------------------------------------------------------------------
+//                           TEXAS BUDDY   ( 2 0 2 5 )
+//---------------------------------------------------------------------------
+// File   :features/planning/data/dtos/nearby_item_dto.dart
+// Author : Morice
+//-------------------------------------------------------------------------
+
+
 import 'package:texas_buddy/features/planning/data/dtos/activity_dto.dart';
 import 'package:texas_buddy/features/planning/data/dtos/event_dto.dart';
 import 'package:texas_buddy/features/planning/data/dtos/advertisement_dto.dart';
@@ -6,7 +14,10 @@ import 'package:texas_buddy/features/planning/data/dtos/advertisement_dto.dart';
 class NearbyItemDto {
   final String type;
   final bool isAdvertisement;
-  final double distance;
+
+  /// ⛔️ Nearby endpoint no longer returns distance (computed later on detail open)
+  final double? distance;
+
   final ActivityDto? activity;
   final EventDto? event;
   final AdvertisementDto? advertisement;
@@ -14,7 +25,7 @@ class NearbyItemDto {
   NearbyItemDto({
     required this.type,
     required this.isAdvertisement,
-    required this.distance,
+    this.distance,
     this.activity,
     this.event,
     this.advertisement,
@@ -24,10 +35,13 @@ class NearbyItemDto {
     final itemType = json['type'] as String;
     final isAd = json['is_advertisement'] as bool;
 
+    final rawDistance = json['distance'];
+    final parsedDistance = rawDistance is num ? rawDistance.toDouble() : null;
+
     return NearbyItemDto(
       type: itemType,
       isAdvertisement: isAd,
-      distance: (json['distance'] as num).toDouble(),
+      distance: parsedDistance,
       activity: itemType == 'activity' && !isAd ? ActivityDto.fromJson(json) : null,
       event: itemType == 'event' ? EventDto.fromJson(json) : null,
       advertisement: isAd ? AdvertisementDto.fromJson(json) : null,
@@ -38,10 +52,10 @@ class NearbyItemDto {
     final map = <String, Object?>{
       'type': type,
       'is_advertisement': isAdvertisement,
-      'distance': distance,
+      if (distance != null) 'distance': distance,
     };
 
-    // ✅ On garde ton comportement : on "flat" le contenu spécifique dans la map
+    // ✅ flat le contenu spécifique dans la map
     if (activity != null) map.addAll(activity!.toJson());
     if (event != null) map.addAll(event!.toJson());
     if (advertisement != null) map.addAll(advertisement!.toJson());

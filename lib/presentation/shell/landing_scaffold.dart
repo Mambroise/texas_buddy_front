@@ -91,6 +91,7 @@ import 'package:texas_buddy/features/planning/presentation/blocs/trips/trips_sta
 import 'package:texas_buddy/features/map/presentation/blocs/detail/detail_panel_bloc.dart';
 import 'package:texas_buddy/features/map/domain/usecases/get_activity_detail.dart';
 import 'package:texas_buddy/features/map/domain/usecases/get_event_detail.dart';
+import 'package:texas_buddy/features/planning/domain/usecases/travel/compute_travel.dart';
 
 import 'package:texas_buddy/app/di/service_locator.dart';
 import 'package:texas_buddy/features/user/domain/usecases/get_cached_user_usecase.dart';
@@ -203,11 +204,15 @@ class _LandingScaffoldState extends State<LandingScaffold> {
         BlocProvider<AllEventsBloc>(create: (_) => getIt<AllEventsBloc>()),
         BlocProvider<MapModeCubit>(create: (_) => MapModeCubit()),
         BlocProvider(create: (_) => getIt<MapFocusCubit>()),
-        BlocProvider<DetailPanelBloc>(create: (_) => DetailPanelBloc(
+        BlocProvider<DetailPanelBloc>(
+          create: (ctx) => DetailPanelBloc(
             getActivity: getIt<GetActivityDetail>(),
-            getEvent:    getIt<GetEventDetail>(),
+            getEvent: getIt<GetEventDetail>(),
+            mapFocusCubit: ctx.read<MapFocusCubit>(),
+            computeTravel: getIt<ComputeTravel>(),
           ),
         ),
+
         BlocProvider<TripsCubit>(
           create: (_) => getIt<TripsCubit>(),
         ),

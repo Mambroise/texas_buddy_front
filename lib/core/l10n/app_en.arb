@@ -209,5 +209,24 @@
 
   "interestsMinOneError": "Please select at least one interest.",
   "interestsSaveSuccess": "Interests saved.",
-  "interestsSaveError": "We couldn't save your interests."
+  "interestsSaveError": "We couldn't save your interests.",
+
+  "travelFromUser": "your location",
+  "travelFromPrevStep": "the previous step",
+  "travelFromHotel": "your hotel",
+  "travelFromDallas": "Dallas downtown",
+
+  "travelInfoLine": "{distance}, {duration} from {from}",
+  "@travelInfoLine": {
+    "placeholders": {
+      "distance": { "type": "String" },
+      "duration": { "type": "String" },
+      "from": { "type": "String" }
+    }
+  },
+
+  "reservationRequired": "Reservation required",
+  "averagePriceLabel": "Average price:",
+  "averageDurationLabel": "Average duration:"
+
 }

@@ -10,7 +10,6 @@
 // Data repository impl with in-memory cache TTL
 //---------------------------------------------------------------------------
 
-import 'dart:math' as math;
 
 import '../../domain/entities/nearby_item.dart';
 import '../../domain/repositories/nearby_repository.dart';
@@ -52,10 +51,6 @@ class NearbyRepositoryImpl implements NearbyRepository {
 
     final items = _toDomainList(raw);
 
-    // distance locale si besoin
-    if (q.centerLat != null && q.centerLng != null) {
-      _fillMissingDistances(items, q.centerLat!, q.centerLng!);
-    }
     _stableSort(items);
 
     // MAJ cache
@@ -85,7 +80,6 @@ class NearbyRepositoryImpl implements NearbyRepository {
     );
 
     final items = _toDomainList(raw);
-    _fillMissingDistances(items, latitude, longitude);
     _stableSort(items);
     return items;
   }
@@ -119,9 +113,6 @@ class NearbyRepositoryImpl implements NearbyRepository {
     );
 
     final items = _toDomainList(raw);
-    if (centerLat != null && centerLng != null) {
-      _fillMissingDistances(items, centerLat, centerLng);
-    }
     _stableSort(items);
     return items;
   }
@@ -141,27 +132,6 @@ class NearbyRepositoryImpl implements NearbyRepository {
     return const <NearbyItem>[];
   }
 
-  void _fillMissingDistances(List<NearbyItem> items, double refLat, double refLng) {
-    double toRad(double d) => d * math.pi / 180.0;
-    double haversineKm(double lat1, double lon1, double lat2, double lon2) {
-      const R = 6371.0;
-      final dLat = toRad(lat2 - lat1);
-      final dLon = toRad(lon2 - lon1);
-      final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
-          math.cos(toRad(lat1)) * math.cos(toRad(lat2)) *
-              math.sin(dLon / 2) * math.sin(dLon / 2);
-      final c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
-      return R * c;
-    }
-
-    for (var i = 0; i < items.length; i++) {
-      if (items[i].distanceKm == null) {
-        final d = haversineKm(refLat, refLng, items[i].latitude, items[i].longitude);
-        items[i] = items[i].copyWith(distanceKm: d);
-      }
-    }
-  }
-
   void _stableSort(List<NearbyItem> items) {
     items.sort((a, b) {
       final adDelta = (b.isAdvertisement ? 1 : 0) - (a.isAdvertisement ? 1 : 0);
@@ -170,9 +140,9 @@ class NearbyRepositoryImpl implements NearbyRepository {
       final promoDelta = (b.hasPromotion ? 1 : 0) - (a.hasPromotion ? 1 : 0);
       if (promoDelta != 0) return promoDelta;
 
-      final da = a.distanceKm ?? double.infinity;
-      final db = b.distanceKm ?? double.infinity;
-      return da.compareTo(db);
+      // fallback stable: name (case-insensitive)
+      return a.name.toLowerCase().compareTo(b.name.toLowerCase());
     });
   }
+
 }

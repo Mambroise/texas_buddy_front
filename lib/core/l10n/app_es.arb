@@ -184,6 +184,23 @@
     "description": "Mensaje cuando se intenta soltar un step en un horario ocupado"
   },
 
+  "travelFromUser": "votre position",
+  "travelFromPrevStep": "la précédente étape",
+  "travelFromHotel": "votre hôtel",
+  "travelFromDallas": "Dallas centre",
+
+  "travelInfoLine": "{distance}, {duration} à partir de {from}",
+  "@travelInfoLine": {
+    "placeholders": {
+      "distance": { "type": "String" },
+      "duration": { "type": "String" },
+      "from": { "type": "String" }
+    }
+  },
+  "reservationRequired": "Se requiere reserva",
+  "averagePriceLabel": "Precio medio:",
+  "averageDurationLabel": "Duración media:",
+
   "interestsTitle": "Elige tus intereses",
   "interestsSubtitle": "Selecciona algunos temas para personalizar tus recomendaciones.",
   "myInterests": "Mis intereses",

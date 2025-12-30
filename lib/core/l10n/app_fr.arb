@@ -201,6 +201,24 @@
 
   "interestsMinOneError": "Choisis au moins un centre d’intérêt.",
   "interestsSaveSuccess": "Centres d’intérêt enregistrés.",
-  "interestsSaveError": "Impossible d’enregistrer tes centres d’intérêt."
+  "interestsSaveError": "Impossible d’enregistrer tes centres d’intérêt.",
+
+  "travelFromUser": "votre position",
+  "travelFromPrevStep": "la précédente étape",
+  "travelFromHotel": "votre hôtel",
+  "travelFromDallas": "Dallas centre",
+
+  "travelInfoLine": "{distance}, {duration} à partir de {from}",
+  "@travelInfoLine": {
+    "placeholders": {
+      "distance": { "type": "String" },
+      "duration": { "type": "String" },
+      "from": { "type": "String" }
+    }
+  },
+  "reservationRequired": "Réservation requise",
+  "averagePriceLabel": "Prix moyen :",
+  "averageDurationLabel": "Durée moyenne :"
+
 
 }
