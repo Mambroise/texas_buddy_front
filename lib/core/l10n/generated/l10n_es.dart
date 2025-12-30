@@ -494,4 +494,30 @@ class L10nEs extends L10n {
 
   @override
   String get interestsSaveError => 'No pudimos guardar tus intereses.';
+
+  @override
+  String get travelFromUser => 'votre position';
+
+  @override
+  String get travelFromPrevStep => 'la précédente étape';
+
+  @override
+  String get travelFromHotel => 'votre hôtel';
+
+  @override
+  String get travelFromDallas => 'Dallas centre';
+
+  @override
+  String travelInfoLine(String distance, String duration, String from) {
+    return '$distance, $duration à partir de $from';
+  }
+
+  @override
+  String get reservationRequired => 'Se requiere reserva';
+
+  @override
+  String get averagePriceLabel => 'Precio medio:';
+
+  @override
+  String get averageDurationLabel => 'Duración media:';
 }

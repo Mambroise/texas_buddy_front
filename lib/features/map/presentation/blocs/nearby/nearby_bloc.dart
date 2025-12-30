@@ -27,7 +27,7 @@ class NearbyBloc extends Bloc<NearbyEvent, NearbyState> {
   NearbyBloc({
     required this.getNearby,
     required this.getNearbyInBounds,
-    required this.getCachedInBounds, // NEW
+    required this.getCachedInBounds,
   }) : super(const NearbyState.initial()) {
     on<NearbyRequested>(_onRequested);
     on<NearbyRequestedBounds>(_onRequestedBounds);

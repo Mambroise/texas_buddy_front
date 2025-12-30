@@ -1026,6 +1026,54 @@ abstract class L10n {
   /// In en, this message translates to:
   /// **'We couldn\'t save your interests.'**
   String get interestsSaveError;
+
+  /// No description provided for @travelFromUser.
+  ///
+  /// In en, this message translates to:
+  /// **'your location'**
+  String get travelFromUser;
+
+  /// No description provided for @travelFromPrevStep.
+  ///
+  /// In en, this message translates to:
+  /// **'the previous step'**
+  String get travelFromPrevStep;
+
+  /// No description provided for @travelFromHotel.
+  ///
+  /// In en, this message translates to:
+  /// **'your hotel'**
+  String get travelFromHotel;
+
+  /// No description provided for @travelFromDallas.
+  ///
+  /// In en, this message translates to:
+  /// **'Dallas downtown'**
+  String get travelFromDallas;
+
+  /// No description provided for @travelInfoLine.
+  ///
+  /// In en, this message translates to:
+  /// **'{distance}, {duration} from {from}'**
+  String travelInfoLine(String distance, String duration, String from);
+
+  /// No description provided for @reservationRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Reservation required'**
+  String get reservationRequired;
+
+  /// No description provided for @averagePriceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Average price:'**
+  String get averagePriceLabel;
+
+  /// No description provided for @averageDurationLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Average duration:'**
+  String get averageDurationLabel;
 }
 
 class _L10nDelegate extends LocalizationsDelegate<L10n> {

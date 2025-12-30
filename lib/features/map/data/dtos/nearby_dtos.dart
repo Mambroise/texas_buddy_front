@@ -207,7 +207,8 @@ class NearbyItemDto {
       averageRating: json['average_rating'] == null ? null : asDouble(json['average_rating']),
       categories: catKeys, // ✅ clés normalisées (fa-xxx si dispo)
       imageUrl: json['image']?.toString(),
-      distanceKm: json['distance'] == null ? null : asDouble(json['distance']),
+      // Nearby endpoint no longer returns distance (computed later when opening details)
+      distanceKm: null,
       primaryCategory: primaryCatKey, // ✅ clé normalisée aussi
       startDateTime: asDate(startRaw),
       endDateTime: asDate(endRaw),
