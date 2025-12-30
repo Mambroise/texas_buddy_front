@@ -8,8 +8,15 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+import 'package:texas_buddy/core/l10n/l10n_ext.dart';
+import 'package:texas_buddy/core/utils/use_miles.dart';
+
 import '../blocs/detail/detail_panel_bloc.dart';
 import 'package:texas_buddy/features/map/presentation/widgets/expandable_text.dart';
+import 'package:texas_buddy/features/map/presentation/cubits/map_focus_cubit.dart';
+import 'package:texas_buddy/features/map/domain/entities/detail_models.dart';
+
 
 class DetailPanel extends StatelessWidget {
   final VoidCallback onClose;
@@ -28,9 +35,7 @@ class DetailPanel extends StatelessWidget {
     return BlocBuilder<DetailPanelBloc, DetailPanelState>(
       buildWhen: (p, n) => p.runtimeType != n.runtimeType || p != n,
       builder: (context, state) {
-        if (state is DetailHidden) {
-          return const SizedBox.shrink();
-        }
+        if (state is DetailHidden) return const SizedBox.shrink();
 
         Widget inner;
         switch (state) {
@@ -44,10 +49,28 @@ class DetailPanel extends StatelessWidget {
               height: 120,
               child: Center(child: Text(message, style: theme.textTheme.bodyMedium)),
             );
-          case DetailActivityLoaded(entity: final entity):
-            inner = _ActivityDetailView(entity: entity, onClose: onClose);
-          case DetailEventLoaded(entity: final entity):
-            inner = _EventDetailView(entity: entity, onClose: onClose);
+          case DetailActivityLoaded(
+          entity: final entity,
+          travel: final travel,
+          focusSource: final focusSource,
+          ):
+            inner = _ActivityDetailView(
+              entity: entity,
+              travel: travel,
+              focusSource: focusSource,
+              onClose: onClose,
+            );
+          case DetailEventLoaded(
+          entity: final entity,
+          travel: final travel,
+          focusSource: final focusSource,
+          ):
+            inner = _EventDetailView(
+              entity: entity,
+              travel: travel,
+              focusSource: focusSource,
+              onClose: onClose,
+            );
           default:
             inner = const SizedBox.shrink();
         }
@@ -55,7 +78,7 @@ class DetailPanel extends StatelessWidget {
         return Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 👉 Handle pour drag
+            // Handle
             Container(
               width: 40,
               height: 5,
@@ -65,8 +88,6 @@ class DetailPanel extends StatelessWidget {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-
-            // 👉 Contenu scrollable sans card, juste padding
             Flexible(
               child: SingleChildScrollView(
                 controller: scrollController,
@@ -121,11 +142,55 @@ bool _isByReservation(dynamic e) {
   }
 }
 
+String _fromLabel(BuildContext context, MapFocusSource src) {
+  final l10n = context.l10n;
+  return switch (src) {
+    MapFocusSource.user => l10n.travelFromUser,
+    MapFocusSource.tripStep => l10n.travelFromPrevStep,
+    MapFocusSource.tripDay => l10n.travelFromHotel,
+    MapFocusSource.dallas => l10n.travelFromDallas,
+  };
+}
 
+Text _travelLine(BuildContext context, TravelInfo? travel, MapFocusSource? src) {
+  final l10n = context.l10n;
+  final useMiles = useMilesForLocale(Localizations.maybeLocaleOf(context));
+
+  if (travel == null || src == null) return const Text('');
+
+  final distance = formatDistanceFromMeters(
+    meters: travel.meters,
+    useMiles: useMiles,
+    locale: Localizations.maybeLocaleOf(context),
+  );
+
+  final duration = formatMinutes(travel.minutes);
+  final from = _fromLabel(context, src);
+
+  return Text(
+    l10n.travelInfoLine(distance, duration, from),
+    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+      color: Colors.green,
+      fontWeight: FontWeight.w600,
+    ),
+  );
+}
+
+// --- Views ----------------------------------------------------------------
 
 class _ActivityDetailView extends StatelessWidget {
-  final dynamic entity; final VoidCallback onClose;
-  const _ActivityDetailView({required this.entity, required this.onClose});
+  final ActivityDetailEntity entity;
+  final TravelInfo? travel;
+  final MapFocusSource? focusSource;
+  final VoidCallback onClose;
+
+  const _ActivityDetailView({
+    required this.entity,
+    required this.onClose,
+    this.travel,
+    this.focusSource,
+  });
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -134,15 +199,28 @@ class _ActivityDetailView extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Titre + close
-        Row(children: [
-          Expanded(child: Text(entity.name, style: theme.textTheme.titleLarge)),
-          IconButton(onPressed: onClose, icon: const Icon(Icons.close))
-        ]),
+        // ✅ Titre gros + close
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                entity.name,
+                style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+              ),
+            ),
+            IconButton(onPressed: onClose, icon: const Icon(Icons.close)),
+          ],
+        ),
+
+        // ✅ Travel line (vert)
+        if (travel != null && focusSource != null) ...[
+          const SizedBox(height: 2),
+          _travelLine(context, travel, focusSource),
+        ],
 
         // PrimaryCategory + ❤️ si staff_favorite
         if (entity.primaryCategory != null) ...[
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           Row(
             children: [
               const Icon(Icons.label_rounded, size: 18),
@@ -161,7 +239,6 @@ class _ActivityDetailView extends StatelessWidget {
 
         const SizedBox(height: 8),
 
-        // Catégories (chips, capitalisées)
         Wrap(
           spacing: 6,
           runSpacing: -8,
@@ -171,22 +248,22 @@ class _ActivityDetailView extends StatelessWidget {
               .toList(),
         ),
 
-        // ⚠️ Sur réservation
         if (_isByReservation(entity)) ...[
           const SizedBox(height: 6),
           Row(
-            children: const [
-              Icon(Icons.warning_amber_rounded, color: Colors.orange),
-              SizedBox(width: 6),
-              Text('Sur réservation',
-                  style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w600)),
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+              const SizedBox(width: 6),
+              Text(
+                context.l10n.reservationRequired, // ✅ ajoute une clé l10n si tu veux
+                style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.w600),
+              ),
             ],
           ),
         ],
 
         const SizedBox(height: 8),
 
-        // Image
         if (entity.image != null)
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
@@ -195,7 +272,6 @@ class _ActivityDetailView extends StatelessWidget {
 
         const SizedBox(height: 8),
 
-        // Description
         if (entity.description != null && entity.description!.isNotEmpty)
           ExpandableText(
             entity.description!,
@@ -205,31 +281,32 @@ class _ActivityDetailView extends StatelessWidget {
 
         const SizedBox(height: 10),
 
-        // Prix moyen
         Row(
           children: [
             const Icon(Icons.attach_money, size: 18),
             const SizedBox(width: 6),
-            Text('Prix moyen : ${_formatPrice(context, entity.price)}',
-                style: theme.textTheme.bodyMedium),
+            Text(
+              '${context.l10n.averagePriceLabel} ${_formatPrice(context, entity.price)}',
+              style: theme.textTheme.bodyMedium,
+            ),
           ],
         ),
 
         const SizedBox(height: 6),
 
-        // Durée moyenne
         Row(
           children: [
             const Icon(Icons.timelapse, size: 18),
             const SizedBox(width: 6),
-            Text('Durée moyenne : ${_formatDuration(entity.duration)}',
-                style: theme.textTheme.bodyMedium),
+            Text(
+              '${context.l10n.averageDurationLabel} ${_formatDuration(entity.duration)}',
+              style: theme.textTheme.bodyMedium,
+            ),
           ],
         ),
 
         const SizedBox(height: 6),
 
-        // Site internet
         if (entity.website != null && entity.website!.isNotEmpty)
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -252,30 +329,38 @@ class _ActivityDetailView extends StatelessWidget {
 
         const SizedBox(height: 6),
 
-        // Promo
         if (entity.currentPromotion != null)
-          Row(children: [
-            const Icon(Icons.local_offer),
-            const SizedBox(width: 6),
-            Text(entity.currentPromotion!.title),
-          ]),
+          Row(
+            children: [
+              const Icon(Icons.local_offer),
+              const SizedBox(width: 6),
+              Text(entity.currentPromotion!.title),
+            ],
+          ),
       ],
     );
   }
 }
 
 class _EventDetailView extends StatelessWidget {
-  final dynamic entity;
+  final EventDetailEntity entity;
+  final TravelInfo? travel;
+  final MapFocusSource? focusSource;
   final VoidCallback onClose;
-  const _EventDetailView({required this.entity, required this.onClose});
+
+  const _EventDetailView({
+    required this.entity,
+    required this.onClose,
+    this.travel,
+    this.focusSource,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    // Dates
     final DateTime? start = entity.start?.toLocal();
-    final DateTime? end   = entity.end?.toLocal();
+    final DateTime? end = entity.end?.toLocal();
     final String locale = Localizations.localeOf(context).toString();
     final DateFormat df = DateFormat.yMMMd(locale);
 
@@ -283,8 +368,8 @@ class _EventDetailView extends StatelessWidget {
       if (s == null || e == null) return false;
       DateTime dOnly(DateTime d) => DateTime(d.year, d.month, d.day);
       final today = dOnly(DateTime.now());
-      return dOnly(s).isBefore(today.add(const Duration(days: 1)))
-          && dOnly(e).isAfter(today.subtract(const Duration(days: 1)));
+      return dOnly(s).isBefore(today.add(const Duration(days: 1))) &&
+          dOnly(e).isAfter(today.subtract(const Duration(days: 1)));
     }
 
     final bool active = isBetweenToday(start, end);
@@ -298,32 +383,48 @@ class _EventDetailView extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Titre + close
-        Row(children: [
-          Expanded(child: Text(entity.name, style: theme.textTheme.titleLarge)),
-          IconButton(onPressed: onClose, icon: const Icon(Icons.close))
-        ]),
+        // ✅ Titre gros + close
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                entity.name,
+                style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+              ),
+            ),
+            IconButton(onPressed: onClose, icon: const Icon(Icons.close)),
+          ],
+        ),
+
+        // ✅ Travel line (vert)
+        if (travel != null && focusSource != null) ...[
+          const SizedBox(height: 2),
+          _travelLine(context, travel, focusSource),
+        ],
 
         // Dates
         if (start != null && end != null) ...[
-          const SizedBox(height: 6),
-          Row(children: [
-            const Icon(Icons.schedule, size: 18),
-            const SizedBox(width: 6),
-            Text('${df.format(start)} — ${df.format(end)}', style: dateStyle),
-          ]),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Icon(Icons.schedule, size: 18),
+              const SizedBox(width: 6),
+              Text('${df.format(start)} — ${df.format(end)}', style: dateStyle),
+            ],
+          ),
         ] else if (start != null) ...[
-          const SizedBox(height: 6),
-          Row(children: [
-            const Icon(Icons.schedule, size: 18),
-            const SizedBox(width: 6),
-            Text(df.format(start), style: dateStyle),
-          ]),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              const Icon(Icons.schedule, size: 18),
+              const SizedBox(width: 6),
+              Text(df.format(start), style: dateStyle),
+            ],
+          ),
         ],
 
         const SizedBox(height: 6),
 
-        // PrimaryCategory + ❤️ si staff_favorite
         if (entity.primaryCategory != null) ...[
           const SizedBox(height: 4),
           Row(
@@ -344,7 +445,6 @@ class _EventDetailView extends StatelessWidget {
 
         const SizedBox(height: 8),
 
-        // Catégories
         Wrap(
           spacing: 6,
           runSpacing: -8,
@@ -354,22 +454,22 @@ class _EventDetailView extends StatelessWidget {
               .toList(),
         ),
 
-        // ⚠️ Sur réservation
         if (_isByReservation(entity)) ...[
           const SizedBox(height: 6),
           Row(
-            children: const [
-              Icon(Icons.warning_amber_rounded, color: Colors.orange),
-              SizedBox(width: 6),
-              Text('Sur réservation',
-                  style: TextStyle(color: Colors.orange, fontWeight: FontWeight.w600)),
+            children: [
+              const Icon(Icons.warning_amber_rounded, color: Colors.orange),
+              const SizedBox(width: 6),
+              Text(
+                context.l10n.reservationRequired,
+                style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.w600),
+              ),
             ],
           ),
         ],
 
         const SizedBox(height: 8),
 
-        // Image
         if (entity.image != null)
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
@@ -378,7 +478,6 @@ class _EventDetailView extends StatelessWidget {
 
         const SizedBox(height: 8),
 
-        // Description
         if (entity.description != null && entity.description!.isNotEmpty)
           ExpandableText(
             entity.description!,
@@ -388,31 +487,32 @@ class _EventDetailView extends StatelessWidget {
 
         const SizedBox(height: 10),
 
-        // Prix moyen
         Row(
           children: [
             const Icon(Icons.attach_money, size: 18),
             const SizedBox(width: 6),
-            Text('Prix moyen : ${_formatPrice(context, entity.price)}',
-                style: theme.textTheme.bodyMedium),
+            Text(
+              '${context.l10n.averagePriceLabel} ${_formatPrice(context, entity.price)}',
+              style: theme.textTheme.bodyMedium,
+            ),
           ],
         ),
 
         const SizedBox(height: 6),
 
-        // Durée moyenne
         Row(
           children: [
             const Icon(Icons.timelapse, size: 18),
             const SizedBox(width: 6),
-            Text('Durée moyenne : ${_formatDuration(entity.duration)}',
-                style: theme.textTheme.bodyMedium),
+            Text(
+              '${context.l10n.averageDurationLabel} ${_formatDuration(entity.duration)}',
+              style: theme.textTheme.bodyMedium,
+            ),
           ],
         ),
 
         const SizedBox(height: 6),
 
-        // Site internet
         if (entity.website != null && entity.website!.isNotEmpty)
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -435,7 +535,6 @@ class _EventDetailView extends StatelessWidget {
 
         const SizedBox(height: 6),
 
-        // Promo
         if (entity.currentPromotion != null)
           Row(
             children: [

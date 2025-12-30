@@ -19,6 +19,7 @@ import 'package:texas_buddy/features/map/presentation/blocs/location/location_st
 import 'package:texas_buddy/features/map/presentation/cubits/map_focus_cubit.dart';
 
 import 'package:texas_buddy/features/planning/presentation/widgets/planning_overlay_dock.dart';
+import 'package:texas_buddy/features/planning/presentation/cubits/planning_overlay_cubit.dart';
 
 //detail activity and event
 import 'package:texas_buddy/features/map/presentation/blocs/detail/detail_panel_bloc.dart';
@@ -51,6 +52,8 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
 
   GoogleMapController? _controller;
   bool _didInitialCenter = false;
+  bool _didInitFocus = false;
+
 
   // Debounce for onCameraIdle
   Timer? _idleDebounce;
@@ -429,30 +432,52 @@ class _MapPageState extends State<MapPage> with AutomaticKeepAliveClientMixin {
 
         // 4) Initial location / recenter
         BlocListener<LocationBloc, LocationState>(
-          listenWhen: (prev, curr) =>
-          (!_didInitialCenter && curr.position != null) || curr.recenterRequested,
-          listener: (context, state) {
-            // Initial center (no fetch here)
-            if (!_didInitialCenter && state.position != null) {
-              final pos = state.position!;
+          listenWhen: (p, n) => p.position != n.position,
+          listener: (ctx, st) {
+            final pos = st.position;
+            if (pos == null) return;
+
+            if (_didInitFocus) return;
+
+            final focusCubit = ctx.read<MapFocusCubit>();
+
+            // ⚠️ init focus seulement si encore null (ou si tu veux forcer)
+            if (focusCubit.state == null) {
               if (_isInTexas(pos)) {
-                _moveCamera(pos);
+                focusCubit.focusUser(pos.latitude, pos.longitude, zoom: 14);
               } else {
-                _moveCameraToLatLng(_dallas, zoom: 12);
+                focusCubit.focusDallas(zoom: 12);
               }
-              _didInitialCenter = true;
             }
 
-            // Manual recenter
-            if (state.recenterRequested) {
-              if (state.position != null) {
-                _moveCamera(state.position!);
-              } else {
-                _moveCameraToLatLng(_dallas, zoom: 12);
-              }
+            _didInitFocus = true;
+          },
+        ),
+
+        // 5) Planning overlay: quand il se ferme => revenir au focus "par défaut"
+        BlocListener<PlanningOverlayCubit, PlanningOverlayState>(
+          listenWhen: (prev, curr) => prev.visible != curr.visible,
+          listener: (ctx, ovr) {
+            if (ovr.visible) return; // on ne réagit qu’à la fermeture
+
+            final focusCubit = ctx.read<MapFocusCubit>();
+            final src = focusCubit.state?.source;
+
+            // ✅ UX: on reset seulement si le focus actuel vient du planning
+            final cameFromPlanning = src == MapFocusSource.tripDay || src == MapFocusSource.tripStep;
+            if (!cameFromPlanning) return;
+
+            final pos = ctx.read<LocationBloc>().state.position;
+
+            if (pos != null && _isInTexas(pos)) {
+              focusCubit.focusUser(pos.latitude, pos.longitude, zoom: 14);
+            } else {
+              focusCubit.focusDallas(zoom: 12);
             }
           },
         ),
+
+
 
         BlocListener<MapFocusCubit, MapFocusState?>(
           listener: (ctx, st) {

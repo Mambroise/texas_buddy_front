@@ -494,4 +494,30 @@ class L10nFr extends L10n {
 
   @override
   String get interestsSaveError => 'Impossible d’enregistrer tes centres d’intérêt.';
+
+  @override
+  String get travelFromUser => 'votre position';
+
+  @override
+  String get travelFromPrevStep => 'la précédente étape';
+
+  @override
+  String get travelFromHotel => 'votre hôtel';
+
+  @override
+  String get travelFromDallas => 'Dallas centre';
+
+  @override
+  String travelInfoLine(String distance, String duration, String from) {
+    return '$distance, $duration à partir de $from';
+  }
+
+  @override
+  String get reservationRequired => 'Réservation requise';
+
+  @override
+  String get averagePriceLabel => 'Prix moyen :';
+
+  @override
+  String get averageDurationLabel => 'Durée moyenne :';
 }

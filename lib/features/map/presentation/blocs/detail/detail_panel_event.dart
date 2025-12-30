@@ -5,32 +5,40 @@
 // Author : Morice
 //---------------------------------------------------------------------------
 
-
 part of 'detail_panel_bloc.dart';
-
 
 enum DetailType { activity, event }
 
+sealed class DetailPanelEvent extends Equatable {
+  const DetailPanelEvent();
 
-/// Anchor used to position the card near marker/label if needed
-class PanelAnchor extends Equatable {
-  final double? screenDx; // screen x in px
-  final double? screenDy; // screen y in px
-  const PanelAnchor({this.screenDx, this.screenDy});
   @override
-  List<Object?> get props => [screenDx, screenDy];
+  List<Object?> get props => [];
 }
 
-
-sealed class DetailPanelEvent extends Equatable { const DetailPanelEvent(); @override List<Object?> get props => []; }
+class DetailCloseRequested extends DetailPanelEvent {
+  const DetailCloseRequested();
+}
 
 class DetailOpenRequested extends DetailPanelEvent {
   final DetailType type;
   final String idOrPlaceId;
   final bool byPlaceId;
-  final PanelAnchor? anchor; // Optionally pass marker screen point
-  const DetailOpenRequested({required this.type, required this.idOrPlaceId, this.byPlaceId=false, this.anchor});
+
+  /// UI anchor (si tu l’utilises)
+  final double? anchor;
+
+  /// ✅ NEW: langue ("fr"/"en"/"es") transmise au backend travel
+  final String? lang;
+
+  const DetailOpenRequested({
+    required this.type,
+    required this.idOrPlaceId,
+    required this.byPlaceId,
+    this.anchor,
+    this.lang,
+  });
+
+  @override
+  List<Object?> get props => [type, idOrPlaceId, byPlaceId, anchor, lang];
 }
-
-
-class DetailCloseRequested extends DetailPanelEvent { const DetailCloseRequested(); }

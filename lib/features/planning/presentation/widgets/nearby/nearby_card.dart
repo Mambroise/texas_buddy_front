@@ -12,19 +12,13 @@ import 'package:texas_buddy/features/map/presentation/blocs/detail/detail_panel_
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 
-//  helpers + widget de distance
-import 'package:texas_buddy/features/planning/presentation/widgets/nearby/distance_label.dart';
-
-
 class NearbyCard extends StatelessWidget {
   final NearbyItem item;
   final Widget? trailing;
   final bool dimmed;
-  final bool useMiles;
 
   const NearbyCard({super.key, 
     required this.item,
-    required this.useMiles,
     this.trailing,
     this.dimmed = false,
   });
@@ -37,15 +31,17 @@ class NearbyCard extends StatelessWidget {
         onTap: () {
           // 👉 Ouvre la bottom sheet de détail via le DetailPanelBloc
           final bloc = context.read<DetailPanelBloc>();
+          final lang = Localizations.localeOf(context).languageCode.toLowerCase();
+
           bloc.add(
             DetailOpenRequested(
-              type: item.kind == NearbyKind.event
-                  ? DetailType.event
-                  : DetailType.activity,
+              type: item.kind == NearbyKind.event ? DetailType.event : DetailType.activity,
               idOrPlaceId: item.id,
-              byPlaceId: false, // on utilise l'id "classique" du NearbyItem
+              byPlaceId: false,
+              lang: lang,
             ),
           );
+
         },
         child: Container(
           margin: const EdgeInsets.only(top: 12),
@@ -87,14 +83,6 @@ class NearbyCard extends StatelessWidget {
                   ],
                 ],
               ),
-
-              // Label distance discret en bas à droite
-              if (item.distanceKm != null)
-                Positioned(
-                  right: 8,
-                  bottom: 8,
-                  child: DistanceLabel(km: item.distanceKm!, useMiles: useMiles),
-                ),
             ],
           ),
         ),

@@ -13,8 +13,6 @@ import 'package:texas_buddy/features/map/presentation/blocs/nearby/nearby_bloc.d
 import 'package:texas_buddy/features/planning/presentation/widgets/no_glow_scroll.dart';
 import 'package:texas_buddy/features/planning/presentation/widgets/nearby/nearby_card.dart';
 
-//  helpers + widget de distance
-import 'package:texas_buddy/features/planning/presentation/widgets/nearby/distance_label.dart';
 
 class NearbyDraggableList extends StatefulWidget {
   final double maxCardWidth;
@@ -81,7 +79,6 @@ class _NearbyDraggableListState extends State<NearbyDraggableList> {
 
                   final card = NearbyCard(
                     item: it,
-                    useMiles: widget.useMiles,
                     dimmed: _draggingIndex == i,
                   );
 
@@ -106,8 +103,6 @@ class _NearbyDraggableListState extends State<NearbyDraggableList> {
     );
   }
 }
-
-
 
 class _DragFeedbackCard extends StatelessWidget {
   final NearbyItem item;
@@ -157,13 +152,6 @@ class _DragFeedbackCard extends StatelessWidget {
                 ),
               ],
             ),
-
-            if (item.distanceKm != null)
-              Positioned(
-                right: 8,
-                bottom: 8,
-                child: DistanceLabel(km: item.distanceKm!, useMiles: useMiles),
-              ),
           ],
         ),
       ),
