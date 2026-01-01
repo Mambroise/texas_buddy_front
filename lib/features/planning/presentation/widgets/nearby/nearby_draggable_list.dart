@@ -76,7 +76,7 @@ class _NearbyDraggableListState extends State<NearbyDraggableList> {
                   final it = items[i];
                   final cardWidth  = widget.maxCardWidth;
                   const cardHeight = 88.0;
-
+                  debugPrint('[NEARBY] ${it.name} match=${it.matchesUserInterest}');
                   final card = NearbyCard(
                     item: it,
                     dimmed: _draggingIndex == i,

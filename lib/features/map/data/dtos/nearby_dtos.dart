@@ -44,6 +44,10 @@ class NearbyItemDto {
   /// ✅ Durée en minutes (backend peut renvoyer int OU "HH:MM:SS")
   final int? durationMinutes;
 
+  /// ✅  True si primary_category match un intérêt user
+  final bool matchesUserInterest;
+
+
   const NearbyItemDto({
     required this.id,
     required this.type,
@@ -52,6 +56,7 @@ class NearbyItemDto {
     required this.longitude,
     required this.hasPromotion,
     required this.isAdvertisement,
+    required this.matchesUserInterest,
     this.averageRating,
     this.categories = const <String>[],
     this.imageUrl,
@@ -204,6 +209,9 @@ class NearbyItemDto {
       longitude: asDouble(lonRaw),
       hasPromotion: asBool(json['has_promotion']),
       isAdvertisement: asBool(json['is_advertisement']),
+      matchesUserInterest: asBool(
+        json['matches_user_interest'] ?? json['matchesUserInterest'],
+      ),
       averageRating: json['average_rating'] == null ? null : asDouble(json['average_rating']),
       categories: catKeys, // ✅ clés normalisées (fa-xxx si dispo)
       imageUrl: json['image']?.toString(),
@@ -229,6 +237,7 @@ class NearbyItemDto {
       longitude: longitude,
       hasPromotion: hasPromotion,
       isAdvertisement: isAdvertisement,
+      matchesUserInterest: matchesUserInterest,
       averageRating: averageRating,
       // on prend la valeur normalisée par fromJson (fa-xxx prioritaire, sinon name)
       primaryCategory: (primaryCategory != null && primaryCategory!.isNotEmpty)
