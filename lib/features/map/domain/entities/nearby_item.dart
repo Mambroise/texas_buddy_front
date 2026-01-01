@@ -23,9 +23,12 @@ class NearbyItem {
   final DateTime? startDateTime;
   final DateTime? endDateTime;
 
-  /// ✅ NEW: durée en minutes renvoyée par le backend (activity ou event)
+  /// ✅ durée en minutes renvoyée par le backend (activity ou event)
   /// (si null, l'UI peut fallback sur 60 ou sur end-start pour un event)
   final int? durationMinutes;
+
+  /// ✅ NEW: True si primary_category match un intérêt user
+  final bool matchesUserInterest;
 
   const NearbyItem({
     required this.id,
@@ -35,6 +38,7 @@ class NearbyItem {
     required this.longitude,
     required this.hasPromotion,
     this.isAdvertisement = false,
+    required this.matchesUserInterest,
     this.averageRating,
     this.primaryCategory,
     this.categories = const [],
@@ -53,6 +57,7 @@ class NearbyItem {
     double? longitude,
     bool? hasPromotion,
     bool? isAdvertisement,
+    bool? matchesUserInterest,
     double? averageRating,
     String? primaryCategory,
     List<String>? categories,
@@ -70,6 +75,7 @@ class NearbyItem {
       longitude: longitude ?? this.longitude,
       hasPromotion: hasPromotion ?? this.hasPromotion,
       isAdvertisement: isAdvertisement ?? this.isAdvertisement,
+      matchesUserInterest: matchesUserInterest ?? this.matchesUserInterest,
       averageRating: averageRating ?? this.averageRating,
       primaryCategory: primaryCategory ?? this.primaryCategory,
       categories: categories ?? this.categories,
